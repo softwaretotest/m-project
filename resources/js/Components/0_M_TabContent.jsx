@@ -206,7 +206,7 @@ export default function TabContent() {
         ) {
             add_field_APP_DATA();
         }
-        if (activeTab === "entities" && activeSubTab === "entities") {
+        if (is_ENTITIES) {
             add_field_ENTITIES();
         }
         if (
@@ -238,7 +238,9 @@ export default function TabContent() {
                 <input
                     type="text"
                     className={`new_field_name ${FIELDNAME_to_add ? "justify-items-center" : ""}`}
-                    placeholder="new field name"
+                    placeholder={
+                        is_ENTITIES ? "new table name" : "new field name"
+                    }
                     value={FIELDNAME_to_add}
                     onFocus={() => set_FIELDNAME_to_add("")}
                     onChange={(event) => handle_Fieldname_Change(event)}

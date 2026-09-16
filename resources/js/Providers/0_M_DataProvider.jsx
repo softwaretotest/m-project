@@ -1,6 +1,6 @@
 // resources/js/Providers/0_M_DataProvider.jsx
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { API } from "@/Configs/api";
 import { use_M_Store } from "@/Stores/0_M_Store";
 
@@ -9,7 +9,6 @@ export let GLOBAL_METADATA = null;
 const MetadataContext = createContext();
 
 export const M_DataProvider = ({ children }) => {
-    const M_value_Change = use_M_Store((state) => state.has_M_value_Change);
     const has_M_value_Change = use_M_Store((state) => state.has_M_value_Change);
     const set_has_M_value_Change = use_M_Store(
         (state) => state.set_has_M_value_Change,
@@ -18,7 +17,6 @@ export const M_DataProvider = ({ children }) => {
 
     const [metadata, setMetadata] = useState(null);
     const [loading, setLoading] = useState(true);
-    const M_value = use_M_Store.getState().M_value;
 
     useEffect(() => {
         const fetchMetadata = async () => {
@@ -39,8 +37,7 @@ export const M_DataProvider = ({ children }) => {
                     err.message,
                 );
 
-                // TODO: สร้างฟังก์ชันหรือยิง API ส่ง Initial Default Template ไปที่ Backend เพื่อสร้างไฟล์ขึ้นมาใหม่
-                // หรือกำหนด Default State ชั่วคราวให้หน้าจอเรนเดอร์ต่อได้ทันที
+                // TODO: automation case failer e.g fire API to send Initial Default Template to Backend to create new JSON
 
                 setLoading(false);
             }

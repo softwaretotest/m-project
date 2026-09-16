@@ -3,9 +3,9 @@
     "entities": {
         "USERS": [
             "f::NAME",
-            "f::IMAGE",
             "s::EMAIL",
-            "f::IS_ACTIVE"
+            "f::IS_ACTIVE",
+            "f::IMAGE"
         ],
         "SHOPS": [
             "f::NAME",

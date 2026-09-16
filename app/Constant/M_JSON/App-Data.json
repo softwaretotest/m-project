@@ -4,10 +4,15 @@
         "IMAGE": [
             "image",
             [
-                "d::STRING",
-                255
+                "d::DECIMAL",
+                10,
+                2
             ],
-            "u::FILE"
+            "u::FILE",
+            [
+                "cd::DEFAULT",
+                0
+            ]
         ],
         "NAME": [
             "name",
