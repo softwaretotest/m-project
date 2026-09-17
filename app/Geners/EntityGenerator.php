@@ -94,8 +94,8 @@ class EntityGenerator
             $definition = is_array($field) ? $field : [$field];
             $name       = $definition[0];
 
-            $meta  = Constant_APP_Reader::parse($definition);
-            $rules = Constant_APP_Reader::mapRules($definition);
+            $meta     = Constant_APP_Reader::parse($definition);
+            $fieldMeta = Constant_APP_Reader::getFieldMetadata($definition);
 
             $defaultLiteral = $meta['has_default']
                 ? var_export($meta['default'], true)
@@ -104,7 +104,7 @@ class EntityGenerator
             $propLines[] = "public readonly ?{$meta['php_type']} \${$name} = {$defaultLiteral},";
             $mapLines[]  = "{$name}: \$data['{$name}'] ?? {$defaultLiteral},";
             $arrLines[]  = "'{$name}' => \$this->{$name},";
-            $metaLines[] = "'{$name}' => '{$rules}',";
+            $metaLines[] = "'{$name}' => " . self::exportPhp($fieldMeta, 3) . ",";
         }
 
         $metadataMethod = "public static function getMetadata(): array\n"
@@ -122,6 +122,28 @@ class EntityGenerator
 
         self::ensureDir(gen_path('DTOs'));
         file_put_contents(gen_path("DTOs/{$entityName}DTO.php"), $output);
+    }
+
+    /** export array เป็น short syntax [] (var_export ให้ array() แบบเก่า อ่านยาก) */
+    private static function exportPhp($value, int $depth = 0): string
+    {
+        $pad     = str_repeat('    ', $depth);
+        $padItem = str_repeat('    ', $depth + 1);
+
+        if (is_array($value)) {
+            if ($value === []) {
+                return '[]';
+            }
+            $isList = array_is_list($value);
+            $parts  = [];
+            foreach ($value as $k => $v) {
+                $prefix  = $isList ? '' : var_export($k, true) . ' => ';
+                $parts[] = $padItem . $prefix . self::exportPhp($v, $depth + 1);
+            }
+            return "[\n" . implode(",\n", $parts) . ",\n" . $pad . "]";
+        }
+
+        return var_export($value, true);
     }
 
     // -----------------------------------------------------------------

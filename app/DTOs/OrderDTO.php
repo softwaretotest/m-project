@@ -34,10 +34,51 @@ final class OrderDTO extends BaseDTO
     public static function getMetadata(): array
     {
         return [
-            'order_nr' => 'nullable|string|max:255',
-            'product_id' => 'nullable|integer|exists:products,id',
-            'quantity' => 'required|numeric|decimal:0,2|max:99999999.99',
-            'confirm_order' => 'nullable|boolean',
+            'order_nr' => [
+                'type' => 'string',
+                'php_type' => 'string',
+                'input' => 'text',
+                'ui' => NULL,
+                'params' => [
+                    'length' => 255,
+                ],
+                'required' => false,
+                'default' => NULL,
+                'rules' => 'nullable|string|max:255',
+            ],
+            'product_id' => [
+                'type' => 'foreign',
+                'php_type' => 'int',
+                'input' => NULL,
+                'ui' => NULL,
+                'params' => [],
+                'required' => false,
+                'default' => NULL,
+                'rules' => 'nullable|integer|exists:products,id',
+            ],
+            'quantity' => [
+                'type' => 'decimal',
+                'php_type' => 'string',
+                'input' => 'number',
+                'ui' => NULL,
+                'params' => [
+                    'total_digits' => 10,
+                    'scale' => 2,
+                ],
+                'required' => true,
+                'default' => '1',
+                'rules' => 'required|numeric|decimal:0,2|max:99999999.99',
+            ],
+            'confirm_order' => [
+                'type' => 'boolean',
+                'php_type' => 'bool',
+                'input' => 'select',
+                'ui' => NULL,
+                'params' => [],
+                'required' => false,
+                'default' => false,
+                'rules' => 'nullable|boolean',
+            ],
         ];
     }
 }
