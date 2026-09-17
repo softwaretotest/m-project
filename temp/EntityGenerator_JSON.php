@@ -11,32 +11,20 @@ namespace App\Geners;
 class EntityGenerator_JSON
 {
     public static function runAll()
-
     {
-
         // 1. read SSOT
-
         $jsonPath = app_path('Constant/M_JSON/Entities.json');
-
         if (!file_exists($jsonPath)) {
-
-            throw new \Exception("ไม่พบไฟล์ SSOT ที่: {$jsonPath}");
+            throw new \Exception("file not found - SSOT : {$jsonPath}");
         }
 
-
         $data = json_decode(file_get_contents($jsonPath), true);
-
         $entities = $data['entities'] ?? [];
 
-
         // 2. loop through Entity
-
         foreach ($entities as $tableName => $fields) {
-
             // change TABLENAME e.g. ORDERS to Order
-
             $entityName = ucfirst(strtolower(rtrim($tableName, 'S')));
-
             self::generate($entityName);
         }
     }

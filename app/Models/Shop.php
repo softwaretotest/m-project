@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Shop extends Model
 {
+        protected $fillable = ['name', 'image', 'user_id'];
+
 
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

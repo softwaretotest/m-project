@@ -13,6 +13,7 @@ function gen_path($path = '')
 class EntityGenerator
 {
     private static bool $base_dto_deployed = false;
+    private static bool $base_controller_deployed = false;
 
     public static function runAll()
     {
@@ -40,31 +41,76 @@ class EntityGenerator
     {
         self::generateModel($entityName, $fields);
         self::generateDTO($entityName, $fields);
+        self::generateController($entityName, $fields);
     }
 
     // -----------------------------------------------------------------
+    // private static function generateModel($entityName, $fields)
+    // {
+    //     $stub    = file_get_contents(gen_path('Geners/Stub/model.stub'));
+    //     $methods = "";
+
+    //     foreach ($fields as $field) {
+    //         if (is_array($field) && in_array(cd::FOREIGN, $field, true)) {
+    //             echo "  - Generating relation method for foreign key: {$field[0]}\n";
+
+    //             $relationName = str_replace('_id', '', $field[0]);
+    //             $relatedClass = ucfirst($relationName);
+
+    //             $methods .= "\n    public function {$relationName}(): \\Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\n";
+    //             $methods .= "    {\n";
+    //             $methods .= "        return \$this->belongsTo(\\App\\Models\\{$relatedClass}::class);\n";
+    //             $methods .= "    }\n";
+    //         }
+    //     }
+
+    //     $output = str_replace('class Dummy', "class {$entityName}", $stub);
+
+    //     // แทนที่ '}' ตัวสุดท้ายเท่านั้น (ของเดิม str_replace แทนทุกตัว = พังถ้า stub มีหลายวงเล็บ)
+    //     $pos = strrpos($output, '}');
+    //     if ($pos !== false) {
+    //         $output = substr($output, 0, $pos) . $methods . "}\n";
+    //     }
+
+    //     self::ensureDir(gen_path('Models'));
+    //     file_put_contents(gen_path("Models/{$entityName}.php"), $output);
+    // }
+
     private static function generateModel($entityName, $fields)
     {
-        $stub    = file_get_contents(gen_path('Geners/Stub/model.stub'));
+        $stub = file_get_contents(gen_path('Geners/Stub/model.stub'));
         $methods = "";
+        $fillableArray = [];
 
         foreach ($fields as $field) {
+            // 1. เก็บชื่อฟิลด์เพื่อทำ fillable
+            $fieldName = is_array($field) ? $field[0] : $field;
+            $fillableArray[] = "'{$fieldName}'";
+
+            // 2. สร้าง Relation ถ้าเป็น Foreign Key
             if (is_array($field) && in_array(cd::FOREIGN, $field, true)) {
                 echo "  - Generating relation method for foreign key: {$field[0]}\n";
 
                 $relationName = str_replace('_id', '', $field[0]);
                 $relatedClass = ucfirst($relationName);
 
-                $methods .= "\n    public function {$relationName}(): \\Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\n";
+                $methods .= "\n    public function {$relationName}(): \Illuminate\Database\Eloquent\Relations\BelongsTo\n";
                 $methods .= "    {\n";
-                $methods .= "        return \$this->belongsTo(\\App\\Models\\{$relatedClass}::class);\n";
+                $methods .= "        return \$this->belongsTo(\App\Models\\{$relatedClass}::class);\n";
                 $methods .= "    }\n";
             }
         }
 
+        // สร้าง string สำหรับ fillable
+        $fillableCode = "    protected \$fillable = [" . implode(', ', $fillableArray) . "];";
+
+        // แทนที่ class Dummy ด้วยชื่อ Entity
         $output = str_replace('class Dummy', "class {$entityName}", $stub);
 
-        // แทนที่ '}' ตัวสุดท้ายเท่านั้น (ของเดิม str_replace แทนทุกตัว = พังถ้า stub มีหลายวงเล็บ)
+        // แทรก fillable เข้าไปแทนที่เครื่องหมาย // FILLABLE_HERE ใน stub
+        $output = str_replace('// FILLABLE_HERE', $fillableCode, $output);
+
+        // แทนที่ '}' ตัวสุดท้าย (สำหรับใส่ Methods)
         $pos = strrpos($output, '}');
         if ($pos !== false) {
             $output = substr($output, 0, $pos) . $methods . "}\n";
@@ -124,6 +170,28 @@ class EntityGenerator
         file_put_contents(gen_path("DTOs/{$entityName}DTO.php"), $output);
     }
 
+    // -----------------------------------------------------------------
+    private static function generateController($entityName)
+    {
+        self::deployBaseController();
+
+        $stubPath = gen_path('Geners/Stub/controller.stub');
+        $stub = file_get_contents($stubPath);
+
+        // 1. แทนที่ Dummy (Class/Model) ด้วยชื่อ Entity (เช่น Order)
+        $output = str_replace('Dummy', $entityName, $stub);
+
+        $targetPath = gen_path("Http/Controllers/{$entityName}Controller.php");
+
+        // 2. ลบไฟล์เดิมทิ้งก่อนเขียนใหม่ เพื่อป้องกันปัญหาเก่า
+        if (file_exists($targetPath)) {
+            unlink($targetPath);
+        }
+
+        file_put_contents($targetPath, $output);
+        echo "  - Generated Controller: {$entityName}Controller.php\n";
+    }
+
     /** export array เป็น short syntax [] (var_export ให้ array() แบบเก่า อ่านยาก) */
     private static function exportPhp($value, int $depth = 0): string
     {
@@ -144,6 +212,27 @@ class EntityGenerator
         }
 
         return var_export($value, true);
+    }
+
+    // -----------------------------------------------------------------
+    /** copy app/Geners/Stub/BaseController.php -> app/Http/Controllers/BaseController.php (SSOT at Stub) */
+    private static function deployBaseController(): void
+    {
+        if (self::$base_controller_deployed) {
+            return;
+        }
+
+        $source = gen_path('Geners/Stub/BaseController.php');
+        $dest   = gen_path('Http/Controllers/BaseController.php');
+
+        if (!file_exists($source)) {
+            throw new \RuntimeException("Missing stub: {$source}");
+        }
+
+        self::ensureDir(dirname($dest));
+        copy($source, $dest); // overwrite เสมอ: ห้ามแก้ปลายทางด้วยมือ
+
+        self::$base_controller_deployed = true;
     }
 
     // -----------------------------------------------------------------

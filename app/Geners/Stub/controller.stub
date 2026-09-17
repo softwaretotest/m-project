@@ -2,6 +2,40 @@
 
 namespace App\Http\Controllers;
 
-class DummyController extends Controller
+use App\Models\Dummy;
+use App\DTOs\DummyDTO;
+use Illuminate\Http\Request;
+
+class DummyController extends BaseController
 {
+    public function index(Request $request)
+    {
+        return $this->responseSuccess(Dummy::all());
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate(DummyDTO::rules());
+        $dto = DummyDTO::fromArray($request->all());
+        return $this->responseSuccess(Dummy::create($dto->toArray()));
+    }
+
+    public function show($id)
+    {
+        return $this->responseSuccess(Dummy::findOrFail($id));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate(DummyDTO::rules());
+        $dto = DummyDTO::fromArray($request->all());
+        $item = Dummy::findOrFail($id);
+        $item->update($dto->toArray());
+        return $this->responseSuccess($item);
+    }
+
+    public function destroy($id)
+    {
+        return Dummy::findOrFail($id)->delete();
+    }
 }
