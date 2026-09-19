@@ -37,11 +37,11 @@ final class ShopDTO extends BaseDTO
                 'input' => 'text',
                 'ui' => NULL,
                 'params' => [
-                    'length' => 255,
+                    'length' => 255
                 ],
                 'required' => true,
                 'default' => NULL,
-                'rules' => 'required|string|max:255',
+                'rules' => 'required|string|max:255'
             ],
             'image' => [
                 'type' => 'string',
@@ -49,11 +49,11 @@ final class ShopDTO extends BaseDTO
                 'input' => 'file',
                 'ui' => NULL,
                 'params' => [
-                    'length' => 255,
+                    'length' => 255
                 ],
                 'required' => false,
                 'default' => '',
-                'rules' => 'nullable|string|max:255',
+                'rules' => 'nullable|string|max:255'
             ],
             'user_id' => [
                 'type' => 'foreign',
@@ -63,7 +63,7 @@ final class ShopDTO extends BaseDTO
                 'params' => [],
                 'required' => false,
                 'default' => NULL,
-                'rules' => 'nullable|integer|exists:users,id',
+                'rules' => 'nullable|integer|exists:users,id'
             ],
         ];
     }

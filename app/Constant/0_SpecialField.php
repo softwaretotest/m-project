@@ -30,14 +30,6 @@ class SpecialField
             $isSpecial = true;
         }
 
-        /**
-         * check if the field is a special field and add it to the schema if it is.
-         */
-        // $msg = "Checking if '{$fieldName}' ";
-        // $special_text = $isSpecial ? " IS YES" : " IS NOT";
-        // $msg .= $special_text . " a special field.\n";
-        // echo $msg;
-
         return $isSpecial;
     }
 }

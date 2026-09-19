@@ -53,11 +53,11 @@ class EntityGenerator
         $fillableArray = [];
 
         foreach ($fields as $field) {
-            // 1. เก็บชื่อฟิลด์เพื่อทำ fillable
+            // 1. keep filename to make fillable
             $fieldName = is_array($field) ? $field[0] : $field;
             $fillableArray[] = "'{$fieldName}'";
 
-            // 2. สร้าง Relation ถ้าเป็น Foreign Key
+            // 2. make Relation if Foreign Key
             if (is_array($field) && in_array(cd::FOREIGN, $field, true)) {
                 echo "  - Generating relation method for foreign key: {$field[0]}\n";
 
@@ -71,16 +71,16 @@ class EntityGenerator
             }
         }
 
-        // สร้าง string สำหรับ fillable
+        // make string for fillable
         $fillableCode = "    protected \$fillable = [" . implode(', ', $fillableArray) . "];";
 
-        // แทนที่ class Dummy ด้วยชื่อ Entity
+        // replace class Dummy by Entity
         $output = str_replace('class Dummy', "class {$entityName}", $stub);
 
-        // แทรก fillable เข้าไปแทนที่เครื่องหมาย // FILLABLE_HERE ใน stub
+        // replace/insert fillable at // FILLABLE_HERE in stub
         $output = str_replace('// FILLABLE_HERE', $fillableCode, $output);
 
-        // แทนที่ '}' ตัวสุดท้าย (สำหรับใส่ Methods)
+        // replace '}' as last char (for Methods)
         $pos = strrpos($output, '}');
         if ($pos !== false) {
             $output = substr($output, 0, $pos) . $methods . "}\n";
@@ -92,7 +92,7 @@ class EntityGenerator
 
     // -----------------------------------------------------------------
     /**
-     * $fields = [f::NAME, f::PRICE, ...] ซึ่ง "เป็น definition array อยู่แล้ว"
+     * $fields = [f::NAME, f::PRICE, ...] 
      * e.g. ['price', ['decimal',10,2], 'number', ['default',0], 'currency']
      */
     private static function generateDTO($entityName, $fields)
@@ -120,7 +120,8 @@ class EntityGenerator
             $propLines[] = "public readonly ?{$meta['php_type']} \${$name} = {$defaultLiteral},";
             $mapLines[]  = "{$name}: \$data['{$name}'] ?? {$defaultLiteral},";
             $arrLines[]  = "'{$name}' => \$this->{$name},";
-            $metaLines[] = "'{$name}' => " . self::exportPhp($fieldMeta, 3) . ",";
+            // $metaLines[] = "'{$name}' => " . self::exportPhp($fieldMeta, 3) . ",";
+            $metaLines[] = "'{$name}' => " . self::exportPhp($fieldMeta) . ",";
         }
 
         $metadataMethod = "public static function getMetadata(): array\n"
@@ -162,26 +163,42 @@ class EntityGenerator
         echo "  - Generated Controller: {$entityName}Controller.php\n";
     }
 
-    /** export array เป็น short syntax [] (var_export ให้ array() แบบเก่า อ่านยาก) */
-    private static function exportPhp($value, int $depth = 0): string
+    /**
+     * * param  = ['length' => 255]
+     * * return = 
+     *      Array
+     *      (
+     *          [length] => 255
+     *      )
+     * 
+     * * param  = 'required|string|max:255'
+     * * return = 'required|string|max:255'
+     * *
+     * * FYI : there is only 1-2 layers of array(array()) in Class f
+     * * e.g. public const ORDER_NR = ['order_nr', [d::STRING, 255], u::TEXT];
+     * * so this simple solution must be enough (no recursive function , that calls itself)
+     */
+    private static function exportPhp(array $array): string
     {
-        $pad     = str_repeat('    ', $depth);
-        $padItem = str_repeat('    ', $depth + 1);
+        $parts = [];
+        foreach ($array as $key => $value) {
+            // CASE : Array ภายใน (ชั้นที่ 2)
+            if (is_array($value)) {
+                $innerParts = [];
+                foreach ($value as $k => $v) {
+                    $innerParts[] = "                    " . var_export($k, true) . " => " . var_export($v, true);
+                }
+                $valueString = empty($innerParts) ? "[]" :
+                    "[\n" . implode(",\n", $innerParts) . "\n                ]";
+            } else {
+                // CASE : string
+                $valueString = var_export($value, true);
+            }
 
-        if (is_array($value)) {
-            if ($value === []) {
-                return '[]';
-            }
-            $isList = array_is_list($value);
-            $parts  = [];
-            foreach ($value as $k => $v) {
-                $prefix  = $isList ? '' : var_export($k, true) . ' => ';
-                $parts[] = $padItem . $prefix . self::exportPhp($v, $depth + 1);
-            }
-            return "[\n" . implode(",\n", $parts) . ",\n" . $pad . "]";
+            $parts[] = "                " . var_export($key, true) . " => " . $valueString;
         }
 
-        return var_export($value, true);
+        return "[\n" . implode(",\n", $parts) . "\n            ]";
     }
 
     // -----------------------------------------------------------------
@@ -206,7 +223,7 @@ class EntityGenerator
     }
 
     // -----------------------------------------------------------------
-    /** copy app/Constant/Stub/BaseDTO.php -> app/DTOs/BaseDTO.php (SSOT อยู่ที่ Stub) */
+    /** copy app/Constant/Stub/BaseDTO.php -> app/DTOs/BaseDTO.php (SSOT in Stub) */
     private static function deployBaseDTO(): void
     {
         if (self::$base_dto_deployed) {
@@ -221,11 +238,15 @@ class EntityGenerator
         }
 
         self::ensureDir(dirname($dest));
-        copy($source, $dest); // overwrite เสมอ: ห้ามแก้ปลายทางด้วยมือ
+        // always overwrite destination file by script, no manuel correction
+        copy($source, $dest);
 
         self::$base_dto_deployed = true;
     }
 
+    /**
+     * make directory if not exist
+     */
     private static function ensureDir(string $dir): void
     {
         if (!is_dir($dir)) {

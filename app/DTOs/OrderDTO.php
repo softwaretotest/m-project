@@ -40,11 +40,11 @@ final class OrderDTO extends BaseDTO
                 'input' => 'text',
                 'ui' => NULL,
                 'params' => [
-                    'length' => 255,
+                    'length' => 255
                 ],
                 'required' => false,
                 'default' => NULL,
-                'rules' => 'nullable|string|max:255',
+                'rules' => 'nullable|string|max:255'
             ],
             'product_id' => [
                 'type' => 'foreign',
@@ -54,7 +54,7 @@ final class OrderDTO extends BaseDTO
                 'params' => [],
                 'required' => false,
                 'default' => NULL,
-                'rules' => 'nullable|integer|exists:products,id',
+                'rules' => 'nullable|integer|exists:products,id'
             ],
             'quantity' => [
                 'type' => 'decimal',
@@ -63,11 +63,11 @@ final class OrderDTO extends BaseDTO
                 'ui' => NULL,
                 'params' => [
                     'total_digits' => 10,
-                    'scale' => 2,
+                    'scale' => 2
                 ],
                 'required' => true,
                 'default' => '1',
-                'rules' => 'required|numeric|decimal:0,2|max:99999999.99',
+                'rules' => 'required|numeric|decimal:0,2|max:99999999.99'
             ],
             'confirm_order' => [
                 'type' => 'boolean',
@@ -77,7 +77,7 @@ final class OrderDTO extends BaseDTO
                 'params' => [],
                 'required' => false,
                 'default' => false,
-                'rules' => 'nullable|boolean',
+                'rules' => 'nullable|boolean'
             ],
         ];
     }

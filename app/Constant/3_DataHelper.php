@@ -8,7 +8,7 @@ use ReflectionClass;
 /**
  * functions for file read/write, e.g. for Constant_APP_Reader, EntityGenerator, etc.
  */
-class FileHelper
+class DataHelper
 {
     /** cache: class => [const_value => CONST_NAME] */
     public static array $const_map_cache = [];
@@ -23,8 +23,14 @@ class FileHelper
     ];
 
     /**
-     * รับได้ทั้ง 'tel' (ค่าจริงจาก PHP const) และ 'u::TEL' (รูปแบบใน M_value JSON)
-     * @return array{group:string,name:string,value:string}|null
+     * * param = e.g. 'boolean'
+     * * return = 
+            Array
+            (
+                [group] => d
+                [name] => BOOLEAN
+                [value] => boolean
+            )
      */
     public static function resolve($key): ?array
     {
@@ -32,21 +38,7 @@ class FileHelper
             return null;
         }
 
-        // รูปแบบ A: มี prefix ชัดเจน "d::DECIMAL"
-        if (str_contains($key, '::')) {
-            [$prefix, $name] = explode('::', $key, 2);
-            $prefix = strtolower($prefix);
-            if (!isset(self::$groups[$prefix])) {
-                return null;
-            }
-            $byName = array_flip(self::constMap(self::$groups[$prefix]));
-            $NAME   = strtoupper($name);
-            return isset($byName[$NAME])
-                ? ['group' => $prefix, 'name' => $NAME, 'value' => $byName[$NAME]]
-                : null;
-        }
-
-        // รูปแบบ B: ค่าดิบ 'decimal' / 'tel' -> ไล่หาใน d, u, uf, cd, cud ตามลำดับ
+        // e.g. 'decimal' / 'tel' -> find in $groups : d, u, uf, cd, cud
         foreach (self::$groups as $group => $class) {
             $map = self::constMap($class);
             if (isset($map[$key])) {
@@ -56,7 +48,26 @@ class FileHelper
         return null;
     }
 
-    /** map ค่าคงที่ -> ชื่อคงที่ ด้วย Reflection */
+    /** e.g.
+     * @param 
+                 App\Constant\uf
+     * @return 
+                Array
+                (
+                    [currency] => CURRENCY
+                )
+     * @param 
+                App\Constant\cd
+     * @return 
+                Array
+                (
+                    [nullable] => NULLABLE
+                    [default] => DEFAULT
+                    [unique] => UNIQUE
+                    [index] => INDEX
+                    [foreign] => FOREIGN
+                )
+     */
     public static function constMap(string $class): array
     {
         if (!isset(self::$const_map_cache[$class])) {
@@ -73,6 +84,9 @@ class FileHelper
         return self::$const_map_cache[$class];
     }
 
+    /**
+     * return default value for [d::DEFAUT, default_value]
+     */
     public static function castDefault($value, string $php_type)
     {
         if ($value === null) {
@@ -105,15 +119,5 @@ class FileHelper
             return $base . 'es';
         }
         return $base . 's';
-    }
-
-    /** backward compatibility */
-    public static function get_d_name($d_Item): ?string
-    {
-        $d_name = is_array($d_Item) ? ($d_Item[0] ?? null) : (is_string($d_Item) ? $d_Item : null);
-        if ($d_name && str_starts_with($d_name, 'd::')) {
-            $d_name = substr($d_name, 3);
-        }
-        return $d_name;
     }
 }

@@ -43,11 +43,11 @@ final class ProductDTO extends BaseDTO
                 'input' => 'text',
                 'ui' => NULL,
                 'params' => [
-                    'length' => 255,
+                    'length' => 255
                 ],
                 'required' => true,
                 'default' => NULL,
-                'rules' => 'required|string|max:255',
+                'rules' => 'required|string|max:255'
             ],
             'image' => [
                 'type' => 'string',
@@ -55,11 +55,11 @@ final class ProductDTO extends BaseDTO
                 'input' => 'file',
                 'ui' => NULL,
                 'params' => [
-                    'length' => 255,
+                    'length' => 255
                 ],
                 'required' => false,
                 'default' => '',
-                'rules' => 'nullable|string|max:255',
+                'rules' => 'nullable|string|max:255'
             ],
             'shop_id' => [
                 'type' => 'foreign',
@@ -69,7 +69,7 @@ final class ProductDTO extends BaseDTO
                 'params' => [],
                 'required' => false,
                 'default' => NULL,
-                'rules' => 'nullable|integer|exists:shops,id',
+                'rules' => 'nullable|integer|exists:shops,id'
             ],
             'price' => [
                 'type' => 'decimal',
@@ -78,11 +78,11 @@ final class ProductDTO extends BaseDTO
                 'ui' => 'currency',
                 'params' => [
                     'total_digits' => 10,
-                    'scale' => 2,
+                    'scale' => 2
                 ],
                 'required' => true,
                 'default' => '0',
-                'rules' => 'required|numeric|decimal:0,2|max:99999999.99',
+                'rules' => 'required|numeric|decimal:0,2|max:99999999.99'
             ],
             'stock' => [
                 'type' => 'decimal',
@@ -91,11 +91,11 @@ final class ProductDTO extends BaseDTO
                 'ui' => NULL,
                 'params' => [
                     'total_digits' => 15,
-                    'scale' => 5,
+                    'scale' => 5
                 ],
                 'required' => true,
                 'default' => '1',
-                'rules' => 'required|numeric|decimal:0,5|max:9999999999.99999',
+                'rules' => 'required|numeric|decimal:0,5|max:9999999999.99999'
             ],
         ];
     }

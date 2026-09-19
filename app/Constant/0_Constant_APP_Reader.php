@@ -6,17 +6,6 @@ use ReflectionClass;
 
 class Constant_APP_Reader
 {
-    // /** cache: class => [const_value => CONST_NAME] */
-    // private static array $const_map_cache = [];
-
-    // /** group prefix => class */
-    // private static array $groups = [
-    //     'd'   => d::class,
-    //     'u'   => u::class,
-    //     'uf'  => uf::class,
-    //     'cd'  => cd::class,
-    //     'cud' => cud::class,
-    // ];
 
     /** SSOT: d value => ความหมายของ param ตามลำดับ */
     private static array $d_param_map = [
@@ -41,8 +30,52 @@ class Constant_APP_Reader
     // =================================================================
 
     /**
-     * แปลง definition array -> metadata
-     * e.g. ['price', [d::DECIMAL,10,2], [cd::DEFAULT,0], u::TEL, uf::CURRENCY]
+     * * convert definition array -> metadata
+     * @param 
+     * * -----------------------
+                Array
+                (
+                    [0] => price
+                    [1] => Array
+                        (
+                            [0] => decimal
+                            [1] => 10
+                            [2] => 2
+                        )
+
+                    [2] => tel
+                    [3] => currency
+                    [4] => Array
+                        (
+                            [0] => default
+                            [1] => 0
+                        )
+
+                    [5] => required
+                )
+     * @return 
+     * * -----------------------
+                Array
+                (
+                    [name] => price
+                    [d_name] => decimal
+                    [php_type] => string
+                    [params] => Array
+                        (
+                            [total_digits] => 10
+                            [scale] => 2
+                        )
+
+                    [ui_input] => tel
+                    [ui_format] => currency
+                    [is_foreign] =>
+                    [is_required] => 1
+                    [is_nullable] =>
+                    [is_unique] =>
+                    [is_index] =>
+                    [has_default] => 1
+                    [default] => 0
+                )
      */
     public static function parse(array $definition): array
     {
@@ -51,8 +84,8 @@ class Constant_APP_Reader
             'd_name'      => null,   // 'decimal', 'string', ...
             'php_type'    => null,   // 'string', 'int', 'bool'
             'params'      => [],     // ['total_digits'=>10,'scale'=>2]
-            'ui_input'    => null,   // จาก u::
-            'ui_format'   => null,   // จาก uf::
+            'ui_input'    => null,   // from u::
+            'ui_format'   => null,   // from  uf::
             'is_foreign'  => false,
             'is_required' => false,
             'is_nullable' => false,
@@ -62,18 +95,18 @@ class Constant_APP_Reader
             'default'     => null,
         ];
 
-        // index 0 = ชื่อฟิลด์ -> ตัดทิ้ง
+        // index 0 = fieldname, is cut out from $items
         $items = array_values(array_slice($definition, 1));
 
         foreach ($items as $i => $item) {
             $key = is_array($item) ? ($item[0] ?? null) : $item;
-            $ref = FileHelper::resolve($key);
+            $ref = DataHelper::resolve($key);
             if ($ref === null) {
                 continue;
             }
 
             switch ($ref['group']) {
-                // ---------- data type (บังคับอยู่ index 0 เพื่อกันค่าชนกัน) ----------
+                // ------- db data type (บังคับอยู่ index 0 เพื่อกันค่าชนกัน) --------
                 case 'd':
                     if ($i !== 0 || !isset(self::$php_type_map[$ref['value']])) {
                         break;
@@ -128,11 +161,10 @@ class Constant_APP_Reader
             }
         }
 
-        $out['php_type'] ??= 'int'; // fallback: FK / ไม่ระบุ d::
+        $out['php_type'] ??= 'int'; // fallback: FK / not d::
         $out['default']    = $out['has_default']
-            ? FileHelper::castDefault($out['default'], $out['php_type'])
+            ? DataHelper::castDefault($out['default'], $out['php_type'])
             : null;
-
         return $out;
     }
 
@@ -179,7 +211,7 @@ class Constant_APP_Reader
                     $rules[] = "decimal:0,{$scale}";
                 }
                 if ($total !== null && $scale !== null) {
-                    $rules[] = 'max:' . FileHelper::maxValueOf($total, $scale);
+                    $rules[] = 'max:' . DataHelper::maxValueOf($total, $scale);
                 }
                 break;
 
@@ -195,7 +227,7 @@ class Constant_APP_Reader
 
         if ($meta['is_foreign']) {
             $rules[] = 'integer';
-            $rules[] = 'exists:' . FileHelper::guessTable($meta['name']) . ',id';
+            $rules[] = 'exists:' . DataHelper::guessTable($meta['name']) . ',id';
         }
 
         if ($meta['is_unique']) {
@@ -203,40 +235,5 @@ class Constant_APP_Reader
         }
 
         return implode('|', array_unique($rules));
-    }
-
-    public static function getContract($field): ?string
-    {
-        $definition = is_array($field) ? $field : self::findDefinition($field);
-        return $definition === null
-            ? null
-            : 'readonly ?' . self::parse($definition)['php_type'];
-    }
-
-    public static function getDefault(array $definition)
-    {
-        return self::parse($definition)['default'];
-    }
-
-    public static function hasDefault(array $definition): bool
-    {
-        return self::parse($definition)['has_default'];
-    }
-
-    public static function findDefinition(string $fieldname): ?array
-    {
-        $FIELDNAME = strtoupper($fieldname);
-
-        foreach ([f::class, s::class] as $class) {
-            if (!class_exists($class)) {
-                continue;
-            }
-            $ref = new ReflectionClass($class);
-            if ($ref->hasConstant($FIELDNAME)) {
-                $value = $ref->getConstant($FIELDNAME);
-                return is_array($value) ? $value : [$fieldname, $value];
-            }
-        }
-        return null;
     }
 }
