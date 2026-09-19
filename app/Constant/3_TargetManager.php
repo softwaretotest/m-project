@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Constant;
 
 /**
  * set target path for m-project to do admin on the target app e.g. ecommerce, blog, etc.
