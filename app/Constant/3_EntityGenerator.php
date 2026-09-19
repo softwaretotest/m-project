@@ -1,15 +1,17 @@
 <?php
 
-namespace App\Geners;
+namespace App\Constant;
 
-use App\Constant\Constant_APP_Reader;
-use App\Constant\cd;
+require __DIR__ . '/../../vendor/autoload.php';
 
 function gen_path($path = '')
 {
     return dirname(__DIR__, 2) . '/app/' . ltrim($path, '/');
 }
 
+/**
+ * Laravel Layers Classes for Entities
+ */
 class EntityGenerator
 {
     private static bool $base_dto_deployed = false;
@@ -44,41 +46,9 @@ class EntityGenerator
         self::generateController($entityName, $fields);
     }
 
-    // -----------------------------------------------------------------
-    // private static function generateModel($entityName, $fields)
-    // {
-    //     $stub    = file_get_contents(gen_path('Geners/Stub/model.stub'));
-    //     $methods = "";
-
-    //     foreach ($fields as $field) {
-    //         if (is_array($field) && in_array(cd::FOREIGN, $field, true)) {
-    //             echo "  - Generating relation method for foreign key: {$field[0]}\n";
-
-    //             $relationName = str_replace('_id', '', $field[0]);
-    //             $relatedClass = ucfirst($relationName);
-
-    //             $methods .= "\n    public function {$relationName}(): \\Illuminate\\Database\\Eloquent\\Relations\\BelongsTo\n";
-    //             $methods .= "    {\n";
-    //             $methods .= "        return \$this->belongsTo(\\App\\Models\\{$relatedClass}::class);\n";
-    //             $methods .= "    }\n";
-    //         }
-    //     }
-
-    //     $output = str_replace('class Dummy', "class {$entityName}", $stub);
-
-    //     // แทนที่ '}' ตัวสุดท้ายเท่านั้น (ของเดิม str_replace แทนทุกตัว = พังถ้า stub มีหลายวงเล็บ)
-    //     $pos = strrpos($output, '}');
-    //     if ($pos !== false) {
-    //         $output = substr($output, 0, $pos) . $methods . "}\n";
-    //     }
-
-    //     self::ensureDir(gen_path('Models'));
-    //     file_put_contents(gen_path("Models/{$entityName}.php"), $output);
-    // }
-
     private static function generateModel($entityName, $fields)
     {
-        $stub = file_get_contents(gen_path('Geners/Stub/model.stub'));
+        $stub = file_get_contents(gen_path('Constant/Stub/model.stub'));
         $methods = "";
         $fillableArray = [];
 
@@ -129,7 +99,7 @@ class EntityGenerator
     {
         self::deployBaseDTO();
 
-        $stub = file_get_contents(gen_path('Geners/Stub/dto.stub'));
+        $stub = file_get_contents(gen_path('Constant/Stub/dto.stub'));
 
         $propLines = [];
         $mapLines  = [];
@@ -175,7 +145,7 @@ class EntityGenerator
     {
         self::deployBaseController();
 
-        $stubPath = gen_path('Geners/Stub/controller.stub');
+        $stubPath = gen_path('Constant/Stub/controller.stub');
         $stub = file_get_contents($stubPath);
 
         // 1. แทนที่ Dummy (Class/Model) ด้วยชื่อ Entity (เช่น Order)
@@ -215,14 +185,14 @@ class EntityGenerator
     }
 
     // -----------------------------------------------------------------
-    /** copy app/Geners/Stub/BaseController.php -> app/Http/Controllers/BaseController.php (SSOT at Stub) */
+    /** copy app/Constant/Stub/BaseController.php -> app/Http/Controllers/BaseController.php (SSOT at Stub) */
     private static function deployBaseController(): void
     {
         if (self::$base_controller_deployed) {
             return;
         }
 
-        $source = gen_path('Geners/Stub/BaseController.php');
+        $source = gen_path('Constant/Stub/BaseController.stub');
         $dest   = gen_path('Http/Controllers/BaseController.php');
 
         if (!file_exists($source)) {
@@ -236,14 +206,14 @@ class EntityGenerator
     }
 
     // -----------------------------------------------------------------
-    /** copy app/Geners/Stub/BaseDTO.php -> app/DTOs/BaseDTO.php (SSOT อยู่ที่ Stub) */
+    /** copy app/Constant/Stub/BaseDTO.php -> app/DTOs/BaseDTO.php (SSOT อยู่ที่ Stub) */
     private static function deployBaseDTO(): void
     {
         if (self::$base_dto_deployed) {
             return;
         }
 
-        $source = gen_path('Geners/Stub/BaseDTO.php');
+        $source = gen_path('Constant/Stub/BaseDTO.stub');
         $dest   = gen_path('DTOs/BaseDTO.php');
 
         if (!file_exists($source)) {
@@ -263,3 +233,5 @@ class EntityGenerator
         }
     }
 }
+
+\App\Constant\EntityGenerator::runAll();
