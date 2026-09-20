@@ -35,7 +35,11 @@ class MigrationFile
         self::$fileName = $isUser
             ? '0001_01_01_000000_create_users_table.php'
             : self::$filePrefix . "_create_{$tableName}_table.php";
-        self::$destinationPath = __DIR__ . "/../../database/migrations/" . self::$fileName;
+
+        self::$destinationPath = (string)TargetManager::gen_path('migrations/' . self::$fileName, 'database');
+
+        // self::$destinationPath = __DIR__ . "/../../database/migrations/" . self::$fileName;
+
 
         // Validation Zone
         self::dieSameMigration($isUser);

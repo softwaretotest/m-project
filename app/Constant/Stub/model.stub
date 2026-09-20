@@ -7,5 +7,4 @@ use Illuminate\Database\Eloquent\Model;
 class Dummy extends Model
 {
     // FILLABLE_HERE
-
 }

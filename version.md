@@ -1,4 +1,4 @@
-﻿Generated  : 2026-07-12 15:16:31
+﻿Generated  : 2026-09-20 20:11:14
 
 PHP        : 8.5.7
 Composer   : 2.10.1
@@ -19,4 +19,4 @@ Debug      : True
 Timezone   : UTC
 Locale     : en
 
-Storage    : c:\users\o\.vscode\react\ecommerce\public\storage
+Storage    : c:\users\o\.vscode\react\m-project\public\storage

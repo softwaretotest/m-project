@@ -24,11 +24,6 @@ class DataHelper
         'cud' => cud::class,
     ];
 
-    public static function gen_path($path = '')
-    {
-        return dirname(__DIR__, 2) . '/app/' . ltrim($path, '/');
-    }
-
     /**
      * * param = e.g. 'boolean'
      * * return = 
