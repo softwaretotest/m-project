@@ -1,16 +1,11 @@
 {
     "_comment": "\/M_JSON\/Entities.json",
     "entities": {
-        "USERS": [
-            "f::NAME",
-            "s::EMAIL",
-            "f::IS_ACTIVE",
-            "f::IMAGE"
-        ],
-        "SHOPS": [
-            "f::NAME",
-            "f::IMAGE",
-            "f::USER_ID"
+        "ORDERS": [
+            "f::ORDER_NR",
+            "f::PRODUCT_ID",
+            "f::QUANTITY",
+            "f::CONFIRM_ORDER"
         ],
         "PRODUCTS": [
             "f::NAME",
@@ -19,11 +14,16 @@
             "f::PRICE",
             "f::STOCK"
         ],
-        "ORDERS": [
-            "f::ORDER_NR",
-            "f::PRODUCT_ID",
-            "f::QUANTITY",
-            "f::CONFIRM_ORDER"
+        "SHOPS": [
+            "f::NAME",
+            "f::IMAGE",
+            "f::USER_ID"
+        ],
+        "USERS": [
+            "f::NAME",
+            "s::EMAIL",
+            "f::IS_ACTIVE",
+            "f::IMAGE"
         ]
     }
 }

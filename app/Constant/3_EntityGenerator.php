@@ -4,11 +4,6 @@ namespace App\Constant;
 
 require __DIR__ . '/../../vendor/autoload.php';
 
-function gen_path($path = '')
-{
-    return dirname(__DIR__, 2) . '/app/' . ltrim($path, '/');
-}
-
 /**
  * Laravel Layers Classes for Entities
  */
@@ -20,6 +15,8 @@ class EntityGenerator
     public static function runAll()
     {
         $directory = dirname(__DIR__, 2) . '/app/Constant';
+        // echo "\n" . $directory . "\n";
+
         $files = glob($directory . '/*Constant.php');
 
         foreach ($files as $file) {
@@ -41,6 +38,15 @@ class EntityGenerator
 
     public static function generate($entityName, $fields)
     {
+
+        echo "\n=====================================\n";
+        echo "\n    BEGIN ARCHIVE : " . $entityName . "\n";
+        echo "\n=====================================\n";
+
+        M_Historizer::move_old_file_to_history(__DIR__ . '/../../app/Models/' . $entityName . "_Model.php");
+        M_Historizer::move_old_file_to_history(__DIR__ . '/../../app/DTOs/' . $entityName . "_DTO.php");
+        M_Historizer::move_old_file_to_history(__DIR__ . '/../../app/Http/Controllers/' . $entityName . "_Controller.php");
+
         self::generateModel($entityName, $fields);
         self::generateDTO($entityName, $fields);
         self::generateController($entityName, $fields);
@@ -48,7 +54,7 @@ class EntityGenerator
 
     private static function generateModel($entityName, $fields)
     {
-        $stub = file_get_contents(gen_path('Constant/Stub/model.stub'));
+        $stub = file_get_contents(__DIR__ . '/Stub/model.stub');
         $methods = "";
         $fillableArray = [];
 
@@ -86,8 +92,8 @@ class EntityGenerator
             $output = substr($output, 0, $pos) . $methods . "}\n";
         }
 
-        self::ensureDir(gen_path('Models'));
-        file_put_contents(gen_path("Models/{$entityName}.php"), $output);
+        self::ensureDir(DataHelper::gen_path('Models'));
+        file_put_contents(DataHelper::gen_path("Models/{$entityName}_Model.php"), $output);
     }
 
     // -----------------------------------------------------------------
@@ -99,7 +105,7 @@ class EntityGenerator
     {
         self::deployBaseDTO();
 
-        $stub = file_get_contents(gen_path('Constant/Stub/dto.stub'));
+        $stub = file_get_contents(__DIR__ . '/Stub/dto.stub');
 
         $propLines = [];
         $mapLines  = [];
@@ -131,36 +137,37 @@ class EntityGenerator
             . "        ];\n"
             . "    }";
 
-        $output = str_replace('DummyDTO', "{$entityName}DTO", $stub);
+        $output = str_replace('DummyDTO', "{$entityName}_DTO", $stub);
         $output = str_replace('//PROPERTIES', implode("\n        ", $propLines), $output);
         $output = str_replace('//MAPPING',    implode("\n            ", $mapLines), $output);
         $output = str_replace('//ARRAY_MAP',  implode("\n            ", $arrLines), $output);
         $output = str_replace('//METADATA',   $metadataMethod, $output);
 
-        self::ensureDir(gen_path('DTOs'));
-        file_put_contents(gen_path("DTOs/{$entityName}DTO.php"), $output);
+        self::ensureDir(DataHelper::gen_path('DTOs'));
+        file_put_contents(DataHelper::gen_path("DTOs/{$entityName}_DTO.php"), $output);
     }
 
     // -----------------------------------------------------------------
     private static function generateController($entityName)
     {
+
+
         self::deployBaseController();
 
-        $stubPath = gen_path('Constant/Stub/controller.stub');
-        $stub = file_get_contents($stubPath);
+        $stub = file_get_contents(__DIR__ . '/Stub/controller.stub');
 
-        // 1. แทนที่ Dummy (Class/Model) ด้วยชื่อ Entity (เช่น Order)
+        // 1. replace Dummy (Class/Model) by name of real Entity (e.g. Order)
         $output = str_replace('Dummy', $entityName, $stub);
 
-        $targetPath = gen_path("Http/Controllers/{$entityName}Controller.php");
+        $targetPath = DataHelper::gen_path("Http/Controllers/{$entityName}_Controller.php");
 
-        // 2. ลบไฟล์เดิมทิ้งก่อนเขียนใหม่ เพื่อป้องกันปัญหาเก่า
+        // 2. delete old file if exist
         if (file_exists($targetPath)) {
             unlink($targetPath);
         }
 
         file_put_contents($targetPath, $output);
-        echo "  - Generated Controller: {$entityName}Controller.php\n";
+        echo "  - Generated Controller: {$entityName}_Controller.php\n";
     }
 
     /**
@@ -209,8 +216,8 @@ class EntityGenerator
             return;
         }
 
-        $source = gen_path('Constant/Stub/BaseController.stub');
-        $dest   = gen_path('Http/Controllers/BaseController.php');
+        $source = __DIR__ . '/Stub/BaseController.stub';
+        $dest   = DataHelper::gen_path('Http/Controllers/BaseController.php');
 
         if (!file_exists($source)) {
             throw new \RuntimeException("Missing stub: {$source}");
@@ -230,8 +237,8 @@ class EntityGenerator
             return;
         }
 
-        $source = gen_path('Constant/Stub/BaseDTO.stub');
-        $dest   = gen_path('DTOs/BaseDTO.php');
+        $source = __DIR__ . '/Stub/BaseDTO.stub';
+        $dest   = DataHelper::gen_path('DTOs/BaseDTO.php');
 
         if (!file_exists($source)) {
             throw new \RuntimeException("Missing stub: {$source}");

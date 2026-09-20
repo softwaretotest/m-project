@@ -12,22 +12,25 @@ use PhpParser\NodeTraverser;
  */
 class M_Sync
 {
-    const M_JSON = '/M_JSON';
-
     public static function syncAll(): void
     {
+        M_Historizer::move_old_file_to_history(DataHelper::PATH_M_JSON . 'M-Data.json');
+        M_Historizer::move_old_file_to_history(DataHelper::PATH_M_JSON . 'App-Data.json');
+        M_Historizer::move_old_file_to_history(DataHelper::PATH_M_JSON . 'Entities.json');
+
         // Generate M-Data and App-Data
-        self::run_PHP_to_JSON('0_Constant_M.php', self::M_JSON . '/M-Data.json');
-        self::run_PHP_to_JSON('0_Constant_APP.php', self::M_JSON . '/App-Data.json');
+        self::run_PHP_to_JSON('0_Constant_M.php', 'M-Data.json');
+        self::run_PHP_to_JSON('0_Constant_APP.php', 'App-Data.json');
 
         // Generate Entities data
-        self::run_Entities_to_JSON(self::M_JSON . '/Entities.json');
+        self::run_Entities_to_JSON('Entities.json');
     }
 
     private static function run_PHP_to_JSON($sourceFile, $jsonFile): void
     {
         // full Path of M_JSON folder
-        $directory = __DIR__ . self::M_JSON;
+        $jsonFile = DataHelper::PATH_M_JSON . $jsonFile;
+        $directory = __DIR__ . DataHelper::PATH_M_JSON;
 
         // create folder if not exists
         if (!file_exists($directory)) {
@@ -80,6 +83,7 @@ class M_Sync
      */
     private static function run_Entities_to_JSON($jsonFile): void
     {
+        $jsonFile = DataHelper::PATH_M_JSON . $jsonFile;
         $parser = (new ParserFactory)->createForNewestSupportedVersion();
         $scanner = new Entities_to_JSON();
 

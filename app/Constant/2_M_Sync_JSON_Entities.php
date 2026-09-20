@@ -43,8 +43,7 @@ class M_Sync_JSON_Entities
 
             self::add_folder_Entities();
 
-            // save Entity into folder app/Constant
-            // file_put_contents(__DIR__ . '/Entities/' . $fileName, $code);
+            // save Entity 
             file_put_contents(__DIR__ . '/' . $fileName, $code);
             echo "[ ✅ ] {$fileName} generated successfully.\n";
         }
@@ -65,21 +64,5 @@ class M_Sync_JSON_Entities
             mkdir($folderPath, 0755, true);
             echo "[ 📁 ] Created directory: Entities\n";
         }
-    }
-
-
-    private static function formatArray($arr): string
-    {
-        if (!is_array($arr)) {
-            if (is_string($arr) && preg_match('/^[a-z]+::[A-Z_]+$/', $arr)) {
-                return $arr;
-            }
-            return var_export($arr, true);
-        }
-        $items = [];
-        foreach ($arr as $val) {
-            $items[] = self::formatArray($val);
-        }
-        return '[' . implode(', ', $items) . ']';
     }
 }

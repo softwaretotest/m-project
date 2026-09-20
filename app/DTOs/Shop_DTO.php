@@ -2,22 +2,20 @@
 
 namespace App\DTOs;
 
-final class UserDTO extends BaseDTO
+final class Shop_DTO extends BaseDTO
 {
     public function __construct(
         public readonly ?string $name = null,
-        public readonly ?string $email = null,
-        public readonly ?bool $is_active = true,
         public readonly ?string $image = '',
+        public readonly ?int $user_id = null,
     ) {}
 
     public static function fromArray(array $data): self
     {
         return new self(
             name: $data['name'] ?? null,
-            email: $data['email'] ?? null,
-            is_active: $data['is_active'] ?? true,
             image: $data['image'] ?? '',
+            user_id: $data['user_id'] ?? null,
         );
     }
 
@@ -25,9 +23,8 @@ final class UserDTO extends BaseDTO
     {
         return [
             'name' => $this->name,
-            'email' => $this->email,
-            'is_active' => $this->is_active,
             'image' => $this->image,
+            'user_id' => $this->user_id,
         ];
     }
 
@@ -46,26 +43,6 @@ final class UserDTO extends BaseDTO
                 'default' => NULL,
                 'rules' => 'required|string|max:255'
             ],
-            'email' => [
-                'type' => 'string',
-                'php_type' => 'string',
-                'input' => 'text',
-                'ui' => NULL,
-                'params' => [],
-                'required' => false,
-                'default' => NULL,
-                'rules' => 'nullable|string|unique:email'
-            ],
-            'is_active' => [
-                'type' => 'boolean',
-                'php_type' => 'bool',
-                'input' => 'select',
-                'ui' => NULL,
-                'params' => [],
-                'required' => false,
-                'default' => true,
-                'rules' => 'nullable|boolean'
-            ],
             'image' => [
                 'type' => 'string',
                 'php_type' => 'string',
@@ -77,6 +54,16 @@ final class UserDTO extends BaseDTO
                 'required' => false,
                 'default' => '',
                 'rules' => 'nullable|string|max:255'
+            ],
+            'user_id' => [
+                'type' => 'foreign',
+                'php_type' => 'int',
+                'input' => NULL,
+                'ui' => NULL,
+                'params' => [],
+                'required' => false,
+                'default' => NULL,
+                'rules' => 'nullable|integer|exists:users,id'
             ],
         ];
     }

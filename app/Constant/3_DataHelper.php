@@ -10,6 +10,8 @@ use ReflectionClass;
  */
 class DataHelper
 {
+    public const PATH_M_JSON = '/M_JSON/';
+
     /** cache: class => [const_value => CONST_NAME] */
     public static array $const_map_cache = [];
 
@@ -21,6 +23,11 @@ class DataHelper
         'cd'  => cd::class,
         'cud' => cud::class,
     ];
+
+    public static function gen_path($path = '')
+    {
+        return dirname(__DIR__, 2) . '/app/' . ltrim($path, '/');
+    }
 
     /**
      * * param = e.g. 'boolean'

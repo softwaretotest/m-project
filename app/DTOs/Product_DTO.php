@@ -2,7 +2,7 @@
 
 namespace App\DTOs;
 
-final class ProductDTO extends BaseDTO
+final class Product_DTO extends BaseDTO
 {
     public function __construct(
         public readonly ?string $name = null,

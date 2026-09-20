@@ -4,28 +4,12 @@ namespace App\Constant;
 
 require __DIR__ . '/../../vendor/autoload.php';
 
-// use PhpParser\ParserFactory;
-// use PhpParser\NodeTraverser;
-
 /**
- * PHP file historizer for archiving old files
+ * PHP file historizer for archiving old generated files
  */
-class M_Sync_PHP_Historizer
+class M_Historizer
 {
-    const M_JSON = '/M_JSON';
-
-    const HISTORY_DIR = '/../../history'; // move to top under main project folder
-
-    public static function archive_PHP_files(): void
-    {
-        echo "======================================================================\n";
-        echo " [1] STARTING SYNCHRONIZATION PROCESS                                 \n";
-        echo "======================================================================\n\n";
-
-        self::move_old_file_to_history('0_Constant_M.php');
-        self::move_old_file_to_history('0_Constant_APP.php');
-        self::move_old_Entities_to_history(self::M_JSON . '/Entities.json');
-    }
+    const HISTORY_DIR = __DIR__ . '/../../history';
 
     /**
      * 1. check if $sourceFile exist
@@ -34,28 +18,32 @@ class M_Sync_PHP_Historizer
      * 4. move $sourceFile to folder ./history
      * @param $sourceFile = e.g. M-Data.json
      */
-    private static function move_old_file_to_history($sourceFile)
+    public static function move_old_file_to_history($sourceFile)
     {
         echo "----------------------------------------------------------------------\n";
-        echo " ------------ START move_old_file_to_history FOR : " . $sourceFile . " ------------ \n";
-        echo "----------------------------------------------------------------------\n\n";
+        echo " ------------ [1] START move_old_file_to_history FOR : " . $sourceFile . " ------------ \n";
+        echo "----------------------------------------------------------------------\n";
 
-        $filePath = __DIR__ . '/' . $sourceFile;
-        $historyDirPath = __DIR__ . self::HISTORY_DIR;
+        $filePath = $sourceFile; // for EntityGenerator
 
-        echo "[2.1] Checking history directory existence: {$historyDirPath}\n";
-        if (!file_exists($historyDirPath)) {
-            mkdir($historyDirPath, 0755, true);
+        if (!file_exists($filePath)) {
+            $filePath = __DIR__ . '/' . $sourceFile; // for M_Sync , M_Sync_JSON
+        }
+
+        echo "[2.1] Checking history directory existence: " . self::HISTORY_DIR . "\n";
+        if (!file_exists(self::HISTORY_DIR)) {
+            mkdir(self::HISTORY_DIR, 0755, true);
             echo "[2.2] Created history directory successfully ✅.\n\n";
         } else {
-            echo "[2.2] History directory already exists.\n\n";
+            echo "[2.2] History directory already exists.\n";
         }
 
         echo "[2.3] Checking if source file exists: {$sourceFile}\n";
+
         if (file_exists($filePath)) {
             $timestamp = time();
-            $newFileName = $timestamp . '_' . $sourceFile;
-            $destinationPath = $historyDirPath . '/' . $newFileName;
+            $newFileName = $timestamp . '_' . basename($sourceFile);
+            $destinationPath = self::HISTORY_DIR . '/' . $newFileName;
 
             echo "[2.4] Moving file {$sourceFile} to history as {$newFileName}\n";
             if (rename($filePath, $destinationPath)) {
@@ -76,11 +64,11 @@ class M_Sync_PHP_Historizer
      * * 2.3 move php file to ./history
      * @param $jsonFile = Entities.json
      */
-    private static function move_old_Entities_to_history($jsonFile)
+    public static function move_old_Entities_to_history($jsonFile)
     {
         echo "----------------------------------------------------------------------\n";
         echo " ------------ START move_old_Entities_to_history ------------ \n";
-        echo "----------------------------------------------------------------------\n\n";
+        echo "----------------------------------------------------------------------\n";
 
         $jsonFilePath = __DIR__ . '/' . $jsonFile;
 
@@ -96,9 +84,8 @@ class M_Sync_PHP_Historizer
             return;
         }
 
-        $historyDirPath = __DIR__ . self::HISTORY_DIR;
-        if (!file_exists($historyDirPath)) {
-            mkdir($historyDirPath, 0755, true);
+        if (!file_exists(self::HISTORY_DIR)) {
+            mkdir(self::HISTORY_DIR, 0755, true);
         }
 
         echo "[3.2] Looping through entities to archive existing PHP files...\n\n";
@@ -112,7 +99,7 @@ class M_Sync_PHP_Historizer
             if (file_exists($phpFilePath)) {
                 $timestamp = time();
                 $newFileName = $timestamp . '_' . $phpFileName;
-                $destinationPath = $historyDirPath . '/' . $newFileName;
+                $destinationPath = self::HISTORY_DIR . '/' . $newFileName;
 
                 echo "[3.2.2] Moving entity file {$phpFileName} to history as {$newFileName}\n";
                 if (rename($phpFilePath, $destinationPath)) {
