@@ -28,7 +28,7 @@ class M_Sync
         M_Historizer::move_old_file_to_history(self::$target_JSON_Path . '/Entities.json');
 
 
-        // Generate M-Data and App-Data
+        // Generate M-Data.json and App-Data.json
         self::run_PHP_to_JSON('0_Constant_M.php', 'M-Data.json');
         self::run_PHP_to_JSON('0_Constant_APP.php', 'App-Data.json');
 

@@ -68,13 +68,14 @@ class M_Historizer
      * * 2.3 move php file to ./history
      * @param $jsonFile = Entities.json
      */
-    public static function move_old_Entities_to_history($jsonFile)
+    public static function move_old_Entities_to_history($jsonFilePath, $target_Constant_Path)
     {
         echo "----------------------------------------------------------------------\n";
         echo " ------------ START move_old_Entities_to_history ------------ \n";
         echo "----------------------------------------------------------------------\n";
 
-        $jsonFilePath = __DIR__ . '/' . $jsonFile;
+        // $jsonFilePath = __DIR__ . '/' . $jsonFile;
+        $jsonFile = basename($jsonFilePath);
 
         echo "[3.1] Getting list of entities from {$jsonFile}\n\n";
         if (!file_exists($jsonFilePath)) {
@@ -97,13 +98,13 @@ class M_Historizer
             $singularName = rtrim($entityName, 'S');
             $formattedEntityName = ucfirst(strtolower($singularName));
             $phpFileName = $formattedEntityName . 'Constant.php';
-            $phpFilePath = __DIR__ . '/' . $phpFileName;
+            $phpFilePath = $target_Constant_Path . '/' . $phpFileName;
 
             echo "[3.2.1] Checking entity file: {$phpFileName}\n";
             if (file_exists($phpFilePath)) {
                 $timestamp = time();
                 $newFileName = $timestamp . '_' . $phpFileName;
-                $destinationPath = self::HISTORY_DIR . '/' . $newFileName;
+                $destinationPath = self::HISTORY_DIR . '/' . TargetManager::$activeTarget . '/' . $newFileName;
 
                 echo "[3.2.2] Moving entity file {$phpFileName} to history as {$newFileName}\n";
                 if (rename($phpFilePath, $destinationPath)) {
