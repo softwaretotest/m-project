@@ -22,7 +22,14 @@ class MakeMigration
         echo "--- Maker: Starting Migration Generation for [{$tableName}] ---\n\n";
 
         // Search for the migration file dynamically based on tableName
-        $files = glob(__DIR__ . "/../../database/migrations/*_create_{$tableName}_table.php");
+        // เดิม: $files = __DIR__ . "/../../database/migrations/*_create_{$tableName}_table.php"
+        $pattern = (string) TargetManager::gen_path(
+            "migrations/*_create_{$tableName}_table.php",
+            'database'
+        );
+
+        $files = glob($pattern);
+
 
         /**
          * * * SPECIAL CASE users table in Laravel : 
@@ -33,6 +40,7 @@ class MakeMigration
         if (!empty($files) && is_string($files[0])) {
             // delete *_create_{$tableName}_table.php
             @unlink($files[0]); // delete file from system like rm of CMD 
+            echo "--- Maker: Removed old migration [" . basename($files[0]) . "] ---\n\n";
         }
 
         echo "--- Maker: Preparing to create migration file for [{$tableName}]. ---\n\n";

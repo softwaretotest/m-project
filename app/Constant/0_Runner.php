@@ -2,7 +2,6 @@
 
 namespace App\Constant;
 //0_Runner.php
-require 'vendor/autoload.php';
 
 class Runner
 {
@@ -20,28 +19,19 @@ class Runner
 
     public static function run(): void
     {
-        /**
-         * * we need to have UserConstant::class,  in $entities
-         * * to auto. add template of *create_users_table.php if not exists
-         * * But, in MakeMigration.php we skip our change 
-         * * in Laravel user migration 
-         * * to avoid error "overwrite Laravel user Migration flow", 
-         * * but we can add table user_details instead, 
-         * * if user specific info. needed
-         */
-
-        // these classes for test ecommerce app
-        // $entities = [
-        //     UserConstant::class,
-        //     ShopConstant::class,
-        //     ProductConstant::class,
-        //     OrderConstant::class
-        // ];
-
-        // // dynamicly get app/Constant/EntityContant.php 
+        // dynamicly get app/Constant/EntityContant.php 
         $entities = (array) self::get_Entities();
 
         $count = count($entities);
+
+        if ($count === 0) {
+            die("--- Runner: No entity found. Nothing to migrate. ---\n"
+                . "    Target : " . TargetManager::$activeTarget . "\n"
+                . "    Path   : " . (string)TargetManager::gen_path('Constant') . "\n\n");
+        }
+
+        echo "--- Runner: Target [" . TargetManager::$activeTarget . "] | Found {$count} entities ---\n\n";
+
         if ($count > self::MAX_MIGRATIONS) {
             die("--- CRITICAL: Migration limit exceeded. "
                 . "\n Found {$count} tables, limit is " . self::MAX_MIGRATIONS
@@ -63,35 +53,115 @@ class Runner
         }
     }
 
+    // /**
+    //  * get all Classes from Entities.json (sorted from UI)
+    //  * @return array $entities = e.g. [ UserConstant::class, ShopConstant::class ]
+    //  */
+    // private static function get_Entities(): array
+    // {
+    //     $entities = [];
+
+    //     $jsonFilePath = (string)TargetManager::gen_path('Constant/M_JSON/Entities.json');
+
+    //     if (!file_exists($jsonFilePath)) {
+    //         return $entities;
+    //     }
+
+    //     $jsonContent = file_get_contents($jsonFilePath);
+    //     $json = json_decode($jsonContent, true);
+
+    //     // Loop sorted entities in JSON to make classes
+    //     if (isset($json['entities']) && is_array($json['entities'])) {
+    //         foreach ($json['entities'] as $entityName => $fields) {
+    //             $singularName = rtrim($entityName, 'S');
+    //             $className = "App\\Constant\\" . ucfirst(strtolower($singularName)) . 'Constant';
+
+    //             if (class_exists($className)) {
+    //                 $entities[] = $className;
+    //             }
+    //         }
+    //     }
+
+    //     return $entities;
+    // }
+
     /**
-     * get all Classes from Entities.json (sorted from UI)
-     * @return array $entities = e.g. [ UserConstant::class, ShopConstant::class ]
+     * อ่าน Entities.json จาก target app แล้วแปลงเป็นรายชื่อ Constant class
+     * ตามลำดับที่ DEV จัดไว้ใน UI (ลำดับมีผลกับ FK ของ migration)
+     *
+     * @return string[] FQCN list e.g. ['App\Constant\UserConstant', 'App\Constant\ShopConstant']
      */
     private static function get_Entities(): array
     {
         $entities = [];
 
-        $jsonFilePath = __DIR__ . '/M_JSON/Entities.json';
+        $jsonFilePath = (string) TargetManager::gen_path('Constant/M_JSON/Entities.json');
 
         if (!file_exists($jsonFilePath)) {
+            echo "--- Runner: Entities.json NOT found at [{$jsonFilePath}] ---\n\n";
             return $entities;
         }
 
-        $jsonContent = file_get_contents($jsonFilePath);
-        $json = json_decode($jsonContent, true);
+        $json = json_decode((string) file_get_contents($jsonFilePath), true);
 
-        // Loop sorted entities in JSON to make classes
-        if (isset($json['entities']) && is_array($json['entities'])) {
-            foreach ($json['entities'] as $entityName => $fields) {
-                $singularName = rtrim($entityName, 'S');
-                $className = "App\\Constant\\" . ucfirst(strtolower($singularName)) . 'Constant';
+        if (!isset($json['entities']) || !is_array($json['entities'])) {
+            echo "--- Runner: Entities.json has no 'entities' key ---\n\n";
+            return $entities;
+        }
 
-                if (class_exists($className)) {
-                    $entities[] = $className;
-                }
+        foreach (array_keys($json['entities']) as $entityName) {
+            $className = self::to_ClassName((string) $entityName);
+
+            if (self::load_Target_Constant($className)) {
+                $entities[] = $className;
             }
         }
 
         return $entities;
+    }
+
+    /**
+     * แปลงชื่อ entity จาก JSON เป็น FQCN ของ Constant class
+     *
+     * @param  string $entityName e.g. 'PRODUCTS' | 'products' | 'Products'
+     * @return string             e.g. 'App\Constant\ProductConstant'
+     */
+    private static function to_ClassName(string $entityName): string
+    {
+        // ตัด s/S ท้ายคำ (plural -> singular) แบบปลอดภัย
+        $singular = preg_replace('/s$/i', '', $entityName);
+
+        return 'App\\Constant\\' . ucfirst(strtolower((string) $singular)) . 'Constant';
+    }
+
+    /**
+     * โหลด *Constant.php จาก target app เข้า runtime
+     * ใช้ class_exists($c, false) เพื่อ "ห้าม" autoload ไปหยิบไฟล์เก่าใน m-project
+     *
+     * @param  string $className FQCN e.g. 'App\Constant\ProductConstant'
+     * @return bool              true = class พร้อมใช้งานใน memory แล้ว
+     */
+    private static function load_Target_Constant(string $className): bool
+    {
+        if (class_exists($className, false)) {
+            return true; // โหลดไปแล้วรอบก่อน
+        }
+
+        $shortName = substr($className, (int) strrpos($className, '\\') + 1);
+        $file      = (string) TargetManager::gen_path('Constant/' . $shortName . '.php');
+
+        if (!is_file($file)) {
+            echo "--- Runner: SKIP [{$shortName}] -> file not found at [{$file}] ---\n\n";
+            return false;
+        }
+
+        require_once $file;
+
+        if (!class_exists($className, false)) {
+            echo "--- Runner: SKIP [{$shortName}] -> file loaded but class [{$className}] not declared ---\n\n";
+            return false;
+        }
+
+        return true;
     }
 }

@@ -36,10 +36,13 @@ class MigrationFile
             ? '0001_01_01_000000_create_users_table.php'
             : self::$filePrefix . "_create_{$tableName}_table.php";
 
-        self::$destinationPath = (string)TargetManager::gen_path('migrations/' . self::$fileName, 'database');
+        self::$destinationPath = (string) TargetManager::gen_path(
+            'migrations/' . self::$fileName,
+            'database'
+        );
 
-        // self::$destinationPath = __DIR__ . "/../../database/migrations/" . self::$fileName;
-
+        // การันตีว่า target_app/database/migrations/ มีอยู่จริงก่อน copy()
+        TargetManager::ensureDir(self::$destinationPath);
 
         // Validation Zone
         self::dieSameMigration($isUser);
@@ -48,19 +51,31 @@ class MigrationFile
         self::makeFile($isUser);
     }
 
+    /**
+     * กันสร้าง migration ซ้ำ prefix เดียวกันใน target app
+     *
+     * @param  bool $isUser true = users table (Laravel จัดการเอง ข้ามการเช็ค)
+     * @return void
+     */
     private static function dieSameMigration(bool $isUser): void
     {
         if (!file_exists(self::$draftPath)) {
             die("\n--- Maker: Error! Draft file not found at [" . self::$draftPath . "] ---\n\n");
         }
 
-        if (!$isUser) {
-            $existingFiles = glob(__DIR__ . "/../../database/migrations/" . self::$filePrefix . "_*.php");
-            if (!empty($existingFiles)) {
-                die("\n--- CRITICAL: Migration conflict detected. ---"
-                    . "\nA file with prefix [" . self::$filePrefix . "] already exists."
-                    . "\n\n");
-            }
+        if ($isUser) {
+            return;
+        }
+
+        $pattern = (string) TargetManager::gen_path(
+            'migrations/' . self::$filePrefix . '_*.php',
+            'database'
+        );
+
+        if (!empty(glob($pattern))) {
+            die("\n--- CRITICAL: Migration conflict detected. ---"
+                . "\nA file with prefix [" . self::$filePrefix . "] already exists in target app."
+                . "\n\n");
         }
     }
 
@@ -80,7 +95,7 @@ class MigrationFile
             echo "╚" . str_repeat("═", 48) . "╝\n";
             echo "\n";
         } else {
-            echo "\n--- Maker: Error! Failed to copy migration file. ---\n\n";
+            die("\n--- Maker: Error! Failed to copy to [" . self::$destinationPath . "] ---\n\n");
         }
     }
 }
