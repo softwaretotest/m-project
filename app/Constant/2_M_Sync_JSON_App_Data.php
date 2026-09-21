@@ -20,7 +20,7 @@ class M_Sync_JSON_App_Data
         }
         $code .= "}\n";
 
-        file_put_contents(__DIR__ . '/0_Constant_APP.php', $code);
+        file_put_contents(M_Sync_JSON::$target_Constant_Path . '/0_Constant_APP.php', $code);
         echo "[ ✅ ] 0_Constant_APP.php generated successfully.\n";
     }
 

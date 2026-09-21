@@ -12,33 +12,48 @@ use PhpParser\NodeTraverser;
  */
 class M_Sync
 {
+    public static string $target_Constant_Path = "";
+    public static string $target_JSON_Path = "";
+
     public static function syncAll(): void
     {
-        M_Historizer::move_old_file_to_history(DataHelper::PATH_M_JSON . 'M-Data.json');
-        M_Historizer::move_old_file_to_history(DataHelper::PATH_M_JSON . 'App-Data.json');
-        M_Historizer::move_old_file_to_history(DataHelper::PATH_M_JSON . 'Entities.json');
+        self::$target_Constant_Path = __DIR__ . '/../../../' . TargetManager::$activeTarget . '/app/Constant';
+
+        self::$target_JSON_Path = self::$target_Constant_Path . "/M_JSON";
+
+        DataHelper::ensureDir(self::$target_JSON_Path);
+
+        M_Historizer::move_old_file_to_history(self::$target_JSON_Path . '/M-Data.json');
+        M_Historizer::move_old_file_to_history(self::$target_JSON_Path . '/App-Data.json');
+        M_Historizer::move_old_file_to_history(self::$target_JSON_Path . '/Entities.json');
+
 
         // Generate M-Data and App-Data
         self::run_PHP_to_JSON('0_Constant_M.php', 'M-Data.json');
         self::run_PHP_to_JSON('0_Constant_APP.php', 'App-Data.json');
 
         // Generate Entities data
-        self::run_Entities_to_JSON('Entities.json');
+        self::run_Entities_to_JSON('Entities.json');  //DOES NOT WORK always make Entities.json in m-project/app/Constant/
     }
 
     private static function run_PHP_to_JSON($sourceFile, $jsonFile): void
     {
-        // full Path of M_JSON folder
-        $jsonFile = DataHelper::PATH_M_JSON . $jsonFile;
-        $directory = __DIR__ . DataHelper::PATH_M_JSON;
-
-        // create folder if not exists
-        if (!file_exists($directory)) {
-            mkdir($directory, 0755, true);
-        }
-
         $parser = (new ParserFactory)->createForNewestSupportedVersion();
-        $code = file_get_contents(__DIR__ . '/' . $sourceFile);
+
+        $code = '';
+
+        $jsonFile_full_path = self::$target_JSON_Path . '/' . $jsonFile;
+
+        $phpFile_full_path = self::$target_Constant_Path . '/' . $sourceFile;
+
+        // check if Constant_M.php or Constant_APP.php exists at $target_app
+        if (file_exists($phpFile_full_path)) {
+            // CASE YES : copy from target_app
+            $code = file_get_contents(self::$target_Constant_Path . '/' . $sourceFile);
+        } else {
+            // CASE NO  : copy from m-project
+            $code = file_get_contents(__DIR__ . '/' . $sourceFile);
+        }
         $ast = $parser->parse($code);
 
         $visitor = new Constant_M_APP_to_JSON();
@@ -47,7 +62,7 @@ class M_Sync
         $traverser->traverse($ast);
 
         $outputData = array_merge(["_comment" => $jsonFile], $visitor->data);
-        file_put_contents(__DIR__ . '/' . $jsonFile, json_encode($outputData, JSON_PRETTY_PRINT));
+        file_put_contents($jsonFile_full_path, json_encode($outputData, JSON_PRETTY_PRINT));
         echo "--- M_Sync: Created {$jsonFile} ---\n";
     }
 
@@ -83,12 +98,11 @@ class M_Sync
      */
     private static function run_Entities_to_JSON($jsonFile): void
     {
-        $jsonFile = DataHelper::PATH_M_JSON . $jsonFile;
         $parser = (new ParserFactory)->createForNewestSupportedVersion();
         $scanner = new Entities_to_JSON();
 
         // 1. scan data from *Constant.php and keep in $php_entities
-        foreach (glob(__DIR__ . '/*Constant.php') as $file) {
+        foreach (glob(self::$target_Constant_Path . '/*Constant.php') as $file) {
             if (str_contains($file, 'Entities_to_JSON')) continue;
 
             $code = file_get_contents($file);
@@ -103,7 +117,7 @@ class M_Sync
         $final_entities = [];
 
         // full Path of Entities.json
-        $jsonFilePath = __DIR__ . '/' . $jsonFile;
+        $jsonFilePath = self::$target_JSON_Path . '/' . $jsonFile;
 
         // 2. check if old Entitites.json exist to use JSON - Master Order
         if (file_exists($jsonFilePath)) {

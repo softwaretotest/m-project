@@ -10,8 +10,6 @@ use ReflectionClass;
  */
 class DataHelper
 {
-    public const PATH_M_JSON = '/M_JSON/';
-
     /** cache: class => [const_value => CONST_NAME] */
     public static array $const_map_cache = [];
 
@@ -23,6 +21,16 @@ class DataHelper
         'cd'  => cd::class,
         'cud' => cud::class,
     ];
+
+    /**
+     * make directory if not exist
+     */
+    public static function ensureDir(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+    }
 
     /**
      * * param = e.g. 'boolean'

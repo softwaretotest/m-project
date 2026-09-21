@@ -110,7 +110,7 @@ class EntityGenerator
             $output = substr($output, 0, $pos) . $methods . "}\n";
         }
 
-        self::ensureDir((string)TargetManager::gen_path('Models'));
+        DataHelper::ensureDir((string)TargetManager::gen_path('Models'));
         file_put_contents((string)TargetManager::gen_path("Models/{$entityName}.php"), $output);
     }
 
@@ -160,7 +160,7 @@ class EntityGenerator
         $output = str_replace('//ARRAY_MAP',  implode("\n            ", $arrLines), $output);
         $output = str_replace('//METADATA',   $metadataMethod, $output);
 
-        self::ensureDir((string)TargetManager::gen_path('DTOs'));
+        DataHelper::ensureDir((string)TargetManager::gen_path('DTOs'));
         file_put_contents((string)TargetManager::gen_path("DTOs/{$entityName}_DTO.php"), $output);
     }
 
@@ -257,7 +257,7 @@ class EntityGenerator
             throw new \RuntimeException("Missing stub: {$source}");
         }
 
-        self::ensureDir(dirname($dest));
+        DataHelper::ensureDir(dirname($dest));
 
         if (copy($source, $dest)) {
             echo "\n ========================================================================================== \n";
@@ -284,7 +284,7 @@ class EntityGenerator
             throw new \RuntimeException("Missing stub: {$source}");
         }
 
-        self::ensureDir(dirname($dest));
+        DataHelper::ensureDir(dirname($dest));
 
         if (copy($source, $dest)) {
             echo "\n ========================================================================================== \n";
@@ -296,16 +296,6 @@ class EntityGenerator
         }
 
         self::$base_dto_deployed = true;
-    }
-
-    /**
-     * make directory if not exist
-     */
-    private static function ensureDir(string $dir): void
-    {
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
     }
 }
 
