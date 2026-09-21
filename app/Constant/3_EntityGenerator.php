@@ -17,18 +17,29 @@ class EntityGenerator
     public static function runAll()
     {
 
-        $directory = dirname(__DIR__, 2) . '/app/Constant';
-        // echo "\n" . $directory . "\n";
+        $directory = dirname(__DIR__, 3) . '/' . TargetManager::$activeTarget . '/app/Constant';
 
         $files = glob($directory . '/*Constant.php');
 
+        if (count($files) === 0) {
+            die("======== GENERS FAILED : NO app/Constant/*Contstant.php found at " . $directory);
+        }
 
         $target_APP_DIR = __DIR__ . '/../../../' . TargetManager::$activeTarget;
+
         M_Historizer::move_old_file_to_history($target_APP_DIR . '/app/Http/Controllers/BaseController.php');
         M_Historizer::move_old_file_to_history($target_APP_DIR . '/app/DTOs/BaseDTO.php');
 
         foreach ($files as $file) {
-            $className     = basename($file, '.php');
+            $className = basename($file, '.php');
+            $filename = $className . '.php';
+            if (!class_exists($className, false)) {
+                // แปลงชื่อคลาสให้เป็น path แล้ว require เข้ามาซะก่อน
+                $target_file = (string)TargetManager::gen_path('Constant/' . $filename);
+                if (file_exists($target_file)) {
+                    require_once $target_file;
+                }
+            }
             $fullClassName = "App\\Constant\\" . $className;
             $entityName = str_replace('Constant', '', $className);
 
@@ -40,6 +51,10 @@ class EntityGenerator
 
                 echo "Generating: {$entityName} (Table: {$tableName})\n";
                 self::generate($entityName, $fields);
+            } else {
+                echo "======== GENERS FAILED : \n\n" . " class_exists( " . $fullClassName . ") = ";
+                echo class_exists($fullClassName) ? 'TRUE' : 'FALSE';
+                die("\n");
             }
         }
 

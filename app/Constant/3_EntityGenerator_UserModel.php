@@ -62,8 +62,6 @@ class EntityGenerator_UserModel
         $updated = self::mergeFillable($code, $newFields);
 
         if ($updated !== $code) {
-            // สำรองไฟล์เดิมไว้ก่อน (กันพลาด)
-            @copy($target_User_Model, $target_User_Model . '.bak');     // to be removed, cause we already have Historizer
             file_put_contents($target_User_Model, $updated, LOCK_EX);
             clearstatcache(true, $target_User_Model);
         }
