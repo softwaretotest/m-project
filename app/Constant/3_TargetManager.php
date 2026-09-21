@@ -20,13 +20,13 @@ class TargetManager
     }
 
     // target path of app 
-    protected static $targets = [
+    public static $targets = [
         'ecommerce' => [
             'root_path' => 'C:/Users/o/.vscode/react/ecommerce',
         ],
     ];
 
-    protected static $activeTarget = 'ecommerce';
+    public static $activeTarget = 'ecommerce';
 
     /**
      * get Path of Dynamic

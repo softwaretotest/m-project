@@ -9,7 +9,8 @@ require __DIR__ . '/../../vendor/autoload.php';
  */
 class M_Historizer
 {
-    const HISTORY_DIR = __DIR__ . '/../../history';
+    const HISTORY_DIR = __DIR__ . '/../../../history';
+    public static string $target_HISTORY_DIR;
 
     /**
      * 1. check if $sourceFile exist
@@ -24,16 +25,19 @@ class M_Historizer
         echo " ------------ [1] START move_old_file_to_history FOR : " . $sourceFile . " ------------ \n";
         echo "----------------------------------------------------------------------\n";
 
+        $target_HISTORY_DIR = self::HISTORY_DIR . '/' . TargetManager::$activeTarget;
+
         $filePath = $sourceFile; // for EntityGenerator
 
         if (!file_exists($filePath)) {
-            $filePath = __DIR__ . '/' . $sourceFile; // for M_Sync , M_Sync_JSON
+            $filePath = $target_HISTORY_DIR . '/' . $sourceFile; // for M_Sync , M_Sync_JSON
         }
 
         echo "[2.1] Checking history directory existence: " . self::HISTORY_DIR . "\n";
-        if (!file_exists(self::HISTORY_DIR)) {
-            mkdir(self::HISTORY_DIR, 0755, true);
-            echo "[2.2] Created history directory successfully ✅.\n\n";
+        if (!file_exists($target_HISTORY_DIR)) {
+            mkdir($target_HISTORY_DIR, 0755, true);
+            echo "[2.2] Created history directory successfully ✅ at :.\n";
+            echo $target_HISTORY_DIR . "\n\n";
         } else {
             echo "[2.2] History directory already exists.\n";
         }
@@ -43,7 +47,7 @@ class M_Historizer
         if (file_exists($filePath)) {
             $timestamp = time();
             $newFileName = $timestamp . '_' . basename($sourceFile);
-            $destinationPath = self::HISTORY_DIR . '/' . $newFileName;
+            $destinationPath = $target_HISTORY_DIR . '/' . $newFileName;
 
             echo "[2.4] Moving file {$sourceFile} to history as {$newFileName}\n";
             if (rename($filePath, $destinationPath)) {
