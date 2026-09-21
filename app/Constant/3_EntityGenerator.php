@@ -64,8 +64,8 @@ class EntityGenerator
     private static function historize_entity_files(string $entityName, string $target_APP_DIR)
     {
         M_Historizer::move_old_file_to_history($target_APP_DIR . '/app/Models/' . $entityName . ".php");
-        M_Historizer::move_old_file_to_history($target_APP_DIR . '/app/DTOs/' . $entityName . "_DTO.php");
-        M_Historizer::move_old_file_to_history($target_APP_DIR . '/app/Http/Controllers/' . $entityName . "_Controller.php");
+        M_Historizer::move_old_file_to_history($target_APP_DIR . '/app/DTOs/' . $entityName . "DTO.php");
+        M_Historizer::move_old_file_to_history($target_APP_DIR . '/app/Http/Controllers/' . $entityName . "Controller.php");
     }
 
     public static function generate($entityName, $fields)
@@ -169,14 +169,14 @@ class EntityGenerator
             . "        ];\n"
             . "    }";
 
-        $output = str_replace('DummyDTO', "{$entityName}_DTO", $stub);
+        $output = str_replace('DummyDTO', "{$entityName}DTO", $stub);
         $output = str_replace('//PROPERTIES', implode("\n        ", $propLines), $output);
         $output = str_replace('//MAPPING',    implode("\n            ", $mapLines), $output);
         $output = str_replace('//ARRAY_MAP',  implode("\n            ", $arrLines), $output);
         $output = str_replace('//METADATA',   $metadataMethod, $output);
 
         DataHelper::ensureDir((string)TargetManager::gen_path('DTOs'));
-        file_put_contents((string)TargetManager::gen_path("DTOs/{$entityName}_DTO.php"), $output);
+        file_put_contents((string)TargetManager::gen_path("DTOs/{$entityName}DTO.php"), $output);
     }
 
     // -----------------------------------------------------------------
@@ -189,7 +189,7 @@ class EntityGenerator
         // 1. replace Dummy (Class/Model) by name of real Entity (e.g. Order)
         $output = str_replace('Dummy', $entityName, $stub);
 
-        $targetPath = TargetManager::gen_path("Http/Controllers/{$entityName}_Controller.php");
+        $targetPath = TargetManager::gen_path("Http/Controllers/{$entityName}Controller.php");
 
         // 2. delete old file if exist
         if (file_exists((string)$targetPath)) {
@@ -197,7 +197,7 @@ class EntityGenerator
         }
 
         file_put_contents((string)$targetPath, $output);
-        echo "  - Generated Controller: {$entityName}_Controller.php\n";
+        echo "  - Generated Controller: {$entityName}Controller.php\n";
     }
 
     /**
