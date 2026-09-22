@@ -22,7 +22,7 @@ class Logger
         // get Backtrace 10 level deeper
         $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10);
 
-        $class = isset($caller['class']) ? (new \ReflectionClass($caller['class']))->getShortName() : 'Global';
+        $class = 'Global';
 
         $method = 'main';
 
@@ -56,7 +56,6 @@ class Logger
     public static function log(string $level, string $message): void
     {
         $timestamp = date('Y-m-d H:i:s');
-        $formattedMessage = "[{$timestamp}] {$level} {$message}";
 
         $location = self::getCaller();
 
@@ -92,6 +91,7 @@ class Logger
         // max. file size 5MB: 5 * 1024 * 1024)
         $maxSize = 5 * 1024 * 1024;
 
+        $logDir = dirname($logFile);
         if (file_exists($logFile) && filesize($logFile) >= $maxSize) {
             $logDir = dirname($logFile);
             $historyDir = $logDir . '/history_logs';
@@ -104,7 +104,7 @@ class Logger
             $timestamp = date('Y-m-d_H-i-s');
             $historyFile = $historyDir . '/' . $appName . '_' . $timestamp . '.log';
 
-            // 1. ย้ายไฟล์เก่าไปเก็บที่ฮิสทอรี
+            // 1. move old log to history
             @rename($logFile, $historyFile);
 
             // 2. make new Log file
