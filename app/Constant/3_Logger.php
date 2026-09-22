@@ -43,7 +43,7 @@ class Logger
             break;
         }
 
-        return "[{$class}::{$method}]";
+        return "[ {$class}::{$method} ]";
     }
 
     /**
@@ -59,7 +59,7 @@ class Logger
 
         $location = self::getCaller();
 
-        $formattedMessage = "[{$timestamp}] {$level} {$location} {$message}";
+        $formattedMessage = "[ {$timestamp} ] {$level}{$location} {$message}";
 
         // 1. Print to Terminal immediately
         echo $formattedMessage . "\n";

@@ -6,16 +6,15 @@ class M_Sync_JSON_Entities
 {
     public static function generate(): void
     {
-        $jsonFilePath = __DIR__ . '/M_JSON/Entities.json';
+        $jsonFilePath = dirname(__DIR__, 3) . '/' . TargetManager::$activeTarget . '/app/Constant/M_JSON/Entities.json';
+
         if (!file_exists($jsonFilePath)) {
-            echo "[ 🚫 ERROR] Entities.json not found.\n";
-            return;
+            Logger::error("File not found : $jsonFilePath");
         }
 
         $json = json_decode(file_get_contents($jsonFilePath), true);
         if (!isset($json['entities']) || !is_array($json['entities'])) {
-            echo "[ 🚫 ERROR] Invalid entities JSON structure.\n";
-            return;
+            Logger::error("Invalid entities JSON structure.");
         }
 
         // Loop Entity in JSON (e.g. ORDERS, PRODUCTS, etc.)
@@ -40,29 +39,9 @@ class M_Sync_JSON_Entities
             $code .= "    }\n";
             $code .= "}\n";
 
-
-            self::add_folder_Entities();
-
             // save Entity 
             file_put_contents(M_Sync_JSON::$target_Constant_Path . '/' . $fileName, $code);
             echo "[ ✅ ] {$fileName} generated successfully.\n";
-        }
-    }
-
-    /**
-     * add folder app/Constant/Entities if not exist
-     */
-    private static function add_folder_Entities(): void
-    {
-        $folderPath = __DIR__ . '/Entities';
-
-        if (!is_dir($folderPath)) {
-            /**
-             * * save mode 0755 
-             * * true = recursive = add mother folder if neccessary
-             */
-            mkdir($folderPath, 0755, true);
-            echo "[ 📁 ] Created directory: Entities\n";
         }
     }
 }
