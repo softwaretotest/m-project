@@ -23,10 +23,57 @@ class EntityGenerator_UserModel
     /**
      * create/update User Model of target project
      *
-     * @param array $fields additional fields e.g. ['is_active', 'image']
-     *                      or [['name' => 'is_active', ...], ...] is OK too.
+     * @param array $fields 
+     * * e.g. for table User
+     * * Array
+     * * (
+     * *     [0] => Array
+     * *         (
+     * *             [0] => name
+     * *             [1] => Array
+     * *                 (
+     * *                    [0] => string
+     * *                    [1] => 255
+     * *                 )
+     * *             [2] => text
+     * *             [3] => required
+     * *         )
+     * *    [1] => Array
+     * *        (
+     * *             [0] => email
+     * *             [1] => string
+     * *             [2] => text
+     * *             [3] => unique
+     * *        )
+     * *     [2] => Array
+     * *         (
+     * *             [0] => is_active
+     * *             [1] => boolean
+     * *             [2] => select
+     * *             [3] => Array
+     * *                 (
+     * *                     [0] => default
+     * *                     [1] => 1
+     * *                 )
+     * *         )
+     * *     [3] => Array
+     * *         (
+     * *             [0] => image
+     * *             [1] => Array
+     * *                (
+     * *                     [0] => string
+     * *                     [1] => 255
+     * *                 )
+     * *             [2] => file
+     * *             [3] => Array
+     * *                 (
+     * *                     [0] => default
+     * *                     [1] =>
+     * *                 )
+     * *         )
+     * * )
      */
-    public static function generateUserModel($fields)
+    public static function generateUserModel($fields): void
     {
         $target_User_Model = (string) TargetManager::gen_path("Models/User.php");
 
@@ -39,7 +86,7 @@ class EntityGenerator_UserModel
 
             $stubPath = __DIR__ . '/Stub/user.model.stub';
             if (!file_exists($stubPath)) {
-                throw new \RuntimeException("Stub not found: {$stubPath}");
+                Logger::error("Stub not found: {$stubPath}");
             }
 
             file_put_contents($target_User_Model, file_get_contents($stubPath));
@@ -49,13 +96,14 @@ class EntityGenerator_UserModel
         // ---------- 2) read user.model.stub ----------
         $code = file_get_contents($target_User_Model);
         if ($code === false || trim($code) === '') {
-            throw new \RuntimeException("Cannot read: {$target_User_Model}");
+            Logger::error("User Model : Cannot read: {$target_User_Model}");
         }
 
         // ---------- 3) normalize fields ----------
         $newFields = self::normalizeFieldNames($fields);
         if (empty($newFields)) {
-            return $target_User_Model; // ไม่มีอะไรต้องเพิ่ม
+            Logger::warning("No valid fields to merge for User model.");
+            return; // if $fields is empty no further action needed
         }
 
         // ---------- 4) merge + เขียนกลับ ----------
@@ -64,9 +112,11 @@ class EntityGenerator_UserModel
         if ($updated !== $code) {
             file_put_contents($target_User_Model, $updated, LOCK_EX);
             clearstatcache(true, $target_User_Model);
+            Logger::success("User's fillable fields = " . implode(' , ', $newFields));
+        } else {
+            Logger::warning("No valid fields to merge for User model.");
         }
-
-        return $target_User_Model;
+        Logger::finish();
     }
 
     private static function normalizeFieldNames($fields): array
