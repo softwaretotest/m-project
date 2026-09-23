@@ -49,22 +49,22 @@ class M_Historizer
             $newFileName = $timestamp . '_' . basename($sourceFile);
             $destinationPath = $target_HISTORY_DIR . '/' . $newFileName;
 
-            echo "[2.4] Moving file {$sourceFile} to history as {$newFileName}\n";
-            if (rename($filePath, $destinationPath)) {
-                echo "[2.5] File successfully ✅ moved to history.\n\n";
+            echo "[2.4] copy & rename file : {$sourceFile} \n to history as : {$destinationPath}\n\n";
+            if (copy($filePath, $destinationPath)) {
+                Logger::success("File successfully moved to history : $newFileName");
             } else {
-                echo "[ 🚫 ERROR] Failed to move file {$sourceFile} to history.\n\n";
+                Logger::error("Failed to move file {$sourceFile} to history.");
             }
         } else {
-            echo "[2.3] Source file {$sourceFile} does not exist, skipping archive.\n\n";
+            Logger::warning("Source file {$sourceFile} does not exist, skipping archive.");
         }
     }
 
     /**
-     * 1. get a List of Entities from $jsonFile 
-     * 2. Loop Entities : (USERS,PRODUCTS,ORDERS,etc.)
-     * * 2.1 check if PHP file of each Entitiy exists , e.g. UserConstant.php 
-     * * 2.2 if file exist rename e.g. UserConstant.php to unixtimestamp() + "_" + UserConstant.php
+     * * 3.1 get a List of Entities from $jsonFile 
+     * * 3.2 Loop Entities : (USERS,PRODUCTS,ORDERS,etc.)
+     * * 3.2.1 check if PHP file of each Entitiy exists , e.g. UserConstant.php 
+     * * 3.2.2 if file exist rename e.g. UserConstant.php to unixtimestamp() + "_" + UserConstant.php
      * * 2.3 move php file to ./history
      * @param $jsonFile = Entities.json
      */
@@ -74,19 +74,20 @@ class M_Historizer
         echo " ------------ START move_old_Entities_to_history ------------ \n";
         echo "----------------------------------------------------------------------\n";
 
-        // $jsonFilePath = __DIR__ . '/' . $jsonFile;
         $jsonFile = basename($jsonFilePath);
 
         echo "[3.1] Getting list of entities from {$jsonFile}\n\n";
         if (!file_exists($jsonFilePath)) {
-            echo "[ 🚫 ERROR] JSON file not found: {$jsonFile}\n\n";
+            Logger::warning("JSON file not found: {$jsonFile}");
             return;
         }
 
-        $jsonData = json_decode(file_get_contents($jsonFilePath), true);
+        $result = file_get_contents($jsonFilePath);
+        if (!$result) Logger::error("Failure - file_get_contents($jsonFilePath)");
+
+        $jsonData = json_decode($result, true);
         if (!isset($jsonData['entities'])) {
-            echo "[ 🚫 ERROR] Invalid entities JSON structure.\n\n";
-            return;
+            Logger::error("Invalid entities JSON structure.");
         }
 
         if (!file_exists(self::HISTORY_DIR)) {
@@ -108,12 +109,12 @@ class M_Historizer
 
                 echo "[3.2.2] Moving entity file {$phpFileName} to history as {$newFileName}\n";
                 if (rename($phpFilePath, $destinationPath)) {
-                    echo "[3.2.3] Entity file successfully ✅ moved to history.\n\n";
+                    Logger::success("Entity file successfully moved to history.");
                 } else {
-                    echo "[ 🚫 ERROR] Failed to move entity file {$phpFileName}.\n\n";
+                    Logger::error("Failed to move entity file {$phpFileName}.");
                 }
             } else {
-                echo "[3.2.1] Entity file {$phpFileName} does not exist, skipping.\n\n";
+                Logger::warning("Entity file {$phpFileName} does not exist, skipping.");
             }
         }
     }

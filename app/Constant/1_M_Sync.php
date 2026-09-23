@@ -4,6 +4,7 @@ namespace App\Constant;
 
 require __DIR__ . '/../../vendor/autoload.php';
 
+use PhpParser\NodeVisitorAbstract;
 use PhpParser\ParserFactory;
 use PhpParser\NodeTraverser;
 
@@ -14,6 +15,7 @@ class M_Sync
 {
     public static string $target_Constant_Path = "";
     public static string $target_JSON_Path = "";
+    private static bool $Entities_json_not_exists = false;
 
     public static function syncAll(): void
     {
@@ -33,13 +35,50 @@ class M_Sync
         self::run_PHP_to_JSON('0_Constant_APP.php', 'App-Data.json');
 
         // Generate Entities data
-        self::run_Entities_to_JSON('Entities.json');  //DOES NOT WORK always make Entities.json in m-project/app/Constant/
+        self::run_Entities_to_JSON('Entities.json');
+
+        // full Path of Entities.json
+        $jsonFilePath = self::$target_JSON_Path . '/Entities.json';
+
+        if (self::$Entities_json_not_exists) {
+            Logger::warning("File not exist : {$jsonFilePath}");
+            Logger::warning("The Laravel Migration Order of Entities could be wrong \n and 'php artisan migrate:fresh' will be failed !!!");
+        } else {
+            Logger::finish();
+        }
+    }
+
+    /**
+     * AST Parsing & Traversing Mechanism (External Library: nikic/php-parser)
+     * 
+     * Concept: 
+     * We use an AST (Abstract Syntax Tree) parser to read PHP constant files as text data 
+     * without actually 'including' or executing them. 
+     * 
+     * How it works (Magic Flow):
+     * 1. $parser->parse($code)  -> Converts PHP raw code into a tree structure (AST).
+     * 2. new NodeTraverser()    -> Creates a tree-walker (the framework engine).
+     * 3. addVisitor($visitor)   -> Attaches our custom node-processor class (whether you call it $visitor or $scanner).
+     * 4. traverse($ast)         -> Walks through every node in the tree. Whenever it hits 
+     *                              a target node, it automatically triggers enterNode($node) 
+     *                              inside our visitor class via Inversion of Control (IoC).
+     * *xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+     * *$traverser->traverse($ast); // Automatically fires function enterNode($node) under the hood , if the funct. exist
+     * *xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+     * * NOTICE : &$visitor is passed by Ref.
+     */
+    private static function getData_from_M_APP_Entitiy_Constant_PHP_to_visitor(string $code, NodeVisitorAbstract &$visitor): void
+    {
+        // Unified Example for Refactoring:
+        $parser     = (new ParserFactory())->createForNewestSupportedVersion();
+        $ast        = $parser->parse($code);
+        $traverser = new NodeTraverser();
+        $traverser->addVisitor($visitor); // this calls enterNode($node) automatically , if methode exist
+        $traverser->traverse($ast); // Automatically fires function enterNode($node) under the hood , if the funct. exist
     }
 
     private static function run_PHP_to_JSON($sourceFile, $jsonFile): void
     {
-        $parser = (new ParserFactory)->createForNewestSupportedVersion();
-
         $code = '';
 
         $jsonFile_full_path = self::$target_JSON_Path . '/' . $jsonFile;
@@ -54,16 +93,21 @@ class M_Sync
             // CASE NO  : copy from m-project
             $code = file_get_contents(__DIR__ . '/' . $sourceFile);
         }
-        $ast = $parser->parse($code);
-
         $visitor = new Constant_M_APP_to_JSON();
-        $traverser = new NodeTraverser();
-        $traverser->addVisitor($visitor);
-        $traverser->traverse($ast);
+
+        self::getData_from_M_APP_Entitiy_Constant_PHP_to_visitor($code, $visitor);
+        // $parser = (new ParserFactory)->createForNewestSupportedVersion();
+        // $ast = $parser->parse($code);
+        // $traverser = new NodeTraverser();
+        // $traverser->addVisitor($visitor);
+        // $traverser->traverse($ast); // this calls enterNode($node) automatically , if methode exist
 
         $outputData = array_merge(["_comment" => $jsonFile], $visitor->data);
-        file_put_contents($jsonFile_full_path, json_encode($outputData, JSON_PRETTY_PRINT));
-        echo "--- M_Sync: Created {$jsonFile} ---\n";
+        $result = file_put_contents($jsonFile_full_path, json_encode($outputData, JSON_PRETTY_PRINT));
+        if ($result)
+            Logger::success("File has been created : {$jsonFile}");
+        else
+            Logger::error("Could not create file : {$jsonFile}");
     }
 
     /**
@@ -98,22 +142,23 @@ class M_Sync
      */
     private static function run_Entities_to_JSON($jsonFile): void
     {
-        $parser = (new ParserFactory)->createForNewestSupportedVersion();
-        $scanner = new Entities_to_JSON();
+        $visitor = new Entities_to_JSON();
 
         // 1. scan data from *Constant.php and keep in $php_entities
         foreach (glob(self::$target_Constant_Path . '/*Constant.php') as $file) {
             if (str_contains($file, 'Entities_to_JSON')) continue;
-
             $code = file_get_contents($file);
-            $ast = $parser->parse($code);
-            $traverser = new NodeTraverser();
-            $traverser->addVisitor($scanner);
-            $traverser->traverse($ast);
+            self::getData_from_M_APP_Entitiy_Constant_PHP_to_visitor($code, $visitor);
+
+            // $parser = (new ParserFactory)->createForNewestSupportedVersion();
+            // $ast = $parser->parse($code);
+            // $traverser = new NodeTraverser();
+            // $traverser->addVisitor($visitor);
+            // $traverser->traverse($ast);  // this calls enterNode($node) automatically , if methode exist
         }
 
         // data from *Constant.php
-        $php_entities = $scanner->entities;
+        $php_entities = $visitor->entities;
         $final_entities = [];
 
         // full Path of Entities.json
@@ -156,12 +201,17 @@ class M_Sync
              * * then order by app/Constant/Entities/*Constant.php  
              * */
             $final_entities = $php_entities;
+
+            self::$Entities_json_not_exists = true; // for warning 
         }
 
         // 3. save Entities.json , keeping Master Order done by UI 
         $outputData = ["_comment" => $jsonFile, "entities" => $final_entities];
-        file_put_contents($jsonFilePath, json_encode($outputData, JSON_PRETTY_PRINT));
-        echo "--- M_Sync: Created {$jsonFile} ---\n";
+        $result = file_put_contents($jsonFilePath, json_encode($outputData, JSON_PRETTY_PRINT));
+        if ($result)
+            Logger::success("File has been created : $jsonFilePath");
+        else
+            Logger::error("Could not create file : $jsonFilePath");
     }
 }
 

@@ -7,7 +7,7 @@ use Throwable;
 class Logger
 {
     public const SUCCESS = '[ ✅ SUCCESS ] ';
-    public const WARNING = '[ ⚠️ WARNING ] ';
+    public const WARNING = '[ ⚠️  WARNING ] ';
     public const ERROR   = '[ 🚫 ERROR   ] ';
     public const FINISH  = '[ 🆗 FINISH  ] ';
 
@@ -77,7 +77,12 @@ class Logger
         self::checkAndRotateLog($logFile);
 
         // 3. Write to file (append with exclusive lock)
-        file_put_contents($logFile, $formattedMessage . PHP_EOL, FILE_APPEND | LOCK_EX);
+        $result = file_put_contents($logFile, $formattedMessage . PHP_EOL, FILE_APPEND | LOCK_EX);
+        if ($result === false) {
+            echo "======================================================================\n\n";
+            echo "\n\n" . self::ERROR . " Logger could not save messages to : $logFile\n\n";
+            echo "======================================================================\n\n";
+        }
     }
 
     /**
@@ -126,7 +131,9 @@ class Logger
 
     public static function finish(): void
     {
+        echo "======================================================================\n\n";
         self::success(self::FINISH);
+        echo "======================================================================\n\n";
     }
 
     /**

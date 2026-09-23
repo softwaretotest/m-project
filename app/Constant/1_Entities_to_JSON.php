@@ -3,17 +3,11 @@
 namespace App\Constant;
 // Entities_to_JSON.php
 
-require __DIR__ . '/../../vendor/autoload.php';
-
-use PhpParser\ParserFactory;
-use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitorAbstract;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassConst;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Expr\ClassConstFetch;
-use PhpParser\Node\Scalar\String_;
-use PhpParser\Node\Scalar\LNumber;
 use PhpParser\Node\Expr\Array_;
 
 class Entities_to_JSON extends NodeVisitorAbstract
@@ -27,6 +21,10 @@ class Entities_to_JSON extends NodeVisitorAbstract
      * e.g., 
             f::NAME,
             f::IMAGE,
+     * 3. Save found value to $entities , e.g. 
+     * *    $tableName , 
+     * *    $fields of the table , 
+     * * by calling function $fields
 
     !!!! $node->stmts = Statement !!!!
 
@@ -42,6 +40,30 @@ class Entities_to_JSON extends NodeVisitorAbstract
             ];
         }
     }
+     *@param $node
+     *xxxxxx top part of $node
+     ["name"]=>
+      object(PhpParser\Node\Identifier)#267 (2) {
+        ["attributes":protected]=>
+        array(6) {
+          ["startLine"]=>
+          int(5)
+          ["startTokenPos"]=>
+          int(9)
+          ["startFilePos"]=>
+          int(38)
+          ["endLine"]=>
+          int(5)
+          ["endTokenPos"]=>
+          int(9)
+          ["endFilePos"]=>
+          int(50)
+        }
+        ["name"]=>
+        string(13) "OrderConstant"
+      }
+     *xxxxxx bottom part of $node
+     * $node has very long content
      */
     public function enterNode($node)
     {
@@ -77,24 +99,71 @@ class Entities_to_JSON extends NodeVisitorAbstract
     }
 
     /**
-     * DICTIONARY:
-     * AST  = Code structure from *Constant.php files parsed by PhpParser
-     * NODE = A specific element within the AST
-     * * EXAMPLES of $node (input):
-     * - String_ ('id')         -> "id"
-     * - Array_ ([id, name])    -> ["id", "name"]
-     * - ClassConstFetch (t::ID)-> "t::ID"
+     * * DICTIONARY:
+     * * AST  = Code structure from *Constant.php files parsed by PhpParser
+     * * NODE = A specific element within the AST
+     *@param $node
+     * *object(PhpParser\Node\Expr\ClassConstFetch)#270 (3) {
+     * *  ["attributes":protected]=>
+     * *  array(6) {
+     * *    ["startLine"]=>
+     * *    int(7)
+     * *    ["startTokenPos"]=>
+     * *    int(21)
+     * *    ["startFilePos"]=>
+     * *    int(84)
+     * *    ["endLine"]=>
+     * *    int(7)
+     * *    ["endTokenPos"]=>
+     * *    int(23)
+     * *    ["endFilePos"]=>
+     * *    int(92)
+     * *  }
+     * *  ["class"]=>
+     * *  object(PhpParser\Node\Name)#268 (2) {
+     * *    ["attributes":protected]=>
+     * *    array(6) {
+     * *      ["startLine"]=>
+     * *      int(7)
+     * *      ["startTokenPos"]=>
+     * *      int(21)
+     * *      ["startFilePos"]=>
+     * *      int(84)
+     * *      ["endLine"]=>
+     * *      int(7)
+     * *      ["endTokenPos"]=>
+     * *      int(21)
+     * *      ["endFilePos"]=>
+     * *      int(84)
+     * *    }
+     * *    ["name"]=>
+     * *    string(1) "t"
+     * *  }
+     * *  ["name"]=>
+     * *  object(PhpParser\Node\Identifier)#269 (2) {
+     * *    ["attributes":protected]=>
+     * *    array(6) {
+     * *      ["startLine"]=>
+     * *      int(7)
+     * *      ["startTokenPos"]=>
+     * *      int(23)
+     * *      ["startFilePos"]=>
+     * *      int(87)
+     * *      ["endLine"]=>
+     * *      int(7)
+     * *      ["endTokenPos"]=>
+     * *      int(23)
+     * *      ["endFilePos"]=>
+     * *      int(92)
+     * *    }
+     * *    ["name"]=>
+     * *    string(6) "ORDERS"
+     * *  }
+     * *}
+     * @return t::ORDER
      */
     private function resolveValue($node)
     {
-        if ($node instanceof String_) {
-            return $node->value;
-        }
-
-        if ($node instanceof LNumber) {
-            return $node->value;
-        }
-
         if ($node instanceof Array_) {
             $arr = [];
             foreach ($node->items as $item) {
@@ -112,20 +181,4 @@ class Entities_to_JSON extends NodeVisitorAbstract
 
         return null;
     }
-}
-
-// Execution Logic
-$parser = (new ParserFactory)->createForNewestSupportedVersion();
-$scanner = new Entities_to_JSON();
-
-// Scan files in directory
-foreach (glob(__DIR__ . '/*Constant.php') as $file) {
-    // e.g. basename('App/Constant/Entities_to_JSON.php') -> 'Entities_to_JSON.php'
-    if (basename($file) === 'Entities_to_JSON.php') continue;
-
-    $code = file_get_contents($file);
-    $ast = $parser->parse($code);
-    $traverser = new NodeTraverser();
-    $traverser->addVisitor($scanner);
-    $traverser->traverse($ast);
 }

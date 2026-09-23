@@ -41,8 +41,8 @@ class MigrationFile
             'database'
         );
 
-        // การันตีว่า target_app/database/migrations/ มีอยู่จริงก่อน copy()
-        TargetManager::ensureDir(self::$destinationPath);
+        // check path target_app/database/migrations/ if exist before copy()
+        DataHelper::ensureDir(self::$destinationPath);
 
         // Validation Zone
         self::dieSameMigration($isUser);
@@ -52,9 +52,9 @@ class MigrationFile
     }
 
     /**
-     * กันสร้าง migration ซ้ำ prefix เดียวกันใน target app
+     * prevent making same migration same prefix in target app
      *
-     * @param  bool $isUser true = users table (Laravel จัดการเอง ข้ามการเช็ค)
+     * @param  bool $isUser true = users table ( = Laravel takes care of User table itself)
      * @return void
      */
     private static function dieSameMigration(bool $isUser): void

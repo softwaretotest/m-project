@@ -34,9 +34,7 @@ class M_Sync_JSON
         self::run_JSON_to_PHP('0_Constant_APP.php', '/M_JSON/App-Data.json');
         self::run_JSON_to_Entities('/M_JSON/Entities.json');
 
-        echo "\n======================================================================\n";
-        echo " [ END ] SYNCHRONIZATION PROCESS COMPLETED SUCCESSFULLY ✅                  \n";
-        echo "======================================================================\n\n";
+        Logger::finish();
     }
 
     private static function run_JSON_to_PHP($sourceFile, $jsonFile): void

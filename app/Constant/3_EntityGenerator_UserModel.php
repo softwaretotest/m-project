@@ -77,26 +77,29 @@ class EntityGenerator_UserModel
     {
         $target_User_Model = (string) TargetManager::gen_path("Models/User.php");
 
-        // ---------- 1) create file from stub if not exists ----------
+        // ---------- 0) check target folder /Models  ----------
+        $dir = dirname($target_User_Model);
+        DataHelper::ensureDir($dir);
+
+        // ---------- 0) check stub  ----------
+        $stubPath = __DIR__ . '/Stub/user.model.stub';
+        if (!file_exists($stubPath)) {
+            Logger::error("Stub not found: {$stubPath}");
+        }
+
+        // ---------- 1) create app/Models/User.php from stub if not exists ----------
         if (!file_exists($target_User_Model)) {
-            $dir = dirname($target_User_Model);
-            if (!is_dir($dir)) {
-                mkdir($dir, 0777, true);
+            $result = file_put_contents($target_User_Model, file_get_contents($stubPath));
+            if ($result === false) {
+                Logger::error("Could not create file : $target_User_Model");
             }
-
-            $stubPath = __DIR__ . '/Stub/user.model.stub';
-            if (!file_exists($stubPath)) {
-                Logger::error("Stub not found: {$stubPath}");
-            }
-
-            file_put_contents($target_User_Model, file_get_contents($stubPath));
             clearstatcache(true, $target_User_Model);
         }
 
         // ---------- 2) read user.model.stub ----------
-        $code = file_get_contents($target_User_Model);
-        if ($code === false || trim($code) === '') {
-            Logger::error("User Model : Cannot read: {$target_User_Model}");
+        $old_code = file_get_contents($target_User_Model);
+        if ($old_code === false || trim($old_code) === '') {
+            Logger::error("Empty User Model or cannot read file: {$target_User_Model}");
         }
 
         // ---------- 3) normalize fields ----------
@@ -106,16 +109,21 @@ class EntityGenerator_UserModel
             return; // if $fields is empty no further action needed
         }
 
-        // ---------- 4) merge + เขียนกลับ ----------
-        $updated = self::mergeFillable($code, $newFields);
-
-        if ($updated !== $code) {
-            file_put_contents($target_User_Model, $updated, LOCK_EX);
-            clearstatcache(true, $target_User_Model);
-            Logger::success("User's fillable fields = " . implode(' , ', $newFields));
-        } else {
+        $updated_code = self::mergeFillable($old_code, $newFields);
+        if ($updated_code === $old_code) {
             Logger::warning("No valid fields to merge for User model.");
         }
+
+        // ---------- 4) merge and  ----------
+        $result = file_put_contents($target_User_Model, $updated_code, LOCK_EX);
+        if ($result) {
+            Logger::success("User's fillable fields = " . implode(' , ', $newFields));
+            Logger::success("Created User Model : $target_User_Model");
+            clearstatcache(true, $target_User_Model);
+        } else {
+            Logger::error("Could not create User Model : $target_User_Model");
+        }
+
         Logger::finish();
     }
 

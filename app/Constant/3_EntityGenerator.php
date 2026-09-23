@@ -34,7 +34,7 @@ class EntityGenerator
             $className = basename($file, '.php');
             $filename = $className . '.php';
             if (!class_exists($className, false)) {
-                // แปลงชื่อคลาสให้เป็น path แล้ว require เข้ามาซะก่อน
+                // change classNmae to path and require_once
                 $target_file = (string)TargetManager::gen_path('Constant/' . $filename);
                 if (file_exists($target_file)) {
                     require_once $target_file;
@@ -54,11 +54,11 @@ class EntityGenerator
             } else {
                 echo "======== GENERS FAILED : \n\n" . " class_exists( " . $fullClassName . ") = ";
                 echo class_exists($fullClassName) ? 'TRUE' : 'FALSE';
-                die("\n");
+                Logger::error("Class not exists : $fullClassName \n or \n No Field in $className");
             }
         }
 
-        echo "Generated successfully!\n";
+        Logger::finish();
     }
 
     private static function historize_entity_files(string $entityName, string $target_APP_DIR)
@@ -70,10 +70,9 @@ class EntityGenerator
 
     public static function generate($entityName, $fields)
     {
-
         echo "\n=====================================\n";
         echo "\n    BEGIN ARCHIVE : " . $entityName . "\n";
-        echo "\n=====================================\n";
+        echo "\n=====================================\n\n";
 
         if ($entityName === 'User') {
             EntityGenerator_UserModel::generateUserModel($fields);
@@ -126,7 +125,12 @@ class EntityGenerator
         }
 
         DataHelper::ensureDir((string)TargetManager::gen_path('Models'));
-        file_put_contents((string)TargetManager::gen_path("Models/{$entityName}.php"), $output);
+        $Model_filename = (string)TargetManager::gen_path("Models/{$entityName}.php");
+        $result = file_put_contents(($Model_filename), $output);
+        if ($result)
+            Logger::success("Created Model : $Model_filename");
+        else
+            Logger::error("Could not create Model : $Model_filename");
     }
 
     // -----------------------------------------------------------------
@@ -176,30 +180,35 @@ class EntityGenerator
         $output = str_replace('//METADATA',   $metadataMethod, $output);
 
         DataHelper::ensureDir((string)TargetManager::gen_path('DTOs'));
-        file_put_contents((string)TargetManager::gen_path("DTOs/{$entityName}DTO.php"), $output);
+        $DTO_filename = (string)TargetManager::gen_path("DTOs/{$entityName}DTO.php");
+        $result = file_put_contents($DTO_filename, $output);
+        if ($result)
+            Logger::success("Created DTO : $DTO_filename");
+        else
+            Logger::error("Could not create DTO : $DTO_filename");
     }
 
-    // -----------------------------------------------------------------
+    /**
+     * replace Dummy (Class/Model) by name of real Entity (e.g. Order)
+     */
     private static function generateController($entityName)
     {
         self::deployBaseController();
 
         $stub = file_get_contents(__DIR__ . '/Stub/controller.stub');
 
-        // 1. replace Dummy (Class/Model) by name of real Entity (e.g. Order)
         $output = str_replace('Dummy', $entityName, $stub);
 
-        $targetPath = TargetManager::gen_path("Http/Controllers/{$entityName}Controller.php");
-
-        // 2. delete old file if exist
-        if (file_exists((string)$targetPath)) {
-            unlink((string)$targetPath);
-        }
-
-        file_put_contents((string)$targetPath, $output);
-        echo "  - Generated Controller: {$entityName}Controller.php\n";
+        DataHelper::ensureDir((string)TargetManager::gen_path('Http/Controllers'));
+        $Controller_file_fullname = TargetManager::gen_path("Http/Controllers/{$entityName}Controller.php");
+        $result = file_put_contents((string)$Controller_file_fullname, $output);
+        if ($result)
+            Logger::success("Created Controller : $Controller_file_fullname");
+        else
+            Logger::error("Could not create Controller : $Controller_file_fullname");
     }
 
+    // -----------------------------------------------------------------
     /**
      * @param 
      * *       Array
@@ -269,18 +278,18 @@ class EntityGenerator
         $dest   = (string)TargetManager::gen_path('Http/Controllers/BaseController.php');
 
         if (!file_exists($source)) {
-            throw new \RuntimeException("Missing stub: {$source}");
+            Logger::error("Missing stub: {$source}");
         }
 
         DataHelper::ensureDir(dirname($dest));
 
         if (copy($source, $dest)) {
-            echo "\n ========================================================================================== \n";
-            echo "\n DEPLOY SUCCESS : $dest \n";
+            echo "\n ========================================================================================== \n\n";
+            Logger::success("Deployed file : $dest");
             echo "\n ========================================================================================== \n";
             self::$base_controller_deployed = true;
         } else {
-            throw new \RuntimeException("Copy FAILD !!! : {$dest}");
+            Logger::error("Could not copy file : {$dest}");
         }
     }
 
@@ -296,21 +305,19 @@ class EntityGenerator
         $dest   = (string)TargetManager::gen_path('DTOs/BaseDTO.php');
 
         if (!file_exists($source)) {
-            throw new \RuntimeException("Missing stub: {$source}");
+            Logger::error("Missing stub: {$source}");
         }
 
         DataHelper::ensureDir(dirname($dest));
 
         if (copy($source, $dest)) {
-            echo "\n ========================================================================================== \n";
-            echo "\n DEPLOY SUCCESS : $dest \n";
+            echo "\n ========================================================================================== \n\n";
+            Logger::success("Deployed file : $dest");
             echo "\n ========================================================================================== \n";
             self::$base_dto_deployed = true;
         } else {
-            throw new \RuntimeException("Copy FAILD !!! : {$dest}");
+            Logger::error("Could not copy file : {$dest}");
         }
-
-        self::$base_dto_deployed = true;
     }
 }
 

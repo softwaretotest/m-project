@@ -40,8 +40,11 @@ class M_Sync_JSON_Entities
             $code .= "}\n";
 
             // save Entity 
-            file_put_contents(M_Sync_JSON::$target_Constant_Path . '/' . $fileName, $code);
-            echo "[ ✅ ] {$fileName} generated successfully.\n";
+            $result = file_put_contents(M_Sync_JSON::$target_Constant_Path . '/' . $fileName, $code);
+            if ($result)
+                Logger::success("{$fileName} generated successfully.");
+            else
+                Logger::error("Could not generate : {$fileName}");
         }
     }
 }

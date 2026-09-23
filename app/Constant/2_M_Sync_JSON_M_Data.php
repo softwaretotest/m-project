@@ -23,8 +23,11 @@ class M_Sync_JSON_M_Data
             $code .= "}\n\n";
         }
 
-        file_put_contents(M_Sync_JSON::$target_Constant_Path . '/0_Constant_M.php', $code);
-        echo "[ ✅ ] 0_Constant_M.php generated successfully.\n";
+        $result = file_put_contents(M_Sync_JSON::$target_Constant_Path . '/0_Constant_M.php', $code);
+        if ($result)
+            Logger::success("0_Constant_M.php generated successfully.");
+        else
+            Logger::error("Could not generate 0_Constant_M.php.");
     }
 
     private static function formatArray($arr): string

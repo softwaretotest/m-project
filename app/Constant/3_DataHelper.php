@@ -24,12 +24,21 @@ class DataHelper
 
     /**
      * make directory if not exist
+     * @param  string $fullPath full-qualified filename หรือ directory path
+     * @param  bool   $isFile   true = ตัดชื่อไฟล์ออกก่อน (default true)
+     * @return string directory path ที่การันตีว่ามีอยู่จริงแล้ว
      */
-    public static function ensureDir(string $dir): void
+    public static function ensureDir(string $fullPath, bool $isFile = true): string
     {
+        $dir = $isFile ? dirname($fullPath) : $fullPath;
+
         if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
+            $result = mkdir($dir, 0777, true);
+            if ($result === false) {
+                Logger::error("Could not make directory : $dir");
+            }
         }
+        return $dir;
     }
 
     /**

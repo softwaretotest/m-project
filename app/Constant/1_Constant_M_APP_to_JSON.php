@@ -40,23 +40,54 @@ class Constant_M_APP_to_JSON extends NodeVisitorAbstract
     }
 
     /**
-     * DICTIONARY:
-     * AST  = Code structure from *Constant.php files (e.g., class f, class d)
-     * NODE = Specific element (e.g., Array_, String_, ClassConstFetch)
+     * * DICTIONARY:
+     * * AST  = Code structure from *Constant.php files (e.g., class f, class d)
+     * * NODE = Specific element (e.g., Array_, String_, ClassConstFetch)
      * * EXAMPLES (Mapped from your project):
      * - String_ ('text')         -> "text" (from class u)
      * - Array_  (['image', d::STRING, u::FILE]) 
      * -> ["image", "string", "file"] (from class f)
      * - ClassConstFetch (d::STRING) -> "d::STRING" (from class f)
+     * @param $node 
+     * 
+     * * object(PhpParser\Node\Scalar\String_)#807 (2) {
+     * *   ["attributes":protected]=>
+     * *   array(8) {
+     * *     ["startLine"]=>
+     * *     int(7)
+     * *     ["startTokenPos"]=>
+     * *     int(21)
+     * *     ["startFilePos"]=>
+     * *     int(69)
+     * *     ["endLine"]=>
+     * *     int(7)
+     * *     ["endTokenPos"]=>
+     * *     int(21)
+     * *     ["endFilePos"]=>
+     * *     int(77)
+     * *     ["kind"]=>
+     * *     int(1)
+     * *     ["rawValue"]=>
+     * *     string(9) "'boolean'"
+     * *   }
+     * *   ["value"]=>
+     * *   string(7) "boolean"
+     * * }
+     * @return 
+     * * {$class}::{$const} = e.g. d::STRING 
+     * 
+     * * $node->value 
+     * * CASE String_ = e.g string(6) name
+     * * CASE LNumber = e.g string(5)  255
      */
     private function resolveValue($node)
     {
-        // String_: e.g., 'text', 'boolean'
+        // String_: e.g. string(7) "boolean"
         if ($node instanceof \PhpParser\Node\Scalar\String_) {
             return $node->value;
         }
 
-        // LNumber: e.g., 10, 2 (from [d::DECIMAL, 10, 2])
+        // LNumber: e.g. int(255)
         if ($node instanceof \PhpParser\Node\Scalar\LNumber) {
             return $node->value;
         }
