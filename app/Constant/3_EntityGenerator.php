@@ -17,12 +17,12 @@ class EntityGenerator
     public static function runAll()
     {
 
-        $directory = dirname(__DIR__, 3) . '/' . TargetManager::$activeTarget . '/app/Constant';
+        $app_Constant_Dir = dirname(__DIR__, 3) . '/' . TargetManager::$activeTarget . '/app/Constant';
 
-        $files = glob($directory . '/*Constant.php');
+        $files = glob($app_Constant_Dir . '/*Constant.php');
 
         if (count($files) === 0) {
-            die("======== GENERS FAILED : NO app/Constant/*Contstant.php found at " . $directory);
+            Logger::error("GENERS FAILED : NO app/Constant/*Contstant.php found at : $app_Constant_Dir");
         }
 
         $target_APP_DIR = __DIR__ . '/../../../' . TargetManager::$activeTarget;
@@ -281,7 +281,7 @@ class EntityGenerator
             Logger::error("Missing stub: {$source}");
         }
 
-        DataHelper::ensureDir(dirname($dest));
+        DataHelper::ensureDir($dest);
 
         if (copy($source, $dest)) {
             echo "\n ========================================================================================== \n\n";
@@ -308,7 +308,7 @@ class EntityGenerator
             Logger::error("Missing stub: {$source}");
         }
 
-        DataHelper::ensureDir(dirname($dest));
+        DataHelper::ensureDir($dest);
 
         if (copy($source, $dest)) {
             echo "\n ========================================================================================== \n\n";

@@ -65,22 +65,4 @@ class TargetManager
     {
         return self::$targets[self::$activeTarget]['root_path'];
     }
-
-    // /**
-    //  * สร้างโฟลเดอร์ปลายทางถ้ายังไม่มี (รองรับ nested)
-    //  *
-    //  * @param  string $fullPath full-qualified filename หรือ directory path
-    //  * @param  bool   $isFile   true = ตัดชื่อไฟล์ออกก่อน (default true)
-    //  * @return string directory path ที่การันตีว่ามีอยู่จริงแล้ว
-    //  */
-    // public static function ensureDir(string $fullPath, bool $isFile = true): string
-    // {
-    //     $dir = $isFile ? dirname($fullPath) : $fullPath;
-
-    //     if (!is_dir($dir)) {
-    //         mkdir($dir, 0777, true);
-    //     }
-
-    //     return $dir;
-    // }
 }

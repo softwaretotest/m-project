@@ -7,9 +7,12 @@ class M_Sync_JSON_Entities
     public static function generate(): void
     {
         $jsonFilePath = dirname(__DIR__, 3) . '/' . TargetManager::$activeTarget . '/app/Constant/M_JSON/Entities.json';
+        DataHelper::ensureDir($jsonFilePath);
+        $Entities_json_Source = __DIR__ . '/Stub/Entities.json';
 
         if (!file_exists($jsonFilePath)) {
-            Logger::error("File not found : $jsonFilePath");
+            $result = copy($Entities_json_Source, $jsonFilePath);
+            if ($result === false) Logger::error("Could not copy file : $jsonFilePath \n");
         }
 
         $json = json_decode(file_get_contents($jsonFilePath), true);

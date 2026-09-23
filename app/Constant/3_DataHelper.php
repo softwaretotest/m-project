@@ -28,9 +28,11 @@ class DataHelper
      * @param  bool   $isFile   true = ตัดชื่อไฟล์ออกก่อน (default true)
      * @return string directory path ที่การันตีว่ามีอยู่จริงแล้ว
      */
-    public static function ensureDir(string $fullPath, bool $isFile = true): string
+    public static function ensureDir(string $fullPath): string
     {
-        $dir = $isFile ? dirname($fullPath) : $fullPath;
+        $extension = pathinfo($fullPath, PATHINFO_EXTENSION);
+        //filter out file name
+        $dir = !empty($extension) ? dirname($fullPath) : $fullPath;
 
         if (!is_dir($dir)) {
             $result = mkdir($dir, 0777, true);

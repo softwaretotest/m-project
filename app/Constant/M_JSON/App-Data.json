@@ -112,6 +112,8 @@
         "SHOPS": "shops",
         "PRODUCTS": "products",
         "ORDERS": "orders",
-        "USERS": "users"
+        "USERS": "users",
+        "FDSA": "fdsa",
+        "DFS": "dfs"
     }
 }
