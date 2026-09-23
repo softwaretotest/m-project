@@ -90,9 +90,9 @@ class Checker
     private static function dieReportErrors(array $errors): void
     {
         if (!empty($errors)) {
-            die("\n[ALERT] SYSTEM VALIDATION FAILED!\n" . implode("\n", $errors) . "\n\n");
+            Logger::error("SYSTEM VALIDATION FAILED!\n" . implode("\n", $errors));
         } else {
-            echo "--- Maker: Global Validator Passed! ---\n\n";
+            Logger::success("--- Global Validator Passed! ---");
         }
     }
 }

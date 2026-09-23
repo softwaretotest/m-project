@@ -60,10 +60,11 @@ class MigrationFile
     private static function dieSameMigration(bool $isUser): void
     {
         if (!file_exists(self::$draftPath)) {
-            die("\n--- Maker: Error! Draft file not found at [" . self::$draftPath . "] ---\n\n");
+            Logger::error("Error! Draft file not found at : " . self::$draftPath);
         }
 
         if ($isUser) {
+            Logger::warning(" Found Laravel User Migration -- skipt this , cause Laravel takes care of User table itself");
             return;
         }
 
@@ -73,9 +74,8 @@ class MigrationFile
         );
 
         if (!empty(glob($pattern))) {
-            die("\n--- CRITICAL: Migration conflict detected. ---"
-                . "\nA file with prefix [" . self::$filePrefix . "] already exists in target app."
-                . "\n\n");
+            Logger::error("--- CRITICAL: Migration conflict detected. ---\n"
+                . "A file with prefix [" . self::$filePrefix . "] already exists in target app.");
         }
     }
 
@@ -94,8 +94,9 @@ class MigrationFile
             echo "║" . str_pad("SUCCESSFUL", 48, " ", STR_PAD_BOTH) . "║\n";
             echo "╚" . str_repeat("═", 48) . "╝\n";
             echo "\n";
+            Logger::finish();
         } else {
-            die("\n--- Maker: Error! Failed to copy to [" . self::$destinationPath . "] ---\n\n");
+            Logger::error("Error! Failed to copy to : " . self::$destinationPath);
         }
     }
 }

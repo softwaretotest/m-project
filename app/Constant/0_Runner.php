@@ -1,6 +1,9 @@
 <?php
 
 namespace App\Constant;
+
+use Illuminate\Support\Facades\Log;
+
 //0_Runner.php
 
 class Runner
@@ -25,17 +28,17 @@ class Runner
         $count = count($entities);
 
         if ($count === 0) {
-            die("--- Runner: No entity found. Nothing to migrate. ---\n"
+            Logger::error("--- Runner: No entity found. Nothing to migrate. ---\n"
                 . "    Target : " . TargetManager::$activeTarget . "\n"
-                . "    Path   : " . (string)TargetManager::gen_path('Constant') . "\n\n");
+                . "    Path   : " . (string)TargetManager::gen_path('Constant'));
         }
 
-        echo "--- Runner: Target [" . TargetManager::$activeTarget . "] | Found {$count} entities ---\n\n";
+        Logger::error("--- Runner: Target [" . TargetManager::$activeTarget . "] | Found {$count} entities ---");
 
         if ($count > self::MAX_MIGRATIONS) {
-            die("--- CRITICAL: Migration limit exceeded. "
+            Logger::error("--- CRITICAL: Migration limit exceeded. "
                 . "\n Found {$count} tables, limit is " . self::MAX_MIGRATIONS
-                . "\n Please split your migration tasks across multiple runs. ---\n\n");
+                . "\n Please split your migration tasks across multiple runs. ---");
         }
 
         foreach ($entities as $entity) {
@@ -53,41 +56,11 @@ class Runner
         }
     }
 
-    // /**
-    //  * get all Classes from Entities.json (sorted from UI)
-    //  * @return array $entities = e.g. [ UserConstant::class, ShopConstant::class ]
-    //  */
-    // private static function get_Entities(): array
-    // {
-    //     $entities = [];
-
-    //     $jsonFilePath = (string)TargetManager::gen_path('Constant/M_JSON/Entities.json');
-
-    //     if (!file_exists($jsonFilePath)) {
-    //         return $entities;
-    //     }
-
-    //     $jsonContent = file_get_contents($jsonFilePath);
-    //     $json = json_decode($jsonContent, true);
-
-    //     // Loop sorted entities in JSON to make classes
-    //     if (isset($json['entities']) && is_array($json['entities'])) {
-    //         foreach ($json['entities'] as $entityName => $fields) {
-    //             $singularName = rtrim($entityName, 'S');
-    //             $className = "App\\Constant\\" . ucfirst(strtolower($singularName)) . 'Constant';
-
-    //             if (class_exists($className)) {
-    //                 $entities[] = $className;
-    //             }
-    //         }
-    //     }
-
-    //     return $entities;
-    // }
-
     /**
-     * อ่าน Entities.json จาก target app แล้วแปลงเป็นรายชื่อ Constant class
-     * ตามลำดับที่ DEV จัดไว้ใน UI (ลำดับมีผลกับ FK ของ migration)
+     * * read Entities.from จาก target app 
+     * * and conver to list Constant class
+     * * ordered by Entities.json that DEV-User 
+     * * defined in UI (ordering of table has impact with FK on Laravel migration)
      *
      * @return string[] FQCN list e.g. ['App\Constant\UserConstant', 'App\Constant\ShopConstant']
      */
@@ -121,7 +94,7 @@ class Runner
     }
 
     /**
-     * แปลงชื่อ entity จาก JSON เป็น FQCN ของ Constant class
+     * change entity from JSON to FQCN of Constant class
      *
      * @param  string $entityName e.g. 'PRODUCTS' | 'products' | 'Products'
      * @return string             e.g. 'App\Constant\ProductConstant'
@@ -135,16 +108,16 @@ class Runner
     }
 
     /**
-     * โหลด *Constant.php จาก target app เข้า runtime
-     * ใช้ class_exists($c, false) เพื่อ "ห้าม" autoload ไปหยิบไฟล์เก่าใน m-project
+     * * Load *Constant.php from target app to runtime
+     * * use class_exists($c, false) to prevent autoload to get old m-project
      *
      * @param  string $className FQCN e.g. 'App\Constant\ProductConstant'
-     * @return bool              true = class พร้อมใช้งานใน memory แล้ว
+     * @return bool              true = class is ready to be used in memory
      */
     private static function load_Target_Constant(string $className): bool
     {
         if (class_exists($className, false)) {
-            return true; // โหลดไปแล้วรอบก่อน
+            return true; // if Class already loaded
         }
 
         $shortName = substr($className, (int) strrpos($className, '\\') + 1);
