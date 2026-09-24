@@ -3,24 +3,37 @@
 namespace App\Http\Controllers;
 
 use App\Constant\TargetManager;
-use App\Constant\Logger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 
 class M_Controller extends Controller
 {
-    // set same path getMetadata()
-    public const FILES_PATH = [
-        'app_data' => 'app/Constant/M_JSON/App-Data.json',
-        'm_data'   => 'app/Constant/M_JSON/M-Data.json',
-        'entities' => 'app/Constant/M_JSON/Entities.json',
-        'm_target' => 'app/Constant/3_M-Config.json',
-    ];
+    /**
+     * @return e.g 
+     * * C:\Users\o\.vscode\react\ecommerce\app\Constant\M_JSON\Entities.json
+     * * C:\Users\o\.vscode\react\ecommerce\app\Constant\M_JSON\App-Data.json
+     * * C:\Users\o\.vscode\react\ecommerce\app\Constant\M_JSON\M-Data.json
+     */
+    private function getAll_JSON_FilesPath(): array
+    {
+        return [
+            'app_data' => TargetManager::gen_path('Constant/M_JSON/App-Data.json', 'app'),
+            'm_data'   => TargetManager::gen_path('Constant/M_JSON/M-Data.json', 'app'),
+            'entities' => TargetManager::gen_path('Constant/M_JSON/Entities.json', 'app'),
+        ];
+    }
 
+
+    /**
+     * get path by key
+     * @param $key = e.g. app_data , m_data , entities
+     * @return e.g. c:\Users\o\.vscode\react\ecommerce\app\Constant\M_JSON\Entities.json
+     */
     private function getPath(string $key): string
     {
-        return base_path(self::FILES_PATH[$key]);
+        $files = $this->getAll_JSON_FilesPath();
+        return $files[$key] ?? '';
     }
 
     /**
@@ -56,7 +69,7 @@ class M_Controller extends Controller
         $name       = basename($real);
         $configPath = base_path('app/Constant/3_M-Config.json');
 
-        // อ่านของเดิมมาก่อน แล้วค่อย merge (ไม่ทับทิ้ง)
+        // read old value and merge (not delete it)
         $config = ['activeTarget' => '', 'targets' => []];
         if (file_exists($configPath)) {
             $old = json_decode(file_get_contents($configPath), true);
@@ -83,7 +96,7 @@ class M_Controller extends Controller
 
     public function scanTargets(Request $request)
     {
-        // default = โฟลเดอร์แม่ของ m-project (เช่น C:/Users/o/.vscode/react)
+        // default = parent folder of m-project (เช่น C:/Users/o/.vscode/react)
         $base = $request->input('base') ?: dirname(base_path());
         $base = str_replace('\\', '/', $base);
 
@@ -141,7 +154,7 @@ class M_Controller extends Controller
             }
         });
 
-        $path = $this->getPath($tab);
+        $path = (string)$this->getPath($tab);
         $content = file_get_contents($path);
         $jsonData = json_decode($content, true);
 
@@ -168,8 +181,7 @@ class M_Controller extends Controller
     {
         $combinedMetadata = [];
 
-        foreach (self::FILES_PATH as $key => $path) {
-            $fullPath = base_path($path);
+        foreach ($this->getAll_JSON_FilesPath() as $key => $fullPath) {
 
             // if JSON files not exist here app/Constant/M_JSON
             if (!file_exists($fullPath)) {
