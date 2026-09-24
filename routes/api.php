@@ -23,3 +23,7 @@ Route::post('/m-value/init', [M_Controller::class, 'saveAll']);
 
 // Endpoint for get config for selected target app 
 Route::get('/config', [M_Controller::class, 'get_M_Config_json']);
+
+// Endpoint for saving target app to 3_M-Config.json
+Route::get('/target/scan',  [M_Controller::class, 'scanTargets']);
+Route::post('/target/save', [M_Controller::class, 'saveTargetConfig']);

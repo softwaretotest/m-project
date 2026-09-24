@@ -6,7 +6,8 @@ class M_Sync_JSON_Entities
 {
     public static function generate(): void
     {
-        $jsonFilePath = dirname(__DIR__, 3) . '/' . TargetManager::$activeTarget . '/app/Constant/M_JSON/Entities.json';
+        $jsonFilePath = dirname(__DIR__, 3) . '/' . TargetManager::get_activeTarget() . '/app/Constant/M_JSON/Entities.json';
+
         DataHelper::ensureDir($jsonFilePath);
         $Entities_json_Source = __DIR__ . '/Stub/Entities.json';
 

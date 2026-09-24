@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Constant\TargetManager;
+use App\Constant\Logger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
@@ -22,15 +23,93 @@ class M_Controller extends Controller
         return base_path(self::FILES_PATH[$key]);
     }
 
+    /**
+     * * get activeTarget and Array data from TargetManager 
+     * * and send to response()->json()
+     */
     public function get_M_Config_json(Request $request): JsonResponse
     {
-        // 1. สั่งให้โหลด Config (ถ้าไม่มีไฟล์ มันจะสร้างให้ตามที่เราเขียนไว้)
-        TargetManager::loadConfig();
-
-        // 2. ดึงค่าจาก TargetManager ที่เป็น Array อยู่แล้ว ส่งให้ response()->json() จัดการ
         return response()->json([
-            'activeTarget' => TargetManager::$activeTarget,
+            'activeTarget' => TargetManager::get_activeTarget(),
             'targets'      => TargetManager::$targets
+        ]);
+    }
+
+    public function saveTargetConfig(Request $request)
+    {
+        $path = str_replace('\\', '/', trim((string) $request->input('path')));
+
+        if ($path === '') {
+            return response()->json(['success' => false, 'message' => 'Path is empty'], 400);
+        }
+
+        $real = realpath($path);
+        if ($real === false) {
+            return response()->json(['success' => false, 'message' => "Path does not exist: {$path}"], 422);
+        }
+        $real = str_replace('\\', '/', $real);
+
+        if (!file_exists($real . '/artisan')) {
+            return response()->json(['success' => false, 'message' => 'Not a Laravel project (artisan not found)'], 422);
+        }
+
+        $name       = basename($real);
+        $configPath = base_path('app/Constant/3_M-Config.json');
+
+        // อ่านของเดิมมาก่อน แล้วค่อย merge (ไม่ทับทิ้ง)
+        $config = ['activeTarget' => '', 'targets' => []];
+        if (file_exists($configPath)) {
+            $old = json_decode(file_get_contents($configPath), true);
+            if (is_array($old)) {
+                $config['targets']      = $old['targets'] ?? [];
+                $config['activeTarget'] = $old['activeTarget'] ?? '';
+            }
+        }
+
+        $config['targets'][$name] = ['root_path' => $real];
+        $config['activeTarget']   = $name;
+
+        $written = file_put_contents(
+            $configPath,
+            json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+        );
+
+        if ($written === false) {
+            return response()->json(['success' => false, 'message' => 'Cannot write config file'], 500);
+        }
+
+        return response()->json(['success' => true, 'target' => $name, 'root_path' => $real]);
+    }
+
+    public function scanTargets(Request $request)
+    {
+        // default = โฟลเดอร์แม่ของ m-project (เช่น C:/Users/o/.vscode/react)
+        $base = $request->input('base') ?: dirname(base_path());
+        $base = str_replace('\\', '/', $base);
+
+        if (!is_dir($base)) {
+            return response()->json(['success' => false, 'message' => "Base not found: {$base}"], 404);
+        }
+
+        $projects = [];
+        foreach (scandir($base) as $entry) {
+            if ($entry === '.' || $entry === '..') continue;
+
+            $full = $base . '/' . $entry;
+            if (!is_dir($full)) continue;
+            if (!file_exists($full . '/artisan')) continue;          // ← ตัวชี้ขาดว่าเป็น Laravel
+            if (!file_exists($full . '/composer.json')) continue;
+
+            $projects[] = [
+                'name'      => $entry,
+                'root_path' => str_replace('\\', '/', realpath($full)),
+            ];
+        }
+
+        return response()->json([
+            'success'  => true,
+            'base'     => $base,
+            'projects' => $projects,
         ]);
     }
 

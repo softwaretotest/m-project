@@ -2,59 +2,66 @@
 
 namespace App\Constant;
 
+use Psy\Readline\Hoa\Console;
+
 /**
  * set target path for m-project to do admin on the target app e.g. ecommerce, blog, etc.
  */
 class TargetManager
 {
     public static $targets = [];
-    public static $activeTarget = '';
+    private static $activeTarget = '';
 
-    // // target path of app 
-    // public static $targets = [
-    //     'ecommerce' => [
-    //         'root_path' => 'C:/Users/o/.vscode/react/ecommerce',
-    //     ],
-    // ];
-
-    // public static $activeTarget = 'ecommerce';
+    // Guard to prevent endless loop Logger <-> TargetManager
+    private static bool $configLoaded = false;
 
     const CONFIG_FILE = __DIR__ . '/3_M-Config.json';
 
-    public static function loadConfig(): void
+    /**
+     * getter เงียบ ไม่อ่านไฟล์ ไม่ log — ไว้ให้ Logger ใช้โดยเฉพาะ 
+     */
+    public static function peek_activeTarget(): string
     {
-        // create config if not exists
-        if (!file_exists(self::CONFIG_FILE)) {
-            $defaultConfig = [
-                'activeTarget' => 'ecommerce',
-                'targets' => [
-                    'ecommerce' => [
-                        'root_path' => 'C:/Users/o/.vscode/react/ecommerce'
-                    ]
-                ]
-            ];
+        return self::$activeTarget;
+    }
 
-            // make JSON with readable JSON_PRETTY_PRINT
-            $result = file_put_contents(self::CONFIG_FILE, json_encode($defaultConfig, JSON_PRETTY_PRINT));
-            if ($result === false) {
-                Logger::error("Could not create file : " . self::CONFIG_FILE);
-            }
-
-            self::$activeTarget = $defaultConfig['activeTarget'];
-            self::$targets = $defaultConfig['targets'];
-
-            Logger::warning("Generated default M-Config at: " . self::CONFIG_FILE);
-        } else {
-            // if CONFIG_FILE exists , convert to Array
-            $jsonData = json_decode(file_get_contents(self::CONFIG_FILE), true);
-
-            if (isset($jsonData['activeTarget']) && isset($jsonData['targets'])) {
-                self::$activeTarget = $jsonData['activeTarget'];
-                self::$targets = $jsonData['targets'];
-            } else {
-                Logger::error("Invalid Config format in: " . self::CONFIG_FILE);
-            }
+    public static function get_activeTarget(): string
+    {
+        // Case Dev run e.g. M_Sync on vscode
+        // 🛡️ 0. guard prevent endless loop between Logger <-> TargetManager
+        if (self::$configLoaded) {
+            return self::$activeTarget;
         }
+
+        // 🛡️ 0. check and set has tried loading config (although maybe config not found)
+        self::$configLoaded = true;
+
+        // 1. Warning if not config
+        if (!file_exists(self::CONFIG_FILE)) {
+            // Logger::warning("M-Config file not found at: " . self::CONFIG_FILE);
+            self::$activeTarget = '';
+            self::$targets = [];
+
+            return self::$activeTarget;
+        }
+
+        // 2. get config data from JSON
+        $jsonData = json_decode(file_get_contents(self::CONFIG_FILE), true);
+
+        // 3. throw Error if wrong jsonData 
+        if (!isset($jsonData['activeTarget']) || !isset($jsonData['targets'])) {
+            // Logger::error("Invalid Config format in: " . self::CONFIG_FILE);
+            self::$activeTarget = '';
+            self::$targets = [];
+
+            return self::$activeTarget;
+        }
+
+        // 4. save data to runtime vars
+        self::$activeTarget = $jsonData['activeTarget'];
+        self::$targets = $jsonData['targets'];
+
+        return self::$activeTarget;
     }
 
     /**
@@ -65,6 +72,16 @@ class TargetManager
      */
     public static function gen_path($path = '', $baseFolder = 'app'): string
     {
+        // ถ้ายังไม่มี activeTarget ให้คืนค่าพาธสำรองหรือหยุดเตือนทันที
+        if (empty(self::$activeTarget) || !isset(self::$targets[self::$activeTarget])) {
+            // ดึงค่าล่าสุดมาก่อนเผื่อยังไม่ได้โหลด
+            self::get_activeTarget();
+
+            if (empty(self::$activeTarget) || !isset(self::$targets[self::$activeTarget])) {
+                return base_path($path); // คืนค่าพาธหลักของ m-project กันพัง
+            }
+        }
+
         $basePath = self::$targets[self::$activeTarget]['root_path'];
         return $basePath . '/' . $baseFolder . '/' . ltrim($path, '/');
     }

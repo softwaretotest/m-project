@@ -29,11 +29,9 @@ class Runner
 
         if ($count === 0) {
             Logger::error("--- Runner: No entity found. Nothing to migrate. ---\n"
-                . "    Target : " . TargetManager::$activeTarget . "\n"
+                . "    Target : " . TargetManager::get_activeTarget() . "\n"
                 . "    Path   : " . (string)TargetManager::gen_path('Constant'));
         }
-
-        Logger::error("--- Runner: Target [" . TargetManager::$activeTarget . "] | Found {$count} entities ---");
 
         if ($count > self::MAX_MIGRATIONS) {
             Logger::error("--- CRITICAL: Migration limit exceeded. "

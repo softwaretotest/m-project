@@ -25,7 +25,7 @@ class M_Historizer
         echo " ------------ [1] START move_old_file_to_history FOR : " . $sourceFile . " ------------ \n";
         echo "----------------------------------------------------------------------\n";
 
-        $target_HISTORY_DIR = self::HISTORY_DIR . '/' . TargetManager::$activeTarget;
+        $target_HISTORY_DIR = self::HISTORY_DIR . '/' . TargetManager::get_activeTarget();
 
         $filePath = $sourceFile; // for EntityGenerator
 
@@ -105,7 +105,7 @@ class M_Historizer
             if (file_exists($phpFilePath)) {
                 $timestamp = time();
                 $newFileName = $timestamp . '_' . $phpFileName;
-                $destinationPath = self::HISTORY_DIR . '/' . TargetManager::$activeTarget . '/' . $newFileName;
+                $destinationPath = self::HISTORY_DIR . '/' . TargetManager::get_activeTarget() . '/' . $newFileName;
 
                 echo "[3.2.2] Moving entity file {$phpFileName} to history as {$newFileName}\n";
                 if (rename($phpFilePath, $destinationPath)) {

@@ -62,8 +62,9 @@ class Logger
         $formattedMessage = "[ {$timestamp} ] {$level}{$location} {$message}";
 
         // 1. Print to Terminal immediately
-        echo $formattedMessage . "\n";
-
+        if (php_sapi_name() === 'cli') { // condition prevent to print on browser(= ouput only for api data)
+            echo $formattedMessage . "\n";
+        }
         // 2. Define path file log
         $logDir = dirname(__DIR__, 3) . '/m-project_logs/';
 
@@ -72,7 +73,9 @@ class Logger
         }
 
         // log file name = app name
-        $logFile = $logDir . '/' . TargetManager::$activeTarget . '.log';
+        $appName = TargetManager::peek_activeTarget() ?: 'm-project';
+        $logFile = $logDir . '/' . $appName . '.log';
+
 
         self::checkAndRotateLog($logFile);
 
@@ -105,7 +108,7 @@ class Logger
                 mkdir($historyDir, 0777, true);
             }
 
-            $appName = TargetManager::$activeTarget;
+            $appName = TargetManager::peek_activeTarget() ?: 'm-project';
             $timestamp = date('Y-m-d_H-i-s');
             $historyFile = $historyDir . '/' . $appName . '_' . $timestamp . '.log';
 

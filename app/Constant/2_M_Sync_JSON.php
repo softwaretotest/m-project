@@ -17,7 +17,7 @@ class M_Sync_JSON
 
     public static function syncAll(): void
     {
-        self::$target_Constant_Path = __DIR__ . '/../../../' . TargetManager::$activeTarget . '/app/Constant';
+        self::$target_Constant_Path = __DIR__ . '/../../../' . TargetManager::get_activeTarget() . '/app/Constant';
 
         self::$target_JSON_Path = self::$target_Constant_Path . "/M_JSON";
 
