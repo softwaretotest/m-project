@@ -20,3 +20,6 @@ Route::post('/m-value', [M_Controller::class, 'save']);
 
 // Endpoint for get new template from frontend , if JSON in Backend not exist 404
 Route::post('/m-value/init', [M_Controller::class, 'saveAll']);
+
+// Endpoint for get config for selected target app 
+Route::get('/config', [M_Controller::class, 'get_M_Config_json']);

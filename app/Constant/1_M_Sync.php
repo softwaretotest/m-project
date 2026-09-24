@@ -96,11 +96,6 @@ class M_Sync
         $visitor = new Constant_M_APP_to_JSON();
 
         self::getData_from_M_APP_Entitiy_Constant_PHP_to_visitor($code, $visitor);
-        // $parser = (new ParserFactory)->createForNewestSupportedVersion();
-        // $ast = $parser->parse($code);
-        // $traverser = new NodeTraverser();
-        // $traverser->addVisitor($visitor);
-        // $traverser->traverse($ast); // this calls enterNode($node) automatically , if methode exist
 
         $outputData = array_merge(["_comment" => $jsonFile], $visitor->data);
         $result = file_put_contents($jsonFile_full_path, json_encode($outputData, JSON_PRETTY_PRINT));
@@ -149,12 +144,6 @@ class M_Sync
             if (str_contains($file, 'Entities_to_JSON')) continue;
             $code = file_get_contents($file);
             self::getData_from_M_APP_Entitiy_Constant_PHP_to_visitor($code, $visitor);
-
-            // $parser = (new ParserFactory)->createForNewestSupportedVersion();
-            // $ast = $parser->parse($code);
-            // $traverser = new NodeTraverser();
-            // $traverser->addVisitor($visitor);
-            // $traverser->traverse($ast);  // this calls enterNode($node) automatically , if methode exist
         }
 
         // data from *Constant.php

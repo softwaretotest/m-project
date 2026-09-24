@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Constant\TargetManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
@@ -13,11 +14,24 @@ class M_Controller extends Controller
         'app_data' => 'app/Constant/M_JSON/App-Data.json',
         'm_data'   => 'app/Constant/M_JSON/M-Data.json',
         'entities' => 'app/Constant/M_JSON/Entities.json',
+        'm_target' => 'app/Constant/3_M-Config.json',
     ];
 
     private function getPath(string $key): string
     {
         return base_path(self::FILES_PATH[$key]);
+    }
+
+    public function get_M_Config_json(Request $request): JsonResponse
+    {
+        // 1. สั่งให้โหลด Config (ถ้าไม่มีไฟล์ มันจะสร้างให้ตามที่เราเขียนไว้)
+        TargetManager::loadConfig();
+
+        // 2. ดึงค่าจาก TargetManager ที่เป็น Array อยู่แล้ว ส่งให้ response()->json() จัดการ
+        return response()->json([
+            'activeTarget' => TargetManager::$activeTarget,
+            'targets'      => TargetManager::$targets
+        ]);
     }
 
     /**
@@ -61,36 +75,6 @@ class M_Controller extends Controller
 
         return response()->json(['error' => 'Failed to write file'], 500);
     }
-
-    /** 
-     * * DICTIONARY:
-     * * app_data: Content of App-Data.json
-     * * m_data:   Content of M-Data.json
-     * * entities: Content of Entities.json
-     */
-    // public function getMetadata(): JsonResponse
-    // {
-
-    //     $combinedMetadata = [];
-
-    //     foreach (self::FILES_PATH as $key => $path) {
-    //         $fullPath = base_path($path);
-    //         if (!file_exists($fullPath)) {
-    //             return response()->json(['error' => "Metadata file not found: {$key}"], 404);
-    //         }
-
-    //         $content = file_get_contents($fullPath);
-    //         $jsonData = json_decode($content, true);
-
-    //         if (json_last_error() !== JSON_ERROR_NONE) {
-    //             return response()->json(['error' => "Invalid JSON in {$key}: " . json_last_error_msg()], 500);
-    //         }
-
-    //         $combinedMetadata[$key] = $jsonData;
-    //     }
-
-    //     return response()->json($combinedMetadata);
-    // }
 
     /**
      * * get Metadata from MSync in   app/Constant/M_JSON
