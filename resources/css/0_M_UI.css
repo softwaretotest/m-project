@@ -711,3 +711,143 @@ input.M_value_KEY {
 body.overflow-hidden {
     overflow: hidden !important;
 }
+
+/* --- Target Selector Component Styles --- */
+.target-selector-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f3f4f6;
+    font-family: sans-serif;
+    padding: 20px;
+}
+
+.target-selector-card {
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 600px;
+}
+
+.target-selector-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #1f2937;
+    margin-bottom: 8px;
+}
+
+.target-selector-subtitle {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 20px;
+}
+
+.target-selector-scan-box {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.target-selector-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.target-selector-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.target-selector-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.target-selector-btn-scan {
+    background-color: #e5e7eb;
+    color: #374151;
+}
+
+.target-selector-btn-scan:hover:not(:disabled) {
+    background-color: #d1d5db;
+}
+
+.target-selector-error {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+.target-selector-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    border: 1px solid #e5e7eb;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.target-selector-item {
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    cursor: pointer;
+    background: #fafafa;
+    transition: all 0.2s;
+}
+
+.target-selector-item:hover {
+    background: #f3f4f6;
+    border-color: #cbd5e1;
+}
+
+.target-selector-item.is-active {
+    border-color: #2563eb;
+    background-color: #eff6ff;
+}
+
+.target-selector-name {
+    font-weight: bold;
+    color: #111827;
+    font-size: 15px;
+}
+
+.target-selector-path {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+    word-break: break-all;
+}
+
+.target-selector-action {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.target-selector-btn-confirm {
+    background-color: #2563eb;
+    color: white;
+    width: 100%;
+    padding: 10px;
+}
+
+.target-selector-btn-confirm:hover:not(:disabled) {
+    background-color: #1d4ed8;
+}

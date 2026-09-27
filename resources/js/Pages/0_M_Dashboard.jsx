@@ -9,8 +9,6 @@ import { add_field_ENTITIES } from "@/Services/0_M_value_Service";
 
 import SubTab from "@/Components/0_M_SubTab.jsx";
 
-import "@/../css/0_M_UI.css";
-
 export default function M_Dashboard() {
     const data = use_M_Data();
     if (!data)
