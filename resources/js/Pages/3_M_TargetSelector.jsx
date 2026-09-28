@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from "react";
-import { Head, router } from "@inertiajs/react";
-import { use_M_Store } from "../Stores/0_M_Store";
+import { useState, useEffect } from "react";
+import { Head } from "@inertiajs/react";
+import { use_M_Store } from "@/Stores/0_M_Store";
 
 export default function M_TargetSelector() {
     const [base, setBase] = useState("");
     const [projects, setProjects] = useState([]);
-    // const [active_Target_App, setSelected] = useState("");
+
     const active_Target_App = use_M_Store((state) => state.active_Target_App);
     const set_active_Target_App = use_M_Store.getState().set_active_Target_App;
 
-    const [error, setError] = useState("");
+    const [error_TargetSelector, set_error_TargetSelector] = useState("");
     const [busy, setBusy] = useState(false);
 
     const scan = async (customBase = "") => {
         setBusy(true);
-        setError("");
+        set_error_TargetSelector("");
         try {
             const url = customBase
                 ? `/api/target/scan?base=${encodeURIComponent(customBase)}`
@@ -25,10 +25,10 @@ export default function M_TargetSelector() {
                 setProjects(data.projects);
                 setBase(data.base);
             } else {
-                setError(data.message || "Scan failed");
+                set_error_TargetSelector(data.message || "Scan failed");
             }
         } catch (err) {
-            setError("Network error during scan");
+            set_error_TargetSelector("Network error during scan");
         } finally {
             setBusy(false);
         }
@@ -37,36 +37,6 @@ export default function M_TargetSelector() {
     useEffect(() => {
         scan();
     }, []);
-
-    const save = async () => {
-        if (!active_Target_App) return;
-        setBusy(true);
-        setError("");
-        try {
-            const res = await fetch("/api/target/save", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-TOKEN":
-                        document
-                            .querySelector('meta[name="csrf-token"]')
-                            ?.getAttribute("content") || "",
-                },
-                body: JSON.stringify({ path: active_Target_App }),
-            });
-            const data = await res.json();
-            if (data.success) {
-                // after successfully save then refresh to tell Backend to reload Entity
-                window.location.href = "/dashboard";
-            } else {
-                setError(data.message || "Failed to save target");
-                setBusy(false);
-            }
-        } catch (err) {
-            setError("Network error during save");
-            setBusy(false);
-        }
-    };
 
     return (
         <div className="target-selector-container">
@@ -103,18 +73,21 @@ export default function M_TargetSelector() {
                     </button>
                 </div>
 
-                {error && <div className="target-selector-error">{error}</div>}
+                {error_TargetSelector && (
+                    <div className="error-text">{error_TargetSelector}</div>
+                )}
 
                 <div className="target-selector-grid">
                     {projects.map((p) => {
-                        const isSelected = active_Target_App === p.root_path;
+                        // const isSelected = active_Target_App === p.root_path;
                         return (
                             <div
                                 key={p.name}
                                 onClick={() =>
-                                    set_active_Target_App(p.root_path)
+                                    save(p.root_path, set_error_TargetSelector)
                                 }
-                                className={`target-selector-item ${isSelected ? "is-active" : ""}`}
+                                // className={`target-selector-item ${isSelected ? "is-active" : ""}`}
+                                className="target-selector-btn target-selector-btn-confirm"
                             >
                                 <div className="target-selector-name">
                                     {p.name}
@@ -127,7 +100,7 @@ export default function M_TargetSelector() {
                     })}
                 </div>
 
-                <div className="target-selector-action">
+                {/* <div className="target-selector-action">
                     <button
                         onClick={save}
                         disabled={!active_Target_App || busy}
@@ -135,8 +108,42 @@ export default function M_TargetSelector() {
                     >
                         {busy ? "Processing..." : "Confirm this Target"}
                     </button>
-                </div>
+                </div> */}
             </div>
         </div>
     );
 }
+
+export const save = async (root_path, setError) => {
+    // ตัดบรรทัด if (!active_Target_App) ออกไปเลย เพราะเรามี root_path จากพารามิเตอร์อยู่แล้ว!
+    // setBusy(true);
+    setError("");
+
+    try {
+        // อัปเดตสเตทใน Store เพื่อให้ UI รู้ทันที
+        use_M_Store.getState().set_active_Target_App(root_path);
+
+        const res = await fetch("/api/target/save", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN":
+                    document
+                        .querySelector('meta[name="csrf-token"]')
+                        ?.getAttribute("content") || "",
+            },
+            body: JSON.stringify({ path: root_path }), // ส่ง root_path เข้าไปตรงๆ ทันที
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            window.location.href = "/dashboard";
+        } else {
+            setError(data.message || "Failed to save target");
+            // setBusy(false);
+        }
+    } catch (err) {
+        setError("Network error during save");
+        // setBusy(false);
+    }
+};

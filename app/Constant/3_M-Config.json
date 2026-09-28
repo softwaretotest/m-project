@@ -3,6 +3,12 @@
     "targets": {
         "ecommerce": {
             "root_path": "C:/Users/o/.vscode/react/ecommerce"
+        },
+        "m-project": {
+            "root_path": "C:/Users/o/.vscode/react/m-project"
+        },
+        "learn_backend": {
+            "root_path": "C:/Users/o/.vscode/react/learn/learn_backend"
         }
     }
 }

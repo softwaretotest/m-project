@@ -1,6 +1,6 @@
 //resources/js/Pages/0_M_Dashboard.jsx
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 
 import { use_M_Data } from "@/Providers/0_M_DataProvider";
 import { use_M_Store } from "@/Stores/0_M_Store.jsx";
@@ -9,10 +9,14 @@ import { add_field_ENTITIES } from "@/Services/0_M_value_Service";
 
 import SubTab from "@/Components/0_M_SubTab.jsx";
 
+import { save } from "@/Pages/3_M_TargetSelector";
+
 export default function M_Dashboard({ activeTarget }) {
     const data = use_M_Data();
     if (!data)
         return <div>Dashboard Loading... waiting for data from Backend</div>;
+
+    const [error_Dashboard, set_error_Dashboard] = useState("");
 
     const active_Target_App = use_M_Store((state) => state.active_Target_App);
     const set_active_Target_App = use_M_Store.getState().set_active_Target_App;
@@ -37,11 +41,55 @@ export default function M_Dashboard({ activeTarget }) {
         { id: "entities", label: "ENTITIES", key: "entities" },
     ];
 
+    /**
+     * * clear activeTarget from Backend Config
+     */
+    // const save = async (root_path) => {
+    //     // ตัดบรรทัด if (!active_Target_App) ออกไปเลย เพราะเรามี root_path จากพารามิเตอร์อยู่แล้ว!
+    //     // setBusy(true);
+    //     setError("");
+
+    //     try {
+    //         // อัปเดตสเตทใน Store เพื่อให้ UI รู้ทันที
+    //         set_active_Target_App(root_path);
+
+    //         const res = await fetch("/api/target/save", {
+    //             method: "POST",
+    //             headers: {
+    //                 "Content-Type": "application/json",
+    //                 "X-CSRF-TOKEN":
+    //                     document
+    //                         .querySelector('meta[name="csrf-token"]')
+    //                         ?.getAttribute("content") || "",
+    //             },
+    //             body: JSON.stringify({ path: root_path }), // ส่ง root_path เข้าไปตรงๆ ทันที
+    //         });
+
+    //         const data = await res.json();
+    //         if (data.success) {
+    //             window.location.href = "/dashboard";
+    //         } else {
+    //             setError(data.message || "Failed to save target");
+    //             // setBusy(false);
+    //         }
+    //     } catch (err) {
+    //         setError("Network error during save");
+    //         // setBusy(false);
+    //     }
+    // };
+
     return (
         <>
+            {error_Dashboard && <div className="error-text">{dashError}</div>}
+
             <div className="dashboard-wrapper">
                 <h1 className="dashboard-header">
-                    <button className="dashboard-header-button">
+                    <button
+                        className="dashboard-header-button"
+                        onClick={() => {
+                            save("", set_error_Dashboard);
+                        }}
+                    >
                         {active_Target_App} Dashboard
                     </button>
                     {show_add_USERS && (

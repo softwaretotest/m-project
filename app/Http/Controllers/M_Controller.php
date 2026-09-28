@@ -48,40 +48,47 @@ class M_Controller extends Controller
         ]);
     }
 
-    public function saveTargetConfig(Request $request)
+    /**
+     * create or update activeTarget App.
+     */
+    public function updateTargetConfig(Request $request)
     {
-        $path = str_replace('\\', '/', trim((string) $request->input('path')));
-
-        if ($path === '') {
-            return response()->json(['success' => false, 'message' => 'Path is empty'], 400);
-        }
-
-        $real = realpath($path);
-        if ($real === false) {
-            return response()->json(['success' => false, 'message' => "Path does not exist: {$path}"], 422);
-        }
-        $real = str_replace('\\', '/', $real);
-
-        if (!file_exists($real . '/artisan')) {
-            return response()->json(['success' => false, 'message' => 'Not a Laravel project (artisan not found)'], 422);
-        }
-
-        $name       = basename($real);
+        $inputPath = $request->input('path', '');
         $configPath = base_path('app/Constant/3_M-Config.json');
 
-        // read old value and merge (not delete it)
+        // read old config
         $config = ['activeTarget' => '', 'targets' => []];
         if (file_exists($configPath)) {
             $old = json_decode(file_get_contents($configPath), true);
             if (is_array($old)) {
-                $config['targets']      = $old['targets'] ?? [];
+                $config['targets'] = $old['targets'] ?? [];
                 $config['activeTarget'] = $old['activeTarget'] ?? '';
             }
         }
 
-        $config['targets'][$name] = ['root_path' => $real];
-        $config['activeTarget']   = $name;
+        // CASE clear activeTarget (send empty path to backend)
+        if (trim((string) $inputPath) === '') {
+            $config['activeTarget'] = '';
+        } else {
+            // CASE save new Target 
+            $path = str_replace('\\', '/', trim((string) $inputPath));
+            $real = realpath($path);
 
+            if ($real === false) {
+                return response()->json(['success' => false, 'message' => "Path does not exist: {$path}"], 422);
+            }
+
+            $real = str_replace('\\', '/', $real);
+            if (!file_exists($real . '/artisan')) {
+                return response()->json(['success' => false, 'message' => 'Not a Laravel project (artisan not found)'], 422);
+            }
+
+            $name = basename($real);
+            $config['targets'][$name] = ['root_path' => $real];
+            $config['activeTarget'] = $name;
+        }
+
+        // write new data to JSON
         $written = file_put_contents(
             $configPath,
             json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
@@ -91,7 +98,10 @@ class M_Controller extends Controller
             return response()->json(['success' => false, 'message' => 'Cannot write config file'], 500);
         }
 
-        return response()->json(['success' => true, 'target' => $name, 'root_path' => $real]);
+        return response()->json([
+            'success' => true,
+            'activeTarget' => $config['activeTarget']
+        ]);
     }
 
     public function scanTargets(Request $request)
