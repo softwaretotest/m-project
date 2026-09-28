@@ -103,40 +103,149 @@ class M_Controller extends Controller
             'activeTarget' => $config['activeTarget']
         ]);
     }
-
+    /**
+     * Scan a parent directory for Laravel projects, then merge saved targets from config.
+     *
+     * @param  \Illuminate\Http\Request  $request  Optional input "base", e.g. "C:/Users/o/.vscode/react"
+     * @return \Illuminate\Http\JsonResponse  e.g. 
+     * * {
+     * * * "success":true,
+     * * * "base":"C:/Users/o/.vscode/react",
+     * * * "projects":
+     * * * [
+     * * * * {
+     * * * * "name":"ecommerce",
+     * * * * "root_path":"C:/Users/o/.vscode/react/ecommerce"
+     * * * * }
+     * * * ]
+     * * }
+     */
     public function scanTargets(Request $request)
     {
-        /**
-         * * $base = parent folder of m-project (e.g. C:/Users/o/.vscode/react)
-         * * dirname(base_path()) = move 1 step back from /root of this app
-         **/
-        $base = $request->input('base') ?: dirname(base_path());
-        $base = str_replace('\\', '/', $base);
+        $parent_Path = $this->normalize_Path($request->input('base') ?: dirname(base_path()));
 
-        if (!is_dir($base)) {
-            return response()->json(['success' => false, 'message' => "Base not found: {$base}"], 404);
+        if (!is_dir($parent_Path)) {
+            return response()->json(['success' => false, 'message' => "Base not found: {$parent_Path}"], 404);
         }
 
-        $projects = [];
-        foreach (scandir($base) as $entry) {
-            if ($entry === '.' || $entry === '..') continue;
-
-            $full = $base . '/' . $entry;
-            if (!is_dir($full)) continue;
-            if (!file_exists($full . '/artisan')) continue;          // ← ตัวชี้ขาดว่าเป็น Laravel
-            if (!file_exists($full . '/composer.json')) continue;
-
-            $projects[] = [
-                'name'      => $entry,
-                'root_path' => str_replace('\\', '/', realpath($full)),
-            ];
-        }
+        $scanned_Projects = $this->scan_Laravel_Projects($parent_Path);
+        $merged_Projects  = $this->merge_Saved_Targets($scanned_Projects);
 
         return response()->json([
             'success'  => true,
-            'base'     => $base,
-            'projects' => $projects,
+            'base'     => $parent_Path,
+            'projects' => $merged_Projects,
         ]);
+    }
+
+    /**
+     * Convert Windows backslashes into forward slashes.
+     *
+     * @param  string  $raw_Path  e.g. "C:\Users\o\.vscode\react"
+     * @return string  e.g. "C:/Users/o/.vscode/react"
+     */
+    private function normalize_Path(string $raw_Path): string
+    {
+        return str_replace('\\', '/', $raw_Path);
+    }
+
+    /**
+     * Check that a folder is a real Laravel project (must own artisan + composer.json).
+     *
+     * @param  string  $folder_Path  e.g. "C:/Users/o/.vscode/react/ecommerce"
+     * @return bool  true when both marker files exist, otherwise false
+     */
+    private function is_Laravel_Project(string $folder_Path): bool
+    {
+        if (!is_dir($folder_Path))                            return false;
+        if (!file_exists($folder_Path . '/artisan'))          return false;
+        if (!file_exists($folder_Path . '/composer.json'))    return false;
+
+        return true;
+    }
+
+    /**
+     * List every direct child folder that validates as a Laravel project.
+     *
+     * @param  string  $parent_Path  e.g. "C:/Users/o/.vscode/react"
+     * @return array  e.g. [["name" => "ecommerce", "root_path" => "C:/Users/o/.vscode/react/ecommerce"]]
+     */
+    private function scan_Laravel_Projects(string $parent_Path): array
+    {
+        $projects = [];
+
+        foreach (scandir($parent_Path) as $entry_Name) {
+            if ($entry_Name === '.' || $entry_Name === '..') continue;
+
+            $entry_Path = $parent_Path . '/' . $entry_Name;
+            if (!$this->is_Laravel_Project($entry_Path)) continue;
+
+            $projects[] = [
+                'name'      => $entry_Name,
+                'root_path' => $this->normalize_Path(realpath($entry_Path)),
+            ];
+        }
+
+        return $projects;
+    }
+
+    /**
+     * Append targets stored in 3_M-Config.json so a scan never drops history.
+     *
+     * @param  array  $scanned_Projects  e.g. 
+     * * [
+     * * * [
+     * *        "name" => "ecommerce", 
+     * *        "root_path" => "C:/Users/o/.vscode/react/ecommerce"
+     * * * ],
+     * * * [
+     * *        "name" => "m-project", 
+     * *        "root_path" => "C:/Users/o/.vscode/react/m-project"
+     * * * ],
+     * * ]
+     * @return array  Same shape plus saved ones, e.g. 
+     * * [
+     * * * [
+     * *        "name" => "ecommerce", 
+     * *        "root_path" => "C:/Users/o/.vscode/react/ecommerce"
+     * * * ],
+     * * * [
+     * *        "name" => "m-project", 
+     * *        "root_path" => "C:/Users/o/.vscode/react/m-project"
+     * * * ],
+     * * * [
+     * *        "name" => "learn_backend", 
+     * *        "root_path" => "C:/Users/o/.vscode/react//learn/learn_backend"
+     * * * ],
+     * * ]
+     */
+    private function merge_Saved_Targets(array $scanned_Projects): array
+    {
+        $config_Path = app_path('Constant/3_M-Config.json');
+        if (!file_exists($config_Path)) return $scanned_Projects;
+
+        $config_Data    = json_decode(file_get_contents($config_Path), true);
+        $saved_Targets  = $config_Data['targets'] ?? null;
+        if (!is_array($saved_Targets)) return $scanned_Projects;
+
+        $existing_Paths = array_column($scanned_Projects, 'root_path');
+
+        foreach ($saved_Targets as $target_Name => $target_Info) {
+            $target_Path = $this->normalize_Path($target_Info['root_path'] ?? '');
+
+            if ($target_Path === '')                        continue;
+            if (in_array($target_Path, $existing_Paths))    continue;
+            if (!is_dir($target_Path))                      continue;
+
+            $scanned_Projects[] = [
+                'name'      => $target_Name,
+                'root_path' => $target_Path,
+            ];
+
+            $existing_Paths[] = $target_Path;
+        }
+
+        return $scanned_Projects;
     }
 
     /**
