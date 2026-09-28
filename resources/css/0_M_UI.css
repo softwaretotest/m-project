@@ -800,37 +800,14 @@ body.overflow-hidden {
     font-size: 14px;
 }
 
-.target-selector-btn {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.target-selector-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
 .target-selector-btn-scan {
     background-color: #e5e7eb;
     color: #374151;
 }
 
-.target-selector-btn-scan:hover:not(:disabled) {
-    background-color: #d1d5db;
-}
-
-.target-selector-error {
-    background-color: #fee2e2;
-    color: #b91c1c;
-    padding: 10px;
-    border-radius: 4px;
-    font-size: 14px;
-    margin-bottom: 15px;
+.target-selector-btn-scan:hover {
+    background-color: #acb080;
+    color: #000;
 }
 
 .target-selector-grid {
@@ -843,25 +820,6 @@ body.overflow-hidden {
     border: 1px solid #e5e7eb;
     padding: 10px;
     border-radius: 4px;
-}
-
-.target-selector-item {
-    padding: 12px;
-    border: 1px solid #e5e7eb;
-    border-radius: 4px;
-    cursor: pointer;
-    background: #fafafa;
-    transition: all 0.2s;
-}
-
-.target-selector-item:hover {
-    background: #f3f4f6;
-    border-color: #cbd5e1;
-}
-
-.target-selector-item.is-active {
-    border-color: #2563eb;
-    background-color: #eff6ff;
 }
 
 .target-selector-name {
@@ -877,20 +835,15 @@ body.overflow-hidden {
     word-break: break-all;
 }
 
-.target-selector-action {
-    display: flex;
-    justify-content: flex-end;
-}
-
-.target-selector-btn-confirm {
-    background-color: #2563eb;
+.target-selector-btn {
+    background-color: #b5e5a7;
     color: white;
     width: 100%;
     padding: 10px;
 }
 
-.target-selector-btn-confirm:hover:not(:disabled) {
-    background-color: #1d4ed8;
+.target-selector-btn:hover {
+    background-color: #738ed7;
 }
 
 /* --- Path Info Box --- */

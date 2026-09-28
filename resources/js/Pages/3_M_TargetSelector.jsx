@@ -6,9 +6,6 @@ export default function M_TargetSelector() {
     const [base, setBase] = useState("");
     const [projects, setProjects] = useState([]);
 
-    const active_Target_App = use_M_Store((state) => state.active_Target_App);
-    const set_active_Target_App = use_M_Store.getState().set_active_Target_App;
-
     const [error_TargetSelector, set_error_TargetSelector] = useState("");
     const [busy, setBusy] = useState(false);
 
@@ -67,7 +64,7 @@ export default function M_TargetSelector() {
                     <button
                         onClick={() => scan(base)}
                         disabled={busy}
-                        className="target-selector-btn target-selector-btn-scan"
+                        className="target-selector-btn-scan"
                     >
                         {busy ? "Scanning..." : "Scan"}
                     </button>
@@ -79,15 +76,16 @@ export default function M_TargetSelector() {
 
                 <div className="target-selector-grid">
                     {projects.map((p) => {
-                        // const isSelected = active_Target_App === p.root_path;
                         return (
                             <div
                                 key={p.name}
                                 onClick={() =>
-                                    save(p.root_path, set_error_TargetSelector)
+                                    save_Target_App(
+                                        p.root_path,
+                                        set_error_TargetSelector,
+                                    )
                                 }
-                                // className={`target-selector-item ${isSelected ? "is-active" : ""}`}
-                                className="target-selector-btn target-selector-btn-confirm"
+                                className="target-selector-btn"
                             >
                                 <div className="target-selector-name">
                                     {p.name}
@@ -99,31 +97,21 @@ export default function M_TargetSelector() {
                         );
                     })}
                 </div>
-
-                {/* <div className="target-selector-action">
-                    <button
-                        onClick={save}
-                        disabled={!active_Target_App || busy}
-                        className="target-selector-btn target-selector-btn-confirm"
-                    >
-                        {busy ? "Processing..." : "Confirm this Target"}
-                    </button>
-                </div> */}
             </div>
         </div>
     );
 }
 
-export const save = async (root_path, setError) => {
-    // ตัดบรรทัด if (!active_Target_App) ออกไปเลย เพราะเรามี root_path จากพารามิเตอร์อยู่แล้ว!
-    // setBusy(true);
+/**
+ * * clear activeTarget from Backend Config
+ */
+export const save_Target_App = async (root_path, setError) => {
     setError("");
 
     try {
-        // อัปเดตสเตทใน Store เพื่อให้ UI รู้ทันที
         use_M_Store.getState().set_active_Target_App(root_path);
 
-        const res = await fetch("/api/target/save", {
+        const res = await fetch("/api/target/save_Target_App", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -132,7 +120,7 @@ export const save = async (root_path, setError) => {
                         .querySelector('meta[name="csrf-token"]')
                         ?.getAttribute("content") || "",
             },
-            body: JSON.stringify({ path: root_path }), // ส่ง root_path เข้าไปตรงๆ ทันที
+            body: JSON.stringify({ path: root_path }),
         });
 
         const data = await res.json();
@@ -140,10 +128,8 @@ export const save = async (root_path, setError) => {
             window.location.href = "/dashboard";
         } else {
             setError(data.message || "Failed to save target");
-            // setBusy(false);
         }
     } catch (err) {
         setError("Network error during save");
-        // setBusy(false);
     }
 };

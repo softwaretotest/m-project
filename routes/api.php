@@ -26,4 +26,4 @@ Route::get('/config', [M_Controller::class, 'get_M_Config_json']);
 
 // Endpoint for crud target app in 3_M-Config.json
 Route::get('/target/scan',  [M_Controller::class, 'scanTargets']);
-Route::post('/target/save', [M_Controller::class, 'updateTargetConfig']);
+Route::post('/target/save_Target_App', [M_Controller::class, 'updateTargetConfig']);
