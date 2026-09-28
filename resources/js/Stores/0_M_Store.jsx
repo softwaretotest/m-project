@@ -29,7 +29,8 @@ export const use_M_Store = create((set) => ({
     debug_checked_CU: false,
     debug_checked_CD: false,
 
-    debug_activeField: true,
+    debug_active_Target_App: true,
+    debug_activeField: false,
     debug_activeTab: false,
     debug_activeSubTab: false,
 
@@ -636,6 +637,17 @@ export const use_M_Store = create((set) => ({
      * * MOST IN USE STATES
      * * ------------------
      */
+    active_Target_App: "",
+    set_active_Target_App: (app) =>
+        set((state) => {
+            if (state.debug || state.debug_active_Target_App) {
+                console.log(`[M_STORE_DEBUG] New active_Target_App :`, app);
+                console.log("------------------------------------");
+            }
+
+            return { active_Target_App: app };
+        }),
+
     activeTab: "m_data", //default on refresh
     setActiveTab: (tab) =>
         set((state) => {

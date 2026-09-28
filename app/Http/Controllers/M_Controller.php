@@ -96,7 +96,10 @@ class M_Controller extends Controller
 
     public function scanTargets(Request $request)
     {
-        // default = parent folder of m-project (เช่น C:/Users/o/.vscode/react)
+        /**
+         * * $base = parent folder of m-project (e.g. C:/Users/o/.vscode/react)
+         * * dirname(base_path()) = move 1 step back from /root of this app
+         **/
         $base = $request->input('base') ?: dirname(base_path());
         $base = str_replace('\\', '/', $base);
 

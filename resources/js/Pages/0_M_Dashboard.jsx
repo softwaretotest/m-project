@@ -1,6 +1,6 @@
 //resources/js/Pages/0_M_Dashboard.jsx
 
-import React, { useState, useEffect } from "react";
+import { useEffect } from "react";
 
 import { use_M_Data } from "@/Providers/0_M_DataProvider";
 import { use_M_Store } from "@/Stores/0_M_Store.jsx";
@@ -9,14 +9,20 @@ import { add_field_ENTITIES } from "@/Services/0_M_value_Service";
 
 import SubTab from "@/Components/0_M_SubTab.jsx";
 
-export default function M_Dashboard() {
+export default function M_Dashboard({ activeTarget }) {
     const data = use_M_Data();
     if (!data)
         return <div>Dashboard Loading... waiting for data from Backend</div>;
 
-    const save_All_Data = use_M_Store((state) => state.save_All_Data);
+    const active_Target_App = use_M_Store((state) => state.active_Target_App);
+    const set_active_Target_App = use_M_Store.getState().set_active_Target_App;
 
-    const is_Editing = use_M_Store((state) => state.is_Editing);
+    useEffect(() => {
+        if (activeTarget && !active_Target_App) {
+            set_active_Target_App(activeTarget);
+        }
+    }, [activeTarget, active_Target_App]);
+
     const activeTab = use_M_Store((state) => state.activeTab);
     const setActiveTab = use_M_Store((state) => state.setActiveTab);
     const setActiveField = use_M_Store.getState().setActiveField;
@@ -35,10 +41,12 @@ export default function M_Dashboard() {
         <>
             <div className="dashboard-wrapper">
                 <h1 className="dashboard-header">
-                    Project M Dashboard
+                    <button className="dashboard-header-button">
+                        {active_Target_App} Dashboard
+                    </button>
                     {show_add_USERS && (
                         <button
-                            className="add-button"
+                            className="dashboard-header-button"
                             onClick={() => {
                                 add_field_ENTITIES({ isUser: true });
                             }}
@@ -46,6 +54,7 @@ export default function M_Dashboard() {
                             ADD USERS TABLE
                         </button>
                     )}
+                    <p className="dashboard-header-title">Project M</p>
                 </h1>
                 <div className="tab-switcher-container">
                     {tabs.map((tab) => (

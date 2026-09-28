@@ -1,10 +1,12 @@
-import "../css/app.css";
+// import "../css/app.css";
 import "@/../css/0_M_UI.css";
 import "./bootstrap";
 
 import { createInertiaApp } from "@inertiajs/react";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import { createRoot } from "react-dom/client";
+
+// provide data from backend and fire API for Target App
 import { M_DataProvider } from "./Providers/0_M_DataProvider";
 
 const appName = import.meta.env.VITE_APP_NAME || "Laravel";

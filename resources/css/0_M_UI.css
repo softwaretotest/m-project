@@ -5,17 +5,6 @@
 body {
     background-color: #888;
 }
-/* --- Dashboard Containers --- */
-.m-tab-container {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-.m-content-box {
-    border: 1px solid #ddd;
-    padding: 20px;
-    border-radius: 8px;
-}
 
 /* --- Sub-Tabs --- */
 .subtab-container {
@@ -59,7 +48,7 @@ body {
 .field-label {
     display: block;
     font-weight: bold;
-    margin-bottom: 5px;
+    margin: 0px;
 }
 .field-input {
     padding: 8px;
@@ -90,20 +79,63 @@ body {
     margin-left: 20px;
 }
 /* --- Dashboard Main Layout --- */
+div.dashboard-wrapper {
+    padding: 0px !important;
+    display: flex;
+    height: 100%;
+    padding: 0px;
+    margin: 0px;
+}
 .dashboard-wrapper {
-    padding: 5px;
+    flex: 1;
+    flex-direction: column;
+    gap: 5px;
     max-width: 2000px;
-    margin: 0 auto;
     font-family: Arial;
 }
-.dashboard-header {
-    margin: 0px;
-    gap: 2px;
+/* --- Dashboard Header Layout (left - middle - right) --- */
+h1.dashboard-header {
+    margin: 0 !important;
+    padding: 0 !important;
 }
+
+/* --- Dashboard Header Layout (Fixed & Clean) --- */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 5px;
+    box-sizing: border-box;
+    background-color: #94fb60; /* ปรับตามสีพื้นหลังเดิมของคุณ */
+}
+
+/* 3 Blocks have same size */
+.dashboard-header > * {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+/* left block */
+.dashboard-header > *:first-child {
+    justify-content: center;
+}
+
+/* middle block */
+.dashboard-header > *:nth-child(2) {
+    justify-content: center;
+}
+
+/* right block */
+.dashboard-header > *:last-child {
+    justify-content: center;
+    padding-right: 10px;
+}
+
 .tab-switcher-container {
     display: flex;
     gap: 10px;
-    margin-bottom: 20px;
 }
 .tch-label {
     align-self: center;
@@ -286,7 +318,7 @@ body {
 .field-sidebar {
     overflow-y: auto;
     border-right: 1px solid #ddd;
-    gap: 3px;
+    gap: 4px;
     padding: 10px;
     display: flex;
     flex-direction: column;
@@ -329,27 +361,40 @@ body {
     border-color: #0056b3 !important;
 }
 
-.add-button,
+.dashboard-header-title,
+.dashboard-header-button,
 .delete-button,
 .field-nav-link {
     text-align: left;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
+    border: 3px solid #ddd;
     cursor: pointer;
     border-radius: 4px;
-    font-size: 0.9em;
+    font-size: 0.8em;
     font-weight: bold;
-
     white-space: nowrap;
+    padding: 0;
+    margin: 10px;
+    background: #f8f9fa;
 }
 
-.add-button:hover,
+.dashboard-header-title {
+    text-align: center;
+    border-color: transparent;
+    background-color: transparent;
+}
+
+.field-nav-link {
+    padding: 10;
+    margin: 0px;
+}
+
+.dashboard-header-button:hover,
 .delete-button:hover,
 .field-nav-link:hover {
     background: #e2e6ea;
 }
 
-.add-button.active,
+.dashboard-header-button.active,
 .delete-button.active,
 .field-nav-link.active {
     background-color: #e3342f;
@@ -358,7 +403,7 @@ body {
     font-weight: bold;
 }
 
-.add-button {
+.dashboard-header-button {
     background-color: #3498db;
 }
 
@@ -366,10 +411,6 @@ body {
     background-color: #f08730;
     margin: 0;
     padding: 12px 20px;
-}
-
-.field-nav-link {
-    background: #f8f9fa;
 }
 
 .json-list {
@@ -453,7 +494,7 @@ body {
     grid-template-columns: max-content minmax(0, 1fr) max-content;
     grid-template-rows: auto auto;
     grid-template-areas:
-        "tch-label new_field_name add-button"
+        "tch-label new_field_name dashboard-header-button"
         "error-text error-text error-text";
     align-items: center;
 }
@@ -467,8 +508,8 @@ body {
     justify-self: end;
 }
 
-.add-button {
-    grid-area: add-button;
+.dashboard-header-button {
+    grid-area: dashboard-header-button;
 }
 
 @keyframes blink-frequenz {
@@ -850,4 +891,16 @@ body.overflow-hidden {
 
 .target-selector-btn-confirm:hover:not(:disabled) {
     background-color: #1d4ed8;
+}
+
+/* --- Path Info Box --- */
+.target-selector-path-info {
+    font-size: 13px;
+    color: #b45309;
+    background-color: #fef3c7;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    border: 1px solid #f59e0b;
+    line-height: 1.4;
 }

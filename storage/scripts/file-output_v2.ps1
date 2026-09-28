@@ -1,3 +1,9 @@
+# C:/Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "resources/js/Pages/3_M_TargetSelector.jsx"
+
+# C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\resources\js\Pages\0_M_Dashboard.jsx"
+
+# C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\resources\css\0_M_UI.css"
+
 param (
     [string]$Path = "resources/js/Components",
     [string]$OutputFile = "SingleSourceCode.txt"
