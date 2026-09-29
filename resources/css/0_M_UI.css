@@ -113,30 +113,23 @@ h1.dashboard-header {
 /* 3 Blocks have same size */
 .dashboard-header > * {
     flex: 1;
-    display: flex;
     align-items: center;
 }
 
 /* left block */
-.dashboard-header > *:first-child {
-    justify-content: center;
-}
-
+.dashboard-header > *:first-child,
 /* middle block */
-.dashboard-header > *:nth-child(2) {
-    justify-content: center;
-}
-
+.dashboard-header > *:nth-child(2),
 /* right block */
 .dashboard-header > *:last-child {
     justify-content: center;
-    padding-right: 10px;
 }
 
 .tab-switcher-container {
     display: flex;
     gap: 10px;
 }
+
 .tch-label {
     align-self: center;
     background-color: #aabba3;
@@ -373,7 +366,7 @@ h1.dashboard-header {
     font-weight: bold;
     white-space: nowrap;
     padding: 0;
-    margin: 10px;
+    margin: 5px;
     background: #f8f9fa;
 }
 
@@ -388,12 +381,14 @@ h1.dashboard-header {
     margin: 0px;
 }
 
+.btn-setting:hover,
 .dashboard-header-button:hover,
 .delete-button:hover,
 .field-nav-link:hover {
     background: #e2e6ea;
 }
 
+.btn-setting:active,
 .dashboard-header-button.active,
 .delete-button.active,
 .field-nav-link.active {
@@ -404,7 +399,40 @@ h1.dashboard-header {
 }
 
 .dashboard-header-button {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 2px;
     background-color: #3498db;
+}
+
+.dashboard-header-button p {
+    margin: 0;
+}
+
+.button-info {
+    font-size: 10px;
+    color: #511c29;
+    background-color: #b5e5a7;
+}
+
+.btn-setting {
+    flex: 0; /* prevent flex squeeze */
+    height: 100%; /* high full of header */
+    padding: 5px;
+    margin-right: 5px;
+    transition: 0.2s ease;
+    cursor: pointer;
+    transform: scale(1);
+
+    /* make to square */
+    aspect-ratio: 1 / 1;
+
+    font-weight: bold;
+    border-radius: 3px;
+    background-color: rgb(45, 202, 45);
+
+    align-items: center;
 }
 
 .delete-button {

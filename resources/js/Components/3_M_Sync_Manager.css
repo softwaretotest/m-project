@@ -1,0 +1,225 @@
+/* ==========================================================================
+   M_Sync_Manager Stylesheet (Full Height Console & Custom Box Status Colors)
+   ========================================================================== */
+
+.m-sync-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+/* Modal (85% of whole screen) */
+.m-sync-modal-container {
+    width: 85vw;
+    height: 85vh;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    position: relative;
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+        sans-serif;
+    border: 3px solid #000000;
+}
+
+/* --------------------------------------------------------------------------
+   LEFT: Control Box & Logger Console
+   -------------------------------------------------------------------------- */
+.m-sync-left-section {
+    flex: 8.2;
+    display: flex;
+    flex-direction: column;
+    border-right: 3px solid #000000;
+    padding: 4px;
+    background-color: #ffffff;
+    box-sizing: border-box;
+}
+
+.m-sync-control-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    border: 2px solid #000000;
+    padding: 4px;
+    background-color: #ffffff;
+    box-sizing: border-box;
+}
+
+.m-sync-start-btn {
+    align-self: center; /* prevent button strech */
+    font-size: 18px;
+    font-weight: bold;
+    padding: 8px 35px;
+    cursor: pointer;
+    background-color: #ffffff;
+    border: 2px solid #000000;
+    border-radius: 4px;
+}
+
+.m-sync-start-btn:hover {
+    background-color: #f0f0f0;
+}
+
+/* Logger Console */
+.m-sync-logger-console {
+    flex: 1; /* take the rest of parent arean to the bottom */
+    background-color: #000000;
+    color: #00ff00;
+    font-family: "Consolas", "Courier New", Courier, monospace;
+    padding: 15px;
+    overflow-y: auto;
+    overflow-x: auto;
+    font-size: 14px;
+    border: 2px solid #000000;
+    text-align: left; /* บังคับชิดซ้าย */
+    white-space: pre-wrap;
+    word-break: break-all;
+    box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------------------
+   RIGHT: Script Sidebar (Grid Layout)
+   -------------------------------------------------------------------------- */
+.m-sync-right-section {
+    flex: 1.8;
+    max-width: 180px;
+    background-color: #ffffcc;
+    padding: 15px;
+    box-sizing: border-box;
+    position: relative;
+
+    display: grid;
+    grid-template-rows: auto 1fr 1fr 1fr 1fr;
+    grid-template-areas:
+        "title"
+        "item1"
+        "item2"
+        "item3"
+        "item4";
+    gap: 12px;
+}
+
+.m-sync-sidebar-title {
+    grid-area: title;
+    font-size: 20px;
+    font-weight: 800;
+    margin: 0 0 5px 0;
+    color: #000000;
+    text-align: left;
+}
+
+.m-sync-script-item:nth-of-type(1) {
+    grid-area: item1;
+}
+.m-sync-script-item:nth-of-type(2) {
+    grid-area: item2;
+}
+.m-sync-script-item:nth-of-type(3) {
+    grid-area: item3;
+}
+.m-sync-script-item:nth-of-type(4) {
+    grid-area: item4;
+}
+
+/* --------------------------------------------------------------------------
+   CHECKBOX Script Item & Label Status PASS / RUNNING 
+   -------------------------------------------------------------------------- */
+.m-sync-script-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+    border: 2px solid #000000;
+    background-color: #ffffff;
+    padding: 12px 10px;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background-color 0.2s ease;
+}
+
+.m-sync-script-item.pass {
+    background-color: #93ff93 !important;
+}
+
+.m-sync-script-item.running {
+    background-color: rgb(236, 236, 30) !important;
+}
+
+/* ปุ่ม Checkbox ชิดซ้ายบน */
+.m-sync-script-item input[type="checkbox"] {
+    transform: scale(1.3);
+    margin-right: 10px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+/* Name of Script */
+.m-sync-script-item > span:not(.m-sync-status) {
+    font-size: 15px;
+    font-weight: bold;
+    color: #000000;
+    flex: 1;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.3;
+}
+
+/* Status of Script */
+.m-sync-status {
+    width: 100%;
+    text-align: center;
+    margin-top: 12px;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.m-sync-status.pass {
+    color: #0000ff;
+}
+
+.m-sync-status.running {
+    color: #783115;
+}
+/* ==========================================================================
+   Close Button for Modal (at the top right corner)
+   ========================================================================== */
+.m-sync-close-btn {
+    position: absolute;
+    /* position according the Modal (85vw/85vh centered) */
+    top: calc(7.5vh - 18px); /* from top , at the right corner of Modal */
+    right: calc(7.5vw - 18px); /* from rigth edge to the Modal */
+    width: 36px;
+    height: 36px;
+    background-color: #ecef33;
+    color: #000000;
+    border: 2px solid #000000;
+    border-radius: 50%; /* circle */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    z-index: 10000;
+    transition:
+        transform 0.15s ease,
+        background-color 0.15s ease;
+}
+
+.m-sync-close-btn:hover {
+    background-color: #ffffff;
+    transform: scale(1.12);
+}

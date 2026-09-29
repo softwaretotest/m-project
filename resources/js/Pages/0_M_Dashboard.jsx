@@ -11,12 +11,16 @@ import SubTab from "@/Components/0_M_SubTab.jsx";
 
 import { save_Target_App } from "@/Pages/3_M_TargetSelector";
 
+import M_Sync_Manager from "@/Components/3_M_Sync_Manager.jsx";
+
 export default function M_Dashboard({ activeTarget }) {
     const data = use_M_Data();
     if (!data)
         return <div>Dashboard Loading... waiting for data from Backend</div>;
 
     const [error_Dashboard, set_error_Dashboard] = useState("");
+
+    const [is_Sync_Modal_Open, set_is_Sync_Modal_Open] = useState(false);
 
     const active_Target_App = use_M_Store((state) => state.active_Target_App);
     const set_active_Target_App = use_M_Store.getState().set_active_Target_App;
@@ -47,6 +51,13 @@ export default function M_Dashboard({ activeTarget }) {
                 <div className="error-text">{error_Dashboard}</div>
             )}
 
+            {is_Sync_Modal_Open && (
+                <M_Sync_Manager
+                    is_Sync_Modal_Open={is_Sync_Modal_Open}
+                    set_is_Sync_Modal_Open={set_is_Sync_Modal_Open}
+                />
+            )}
+
             <div className="dashboard-wrapper">
                 <h1 className="dashboard-header">
                     <button
@@ -55,7 +66,8 @@ export default function M_Dashboard({ activeTarget }) {
                             save_Target_App("", set_error_Dashboard);
                         }}
                     >
-                        {active_Target_App} Dashboard
+                        <p>{active_Target_App} Dashboard</p>
+                        <p className="button-info">click to change App</p>
                     </button>
                     {show_add_USERS && (
                         <button
@@ -68,6 +80,14 @@ export default function M_Dashboard({ activeTarget }) {
                         </button>
                     )}
                     <p className="dashboard-header-title">Project M</p>
+                    <button
+                        className="btn-setting"
+                        onClick={() => {
+                            set_is_Sync_Modal_Open(true);
+                        }}
+                    >
+                        SYNC
+                    </button>
                 </h1>
                 <div className="tab-switcher-container">
                     {tabs.map((tab) => (

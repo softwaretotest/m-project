@@ -7,7 +7,7 @@ use Throwable;
 class Logger
 {
     public const SUCCESS = '[ ✅ SUCCESS ] ';
-    public const WARNING = '[ ⚠️  WARNING ] ';
+    public const WARNING = '[ ⚠️ WARNING ] ';
     public const ERROR   = '[ 🚫 ERROR   ] ';
     public const FINISH  = '[ 🆗 FINISH  ] ';
 

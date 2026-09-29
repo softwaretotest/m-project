@@ -215,7 +215,7 @@ class M_Controller extends Controller
      * * * ],
      * * * [
      * *        "name" => "learn_backend", 
-     * *        "root_path" => "C:/Users/o/.vscode/react//learn/learn_backend"
+     * *        "root_path" => "C:/Users/o/.vscode/react/learn/learn_backend"
      * * * ],
      * * ]
      */
