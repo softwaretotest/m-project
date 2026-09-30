@@ -1,6 +1,5 @@
 // /Resources/Services/0_M_value_Service.jsx
 import { use_M_Store } from "@/Stores/0_M_Store.jsx";
-import { API } from "@/Configs/api";
 
 import { change_fieldname_in_field_data } from "@/Components/0_M_Data_Helper";
 import { GLOBAL_METADATA } from "@/Providers/0_M_DataProvider";
@@ -68,7 +67,7 @@ export const M_value_Service = {
 async function send_POST(corrected_M_value, cascade = null) {
     const activeTab = use_M_Store.getState().activeTab;
     const activeSubTab = use_M_Store.getState().activeSubTab;
-    const response = await fetch(API.M_VALUE_ENDPOINT, {
+    const response = await fetch('/api/m-value', {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

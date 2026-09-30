@@ -251,7 +251,7 @@ class M_Controller extends Controller
     /**
      * * SAVE M_value from frontend to JSON
      */
-    public function save(Request $request): JsonResponse
+    public function save_M_value(Request $request): JsonResponse
     {
         // validate new_M_value from POST
         $request->validate([
@@ -299,7 +299,7 @@ class M_Controller extends Controller
      * * m_data:   Content of M-Data.json
      * * entities: Content of Entities.json
      */
-    public function getMetadata(): JsonResponse
+    public function get_M_value(): JsonResponse
     {
         $combinedMetadata = [];
 

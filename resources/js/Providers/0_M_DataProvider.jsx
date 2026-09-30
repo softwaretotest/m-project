@@ -1,7 +1,6 @@
 // resources/js/Providers/0_M_DataProvider.jsx
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { API } from "@/Configs/api";
 import { use_M_Store } from "@/Stores/0_M_Store";
 
 export let GLOBAL_METADATA = null;
@@ -21,7 +20,7 @@ export const M_DataProvider = ({ children }) => {
     useEffect(() => {
         const fetchMetadata = async () => {
             try {
-                const res = await fetch(API.M_VALUE_ENDPOINT);
+                const res = await fetch('/api/m-value');
                 if (!res.ok)
                     throw new Error("HTTP error! status: " + res.status);
                 const data = await res.json();

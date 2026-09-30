@@ -4,7 +4,6 @@ namespace App\Constant;
 
 require __DIR__ . '/../../vendor/autoload.php';
 
-use ReflectionClass;
 
 /**
  * Laravel Layers Classes for Entities
@@ -127,16 +126,25 @@ class EntityGenerator
         DataHelper::ensureDir((string)TargetManager::gen_path('Models'));
         $Model_filename = (string)TargetManager::gen_path("Models/{$entityName}.php");
         $result = file_put_contents(($Model_filename), $output);
-        if ($result)
+        if ($result) {
             Logger::success("Created Model : $Model_filename");
-        else
+        } else {
             Logger::error("Could not create Model : $Model_filename");
+        }
     }
 
     // -----------------------------------------------------------------
+
     /**
-     * $fields = [f::NAME, f::PRICE, ...] 
-     * e.g. ['price', ['decimal',10,2], 'number', ['default',0], 'currency']
+     * @param
+     * * $fields = [f::NAME, f::PRICE, ...]
+     * * e.g. ['price', ['decimal',10,2], 'number', ['default',0], 'currency']
+     * @return mixed
+     * * Returns the canonical field definitions for this DTO.
+     * * The definitions combine backend validation rules with field types,
+     * * defaults, and optional frontend UI hints. BaseDTO::rules() and
+     * * BaseDTO::uiSchema() derive their output from this metadata.
+     * @return array<string, array<string, mixed>> Field name mapped to its definition.
      */
     private static function generateDTO($entityName, $fields)
     {
@@ -175,17 +183,18 @@ class EntityGenerator
 
         $output = str_replace('DummyDTO', "{$entityName}DTO", $stub);
         $output = str_replace('//PROPERTIES', implode("\n        ", $propLines), $output);
-        $output = str_replace('//MAPPING',    implode("\n            ", $mapLines), $output);
-        $output = str_replace('//ARRAY_MAP',  implode("\n            ", $arrLines), $output);
-        $output = str_replace('//METADATA',   $metadataMethod, $output);
+        $output = str_replace('//MAPPING', implode("\n            ", $mapLines), $output);
+        $output = str_replace('//ARRAY_MAP', implode("\n            ", $arrLines), $output);
+        $output = str_replace('//METADATA', $metadataMethod, $output);
 
         DataHelper::ensureDir((string)TargetManager::gen_path('DTOs'));
         $DTO_filename = (string)TargetManager::gen_path("DTOs/{$entityName}DTO.php");
         $result = file_put_contents($DTO_filename, $output);
-        if ($result)
+        if ($result) {
             Logger::success("Created DTO : $DTO_filename");
-        else
+        } else {
             Logger::error("Could not create DTO : $DTO_filename");
+        }
     }
 
     /**
@@ -202,15 +211,16 @@ class EntityGenerator
         DataHelper::ensureDir((string)TargetManager::gen_path('Http/Controllers'));
         $Controller_file_fullname = TargetManager::gen_path("Http/Controllers/{$entityName}Controller.php");
         $result = file_put_contents((string)$Controller_file_fullname, $output);
-        if ($result)
+        if ($result) {
             Logger::success("Created Controller : $Controller_file_fullname");
-        else
+        } else {
             Logger::error("Could not create Controller : $Controller_file_fullname");
+        }
     }
 
     // -----------------------------------------------------------------
     /**
-     * @param 
+     * @param
      * *       Array
      * *        (
      * *           [type] => string
@@ -225,7 +235,7 @@ class EntityGenerator
      * *           [default] =>
      * *           [rules] => nullable|string|max:255
      * *           )
-     * @return 
+     * @return
      * *       [
      * *           'type' => 'string',
      * *           'php_type' => 'string',
