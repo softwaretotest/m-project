@@ -36,11 +36,11 @@ class SyncManagerControllerTest extends TestCase
     }
 
     /**
-     * Clear a failed run from current and legacy status files while preserving its log.
+     * Clear a failed run from current and legacy status files and delete its log.
      *
      * @return void
      */
-    public function test_reset_failed_run_clears_backend_status_files_and_keeps_run_log(): void
+    public function test_reset_failed_run_clears_backend_status_files_and_deletes_run_log(): void
     {
         $original_Storage_Path = app()->storagePath();
         $test_Storage_Path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'sync-manager-reset-' . Str::uuid();
@@ -51,8 +51,9 @@ class SyncManagerControllerTest extends TestCase
 
         $canonical_Status_Path = $status_Directory . DIRECTORY_SEPARATOR . 'sync_status.json';
         $legacy_Status_Path = $status_Directory . DIRECTORY_SEPARATOR . 'status.json';
-        $run_Log_Path = $log_Directory . DIRECTORY_SEPARATOR . 'failed-run.log';
-        $failed_Run = ['run_id' => 'failed-run', 'target' => 'ecommerce', 'status' => 'failed'];
+        $run_ID = (string) Str::uuid();
+        $run_Log_Path = $log_Directory . DIRECTORY_SEPARATOR . $run_ID . '.log';
+        $failed_Run = ['run_id' => $run_ID, 'target' => 'ecommerce', 'status' => 'failed'];
         $completed_Other_Run = ['run_id' => 'other-run', 'target' => 'm-project', 'status' => 'completed'];
 
         file_put_contents($canonical_Status_Path, json_encode([
@@ -77,7 +78,97 @@ class SyncManagerControllerTest extends TestCase
                 file_get_contents($legacy_Status_Path),
                 true
             ));
+            $this->assertFileDoesNotExist($run_Log_Path);
+        } finally {
+            app()->useStoragePath($original_Storage_Path);
+            File::deleteDirectory($test_Storage_Path);
+        }
+    }
+
+    /**
+     * Buffer worker output in its run log for UI polling.
+     *
+     * @return void
+     */
+    public function test_worker_output_is_read_from_run_log_by_incremental_cursor(): void
+    {
+        $original_Storage_Path = app()->storagePath();
+        $test_Storage_Path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'sync-manager-output-' . Str::uuid();
+        $log_Directory = $test_Storage_Path . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'm-sync-manager' . DIRECTORY_SEPARATOR . 'logs';
+        File::ensureDirectoryExists($log_Directory);
+        app()->useStoragePath($test_Storage_Path);
+
+        $run_ID = (string) Str::uuid();
+        $run_Log_Path = $log_Directory . DIRECTORY_SEPARATOR . $run_ID . '.log';
+
+        try {
+            $sync_Manager_Service = app(SyncManagerService::class);
+            $append_Output = new \ReflectionMethod(SyncManagerService::class, 'append_Run_Output');
+            $read_Output = new \ReflectionMethod(SyncManagerService::class, 'read_Log_Chunk');
+            file_put_contents($run_Log_Path, '');
+
+            $append_Output->invoke($sync_Manager_Service, $run_ID, "First output line\nSecond output");
+            $first_Chunk = $read_Output->invoke($sync_Manager_Service, $run_ID, 0, false);
+            $this->assertSame("First output line\n", $first_Chunk['logs']);
+            $this->assertSame(strlen("First output line\n"), $first_Chunk['cursor']);
+
+            $append_Output->invoke($sync_Manager_Service, $run_ID, " line\n");
+            $final_Chunk = $read_Output->invoke(
+                $sync_Manager_Service,
+                $run_ID,
+                $first_Chunk['cursor'],
+                true
+            );
+            $this->assertSame("Second output line\n", $final_Chunk['logs']);
             $this->assertFileExists($run_Log_Path);
+            $this->assertSame(
+                "First output line\nSecond output line\n",
+                file_get_contents($run_Log_Path)
+            );
+        } finally {
+            app()->useStoragePath($original_Storage_Path);
+            File::deleteDirectory($test_Storage_Path);
+        }
+    }
+
+    /**
+     * Delete stale run logs at the next run while preserving logs for other active runs.
+     *
+     * @return void
+     */
+    public function test_cleanup_deletes_unused_run_logs_and_preserves_active_run_logs(): void
+    {
+        $original_Storage_Path = app()->storagePath();
+        $test_Storage_Path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'sync-manager-cleanup-' . Str::uuid();
+        $log_Directory = $test_Storage_Path . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'm-sync-manager' . DIRECTORY_SEPARATOR . 'logs';
+        File::ensureDirectoryExists($log_Directory);
+        app()->useStoragePath($test_Storage_Path);
+
+        $active_Run_ID = (string) Str::uuid();
+        $review_Run_ID = (string) Str::uuid();
+        $completed_Run_ID = (string) Str::uuid();
+        $orphan_Run_ID = (string) Str::uuid();
+        $unrelated_Log_Path = $log_Directory . DIRECTORY_SEPARATOR . 'other.log';
+
+        foreach ([$active_Run_ID, $review_Run_ID, $completed_Run_ID, $orphan_Run_ID] as $run_ID) {
+            file_put_contents($log_Directory . DIRECTORY_SEPARATOR . $run_ID . '.log', $run_ID);
+        }
+        file_put_contents($unrelated_Log_Path, 'unrelated');
+
+        try {
+            $sync_Manager_Service = app(SyncManagerService::class);
+            $cleanup_Logs = new \ReflectionMethod(SyncManagerService::class, 'delete_Unused_Run_Logs');
+            $cleanup_Logs->invoke($sync_Manager_Service, [
+                'active-target' => ['run_id' => $active_Run_ID, 'status' => 'running'],
+                'review-target' => ['run_id' => $review_Run_ID, 'status' => 'awaiting_review'],
+                'completed-target' => ['run_id' => $completed_Run_ID, 'status' => 'completed'],
+            ]);
+
+            $this->assertFileExists($log_Directory . DIRECTORY_SEPARATOR . $active_Run_ID . '.log');
+            $this->assertFileExists($log_Directory . DIRECTORY_SEPARATOR . $review_Run_ID . '.log');
+            $this->assertFileDoesNotExist($log_Directory . DIRECTORY_SEPARATOR . $completed_Run_ID . '.log');
+            $this->assertFileDoesNotExist($log_Directory . DIRECTORY_SEPARATOR . $orphan_Run_ID . '.log');
+            $this->assertFileExists($unrelated_Log_Path);
         } finally {
             app()->useStoragePath($original_Storage_Path);
             File::deleteDirectory($test_Storage_Path);
@@ -120,9 +211,11 @@ class SyncManagerControllerTest extends TestCase
             $sync_Manager_Service = app(SyncManagerService::class);
             $windows_Runner = new \ReflectionMethod(SyncManagerService::class, 'execute_Windows_Script');
             $exit_Code = $windows_Runner->invoke($sync_Manager_Service, $run_Record, $worker_Script_Path);
+            $read_Output = new \ReflectionMethod(SyncManagerService::class, 'read_Log_Chunk');
+            $output_Chunk = $read_Output->invoke($sync_Manager_Service, $run_ID, 0, true);
 
             $this->assertSame(0, $exit_Code);
-            $this->assertStringContainsString('worker probe passed', file_get_contents($run_Log_Path));
+            $this->assertStringContainsString('worker probe passed', $output_Chunk['logs']);
         } finally {
             app()->useStoragePath($original_Storage_Path);
             File::deleteDirectory($test_Storage_Path);

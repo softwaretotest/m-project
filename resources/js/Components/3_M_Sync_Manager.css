@@ -216,8 +216,9 @@
     position: relative;
 
     display: grid;
-    grid-template-rows: auto 1fr 1fr 1fr 1fr;
+    grid-template-rows: 36px auto 1fr 1fr 1fr 1fr;
     grid-template-areas:
+        "close"
         "title"
         "item1"
         "item2"
@@ -245,6 +246,28 @@
     margin: 0 0 5px 0;
     color: #000000;
     text-align: left;
+}
+
+.m-sync-close-btn {
+    grid-area: close;
+    justify-self: end;
+    width: 36px;
+    height: 36px;
+    background-color: #ecef33;
+    color: #000000;
+    border: 2px solid #000000;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    transition:
+        transform 0.15s ease,
+        background-color 0.15s ease;
 }
 
 .m-sync-script-item:nth-of-type(1) {
@@ -335,34 +358,6 @@
 .m-sync-status.warning {
     color: #8a6200;
 }
-/* ==========================================================================
-   Close Button for Modal (at the top right corner)
-   ========================================================================== */
-.m-sync-close-btn {
-    position: absolute;
-    /* position according the Modal (85vw/85vh centered) */
-    top: calc(7.5vh - 18px); /* from top , at the right corner of Modal */
-    right: calc(7.5vw - 18px); /* from rigth edge to the Modal */
-    width: 36px;
-    height: 36px;
-    background-color: #ecef33;
-    color: #000000;
-    border: 2px solid #000000;
-    border-radius: 50%; /* circle */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 20px;
-    font-weight: bold;
-    line-height: 1;
-    cursor: pointer;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-    z-index: 10000;
-    transition:
-        transform 0.15s ease,
-        background-color 0.15s ease;
-}
-
 .m-sync-close-btn:hover {
     background-color: #ffffff;
     transform: scale(1.12);

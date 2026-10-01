@@ -75,19 +75,19 @@ class TargetController extends Controller
      * @param  \Illuminate\Http\Request  $request  Optional input "base", e.g. "C:/Users/o/.vscode/react"
      * @return \Illuminate\Http\JsonResponse  e.g.
      * * {
-     * * * "success":true,
-     * * * "base":"C:/Users/o/.vscode/react",
-     * * * "projects":
-     * * * [
-     * * * * {
-     * * * * * "name":"ecommerce",
-     * * * * * "root_path":"C:/Users/o/.vscode/react/ecommerce"
-     * * * * },
-     * * * * {
-     * * * * * "name":"m-project",
-     * * * * * "root_path":"C:/Users/o/.vscode/react/m-project"
-     * * * * }
-     * * * ]
+     * *    "success":true,
+     * *    "base":"C:/Users/o/.vscode/react",
+     * *    "projects":
+     * *    [
+     * *        {
+     * *            "name":"ecommerce",
+     * *            "root_path":"C:/Users/o/.vscode/react/ecommerce"
+     * *        },
+     * *        {
+     * *            "name":"m-project",
+     * *            "root_path":"C:/Users/o/.vscode/react/m-project"
+     * *         }
+     * *    ]
      * * }
      */
     public function scanTargets(Request $request)
@@ -183,14 +183,20 @@ class TargetController extends Controller
     /**
      * List every direct child folder that validates as a Laravel project.
      *
-     * @param  string  $parent_Path  e.g. "C:/Users/o/.vscode/react"
-     * @return array  e.g.
-     * * [
-     * * * [
-     * * * * "name" => "ecommerce",
-     * * * * "root_path" => "C:/Users/o/.vscode/react/ecommerce"
-     * * * ],
-     * * ]
+     * @param string $parent_Path Parent directory to scan.
+     * @return array<int, array{name: string, root_path: string}> e.g.
+     * ```php
+     * [
+     *     [
+     *         'name' => 'ecommerce',
+     *         'root_path' => 'C:/Users/o/.vscode/react/ecommerce',
+     *     ],
+     *     [
+     *         'name' => 'm-project',
+     *         'root_path' => 'C:/Users/o/.vscode/react/m-project',
+     *     ],
+     * ]
+     * ```
      */
     private function scan_Laravel_Projects(string $parent_Path): array
     {
@@ -211,39 +217,34 @@ class TargetController extends Controller
                 'root_path' => $this->normalize_Path(realpath($entry_Path)),
             ];
         }
-
         return $projects;
     }
 
     /**
      * Append targets stored in 3_M-Config.json so a scan never drops history.
      *
-     * @param  array  $scanned_Projects  e.g.
-     * * [
-     * * * [
-     * * * * "name" => "ecommerce",
-     * * * * "root_path" => "C:/Users/o/.vscode/react/ecommerce"
-     * * * ],
-     * * * [
-     * * * * "name" => "m-project",
-     * * * * "root_path" => "C:/Users/o/.vscode/react/m-project"
-     * * * ],
-     * * ]
-     * @return array  Same shape plus saved ones, e.g.
-     * * [
-     * * * [
-     * * * * "name" => "ecommerce",
-     * * * * "root_path" => "C:/Users/o/.vscode/react/ecommerce"
-     * * * ],
-     * * * [
-     * * * * "name" => "m-project",
-     * * * * "root_path" => "C:/Users/o/.vscode/react/m-project"
-     * * * ],
-     * * * [
-     * * * * "name" => "learn_backend",
-     * * * * "root_path" => "C:/Users/o/.vscode/react/learn/learn_backend"
-     * * * ],
-     * * ]
+     * @param array<int, array{name: string, root_path: string}> $scanned_Projects Projects found on disk, e.g.
+     * ```php
+     * [
+     *     [
+     *         'name' => 'ecommerce',
+     *         'root_path' => 'C:/Users/o/.vscode/react/ecommerce',
+     *     ],
+     * ]
+     * ```
+     * @return array<int, array{name: string, root_path: string}> Scanned projects merged with saved targets, e.g.
+     * ```php
+     * [
+     *     [
+     *         'name' => 'ecommerce',
+     *         'root_path' => 'C:/Users/o/.vscode/react/ecommerce',
+     *     ],
+     *     [
+     *         'name' => 'learn_backend',
+     *         'root_path' => 'C:/Users/o/.vscode/react/learn/learn_backend',
+     *     ],
+     * ]
+     * ```
      */
     private function merge_Saved_Targets(array $scanned_Projects): array
     {

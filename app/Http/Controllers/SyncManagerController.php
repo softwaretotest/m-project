@@ -122,7 +122,7 @@ class SyncManagerController extends Controller
     }
 
     /**
-     * Clear a failed target run so Sync Manager can start again, retaining its log file.
+     * Clear a failed target run so Sync Manager can start again.
      *
      * @return JsonResponse Reset confirmation or the run state that prevented reset.
      */

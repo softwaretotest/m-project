@@ -84,7 +84,7 @@ class SyncManagerService
     }
 
     /**
-     * Clear the target's failed run record while retaining its run log for later inspection.
+     * Clear the target's failed run record and its run log.
      *
      * @return array{reset: bool, run: array<string, mixed>|null}
      */
@@ -106,6 +106,11 @@ class SyncManagerService
                 $this->write_Status_Data($status_Data);
 
                 return ['reset' => false, 'run' => $run_Record];
+            }
+
+            $failed_Run_ID = $run_Record['run_id'] ?? null;
+            if (is_string($failed_Run_ID) && preg_match('/^[0-9a-f-]{36}$/i', $failed_Run_ID)) {
+                $this->delete_Run_Log($failed_Run_ID);
             }
 
             foreach ([$this->get_Status_File_Path(), storage_path(self::LEGACY_STATUS_FILE)] as $status_Path) {
@@ -316,9 +321,9 @@ class SyncManagerService
 
             if (is_array($existing_Run)) {
                 $existing_Run = $this->reconcile_Dead_Process($existing_Run);
+                $status_Data[$target_Name] = $existing_Run;
 
                 if ($this->is_Run_Active($existing_Run)) {
-                    $status_Data[$target_Name] = $existing_Run;
                     $this->write_Status_Data($status_Data);
 
                     return ['accepted' => false, 'run' => $existing_Run];
@@ -360,6 +365,7 @@ class SyncManagerService
             ];
 
             $this->ensure_Storage_Directories();
+            $this->delete_Unused_Run_Logs($status_Data);
             $log_Initialized = file_put_contents($this->get_Log_File_Path($run_ID), '', LOCK_EX);
             if ($log_Initialized === false) {
                 throw new RuntimeException("Could not initialize Sync Manager log for run {$run_ID}");
@@ -1043,6 +1049,65 @@ class SyncManagerService
         }
 
         return storage_path(self::LOG_DIRECTORY . "/{$run_ID}.log");
+    }
+
+    /**
+     * Delete run logs that are no longer needed, preserving logs for active or review-pending runs.
+     *
+     * @param array<string, array<string, mixed>> $status_Data Persisted runs keyed by target name.
+     * @return void
+     */
+    private function delete_Unused_Run_Logs(array $status_Data): void
+    {
+        $active_Run_IDs = [];
+        foreach ($status_Data as $run_Record) {
+            if (!is_array($run_Record)) {
+                continue;
+            }
+
+            $run_ID = $run_Record['run_id'] ?? null;
+            if (
+                is_string($run_ID)
+                && preg_match('/^[0-9a-f-]{36}$/i', $run_ID)
+                && isset($run_Record['status'])
+                && $this->is_Run_Active($run_Record)
+            ) {
+                $active_Run_IDs[] = strtolower($run_ID);
+            }
+        }
+
+        $log_Paths = glob(storage_path(self::LOG_DIRECTORY . '/*.log'));
+        if ($log_Paths === false) {
+            throw new RuntimeException('Could not list Sync Manager run logs for cleanup.');
+        }
+
+        foreach ($log_Paths as $log_Path) {
+            $run_ID = basename($log_Path, '.log');
+            if (
+                !preg_match('/^[0-9a-f-]{36}$/i', $run_ID)
+                || in_array(strtolower($run_ID), $active_Run_IDs, true)
+            ) {
+                continue;
+            }
+
+            if (!unlink($log_Path)) {
+                throw new RuntimeException("Could not delete unused Sync Manager log: {$log_Path}");
+            }
+        }
+    }
+
+    /**
+     * Delete one run's log when its failed status is reset.
+     *
+     * @param string $run_ID Identifier of the run.
+     * @return void
+     */
+    private function delete_Run_Log(string $run_ID): void
+    {
+        $log_Path = $this->get_Log_File_Path($run_ID);
+        if (file_exists($log_Path) && !unlink($log_Path)) {
+            throw new RuntimeException("Could not delete Sync Manager log for run {$run_ID}");
+        }
     }
 
     /**

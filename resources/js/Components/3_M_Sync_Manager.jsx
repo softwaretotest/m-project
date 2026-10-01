@@ -313,7 +313,7 @@ export default function M_Sync_Manager({
     };
 
     /**
-     * Clear a failed backend run record without deleting its saved log file.
+     * Clear a failed backend run record and its log file.
      *
      * @returns {Promise<void>} Resolves after the reset request is handled.
      */
@@ -461,6 +461,13 @@ export default function M_Sync_Manager({
                     </div>
 
                     <div className="m-sync-right-section">
+                        <button
+                            className="m-sync-close-btn"
+                            onClick={close_Modal}
+                            aria-label="Close Sync Manager"
+                        >
+                            ❌
+                        </button>
                         <h3 className="m-sync-sidebar-title">choose script</h3>
                         {script_Options.map((script) => {
                             const script_Status = script_Statuses[script.id];
@@ -489,13 +496,6 @@ export default function M_Sync_Manager({
                             );
                         })}
                     </div>
-                    <button
-                        className="m-sync-close-btn"
-                        onClick={close_Modal}
-                        aria-label="Close Sync Manager"
-                    >
-                        ❌
-                    </button>
                 </div>
             </div>
         </>
