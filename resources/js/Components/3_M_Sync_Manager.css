@@ -18,6 +18,8 @@
 /* Modal (85% of whole screen) */
 .m-sync-modal-container {
     width: 85vw;
+    max-width: calc(100vw - 32px);
+    min-width: 0;
     height: 85vh;
     background-color: #ffffff;
     border-radius: 8px;
@@ -36,7 +38,9 @@
    LEFT: Control Box & Logger Console
    -------------------------------------------------------------------------- */
 .m-sync-left-section {
-    flex: 8.2;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     border-right: 3px solid #000000;
@@ -47,6 +51,8 @@
 
 .m-sync-control-box {
     flex: 1;
+    min-width: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 5px;
@@ -71,9 +77,118 @@
     background-color: #f0f0f0;
 }
 
+.m-sync-start-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.75;
+}
+
+.m-sync-run-controls {
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.m-sync-cancel-btn {
+    width: 36px;
+    height: 36px;
+    border: 2px solid #000000;
+    background-color: #222222;
+    color: #ffffff;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.m-sync-cancel-btn:hover {
+    background-color: #b00020;
+}
+
+.m-sync-reset-btn {
+    padding: 7px 12px;
+    border: 2px solid #000000;
+    background-color: #ffffff;
+    color: #b00020;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.m-sync-reset-btn:hover {
+    background-color: #ffe5a3;
+}
+
+.m-sync-reset-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.75;
+}
+
+.m-sync-spinner {
+    width: 16px;
+    height: 16px;
+    margin-left: 10px;
+    display: inline-block;
+    border: 3px solid #cccccc;
+    border-top-color: #008000;
+    border-radius: 50%;
+    vertical-align: middle;
+    animation: m-sync-spin 0.8s linear infinite;
+}
+
+@keyframes m-sync-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.m-sync-run-status {
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.m-sync-run-status.running,
+.m-sync-run-status.starting {
+    color: #783115;
+}
+
+.m-sync-run-status.completed {
+    color: #0000ff;
+}
+
+.m-sync-run-status.failed,
+.m-sync-run-status.break_by_user,
+.m-sync-run-status.connection_error {
+    color: #b00020;
+}
+
+.m-sync-run-status.awaiting_review {
+    color: #8a6200;
+}
+
+.m-sync-review-message,
+.m-sync-error-message {
+    margin: 3px 0;
+    font-size: 13px;
+}
+
+.m-sync-review-message {
+    color: #6a4d00;
+    font-weight: bold;
+}
+
+.m-sync-error-message {
+    color: #b00020;
+    font-weight: bold;
+    max-height: 25vh;
+    overflow: auto;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
 /* Logger Console */
 .m-sync-logger-console {
-    flex: 1; /* take the rest of parent arean to the bottom */
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
     background-color: #000000;
     color: #00ff00;
     font-family: "Consolas", "Courier New", Courier, monospace;
@@ -92,8 +207,9 @@
    RIGHT: Script Sidebar (Grid Layout)
    -------------------------------------------------------------------------- */
 .m-sync-right-section {
-    flex: 1.8;
-    max-width: 180px;
+    flex: 0 0 180px;
+    min-width: 0;
+    width: 180px;
     background-color: #ffffcc;
     padding: 15px;
     box-sizing: border-box;
@@ -108,6 +224,18 @@
         "item3"
         "item4";
     gap: 12px;
+}
+
+@media (max-width: 640px) {
+    .m-sync-modal-container {
+        width: calc(100vw - 16px);
+    }
+
+    .m-sync-right-section {
+        flex-basis: 145px;
+        width: 145px;
+        padding: 10px;
+    }
 }
 
 .m-sync-sidebar-title {
@@ -156,6 +284,14 @@
     background-color: rgb(236, 236, 30) !important;
 }
 
+.m-sync-script-item.error {
+    background-color: #ffcccc !important;
+}
+
+.m-sync-script-item.warning {
+    background-color: #ffe5a3 !important;
+}
+
 /* ปุ่ม Checkbox ชิดซ้ายบน */
 .m-sync-script-item input[type="checkbox"] {
     transform: scale(1.3);
@@ -190,6 +326,14 @@
 
 .m-sync-status.running {
     color: #783115;
+}
+
+.m-sync-status.error {
+    color: #b00020;
+}
+
+.m-sync-status.warning {
+    color: #8a6200;
 }
 /* ==========================================================================
    Close Button for Modal (at the top right corner)

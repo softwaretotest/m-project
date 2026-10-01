@@ -4,7 +4,6 @@ namespace App\Constant;
 
 require __DIR__ . '/../../vendor/autoload.php';
 
-use ReflectionClass;
 
 /**
  * * Laravel specific Models/User.php
@@ -23,7 +22,7 @@ class EntityGenerator_UserModel
     /**
      * create/update User Model of target project
      *
-     * @param array $fields 
+     * @param array $fields
      * * e.g. for table User
      * * Array
      * * (
@@ -123,14 +122,12 @@ class EntityGenerator_UserModel
         } else {
             Logger::error("Could not create User Model : $target_User_Model");
         }
-
-        Logger::finish();
     }
 
     /**
      * * e.g. nomarlizeFieldNames for tabel User
      * @param see function generateUserModel
-     * @return 
+     * @return
      * *    Array
      * *   (
      * *       [0] => name
@@ -216,7 +213,7 @@ class EntityGenerator_UserModel
 
     /**
      * * e.g. newFields for Table User
-     * @param  
+     * @param
      * *    Array
      * *   (
      * *       [0] => name
@@ -250,8 +247,8 @@ class EntityGenerator_UserModel
      * * e.g. nomarlizeFieldNames for tabel User
      * @param $newField see function generateUserModel
      * @param $laravel_user_fields_string e.g. 'name', 'email', 'password'
-     * 
-     * @return 
+     *
+     * @return
      * *    Array
      * *   (
      * *       [0] => name
@@ -267,7 +264,7 @@ class EntityGenerator_UserModel
         $existing = $m[1];
 
         /**
-         * * array_values correct Index (Keys) after array_merge 
+         * * array_values correct Index (Keys) after array_merge
          * * e.g.
          * * before [0 => 'name', 1 => 'email', 3 => 'is_active']
          * * after  [0 => 'name', 1 => 'email', 2 => 'is_active']
@@ -284,17 +281,17 @@ class EntityGenerator_UserModel
         }
 
         // handel quote ' or "
-        // 1. check Double Quote (") 
+        // 1. check Double Quote (")
         $hasDoubleQuote = strpos($laravel_user_fields_string, '"') !== false;
 
-        // 2. check Single Quote (') 
+        // 2. check Single Quote (')
         $hasNoSingleQuote = strpos($laravel_user_fields_string, "'") === false;
 
         // 3. choose the Quote charater
         if ($hasDoubleQuote && $hasNoSingleQuote) {
             $quote = '"'; // use Double Quote like Laravel use
         } else {
-            $quote = "'"; // else use Single Quote 
+            $quote = "'"; // else use Single Quote
         }
 
         /**
@@ -319,7 +316,7 @@ class EntityGenerator_UserModel
 
         /**
          * * for inline
-         * * protected $fillable = ['name', 'email']; 
+         * * protected $fillable = ['name', 'email'];
          */
         $inlineItems = [];
         foreach ($merged as $fieldName) {
@@ -330,7 +327,7 @@ class EntityGenerator_UserModel
 
     /**
      * Format a single field name with indentation, quotes, and a comma.
-     * 
+     *
      * @param string $fieldName The field name (e.g., 'name')
      * @param string $indent    The spacing/indentation (e.g., '    ')
      * @param string $quote     The quote character (' or ")
@@ -338,7 +335,7 @@ class EntityGenerator_UserModel
      * * protected $fillable = [
      * *            'name',  // ใช้ $indent (8 spaces)
      * *            'email', // ใช้ $indent (8 spaces)
-     * *        ];  
+     * *        ];
      */
     private static function formatFieldLine(string $fieldName, string $indent, string $quote): string
     {
@@ -347,11 +344,11 @@ class EntityGenerator_UserModel
 
     /**
      * Format a single field name as inline without indentation and comma.
-     * 
+     *
      * @param string $fieldName The field name (e.g., 'name')
      * @param string $quote     The quote character (' or ")
      * @return string           Formatted inline field (e.g., "'name'")
-     * * protected $fillable = ['name', 'email'];  
+     * * protected $fillable = ['name', 'email'];
      */
     private static function formatFieldInline(string $fieldName, string $quote): string
     {

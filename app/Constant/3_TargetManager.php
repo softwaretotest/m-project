@@ -2,29 +2,34 @@
 
 namespace App\Constant;
 
-use Psy\Readline\Hoa\Console;
-
 /**
  * set target path for m-project to do admin on the target app e.g. ecommerce, blog, etc.
  */
 class TargetManager
 {
+    public const SYNC_TARGET_ENV = 'M_PROJECT_ACTIVE_TARGET';
+
     public static $targets = [];
     private static $activeTarget = '';
 
     // Guard to prevent endless loop Logger <-> TargetManager
     private static bool $configLoaded = false;
 
-    const CONFIG_FILE = __DIR__ . '/3_M-Config.json';
+    public const CONFIG_FILE = __DIR__ . '/3_M-Config.json';
 
     /**
-     * getter เงียบ ไม่อ่านไฟล์ ไม่ log — ไว้ให้ Logger ใช้โดยเฉพาะ 
+     * getter เงียบ ไม่อ่านไฟล์ ไม่ log — ไว้ให้ Logger ใช้โดยเฉพาะ
      */
     public static function peek_activeTarget(): string
     {
         return self::$activeTarget;
     }
 
+    /**
+     * Read the active target, honoring a valid target override for Sync Manager worker scripts.
+     *
+     * @return string Active target name, or an empty string when config is unavailable.
+     */
     public static function get_activeTarget(): string
     {
         // Case Dev run e.g. M_Sync on vscode
@@ -48,7 +53,7 @@ class TargetManager
         // 2. get config data from JSON
         $jsonData = json_decode(file_get_contents(self::CONFIG_FILE), true);
 
-        // 3. throw Error if wrong jsonData 
+        // 3. throw Error if wrong jsonData
         if (!isset($jsonData['activeTarget']) || !isset($jsonData['targets'])) {
             // Logger::error("Invalid Config format in: " . self::CONFIG_FILE);
             self::$activeTarget = '';
@@ -58,8 +63,12 @@ class TargetManager
         }
 
         // 4. save data to runtime vars
-        self::$activeTarget = $jsonData['activeTarget'];
         self::$targets = $jsonData['targets'];
+        $requested_Target = getenv(self::SYNC_TARGET_ENV);
+        self::$activeTarget = is_string($requested_Target)
+            && isset(self::$targets[$requested_Target])
+            ? $requested_Target
+            : $jsonData['activeTarget'];
 
         return self::$activeTarget;
     }
@@ -95,33 +104,5 @@ class TargetManager
     {
         return self::$targets[self::$activeTarget]['root_path'];
     }
-
-    /**
-     * get Path of Dynamic
-     */
-    // public static function getPath($subDir = '')
-    // {
-    //     $base = self::$targets[self::$activeTarget]['root_path'];
-    //     $path = $base . ($subDir ? '/' . $subDir : '');
-
-    //     // ตรวจสอบและสร้างโฟลเดอร์ถ้าไม่มีอยู่จริง
-    //     if (!is_dir($path) && str_contains($subDir, '/')) {
-    //         mkdir($path, 0777, true);
-    //     }
-
-    //     return $path;
-    // }
-
-    // /**
-    //  * change target app (if you want to manage other project metadata)
-    //  */
-    // public static function setTarget($targetName)
-    // {
-    //     if (isset(self::$targets[$targetName])) {
-    //         self::$activeTarget = $targetName;
-    //         return true;
-    //     }
-    //     return false;
-    // }
 
 }
