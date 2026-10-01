@@ -126,8 +126,8 @@ class EntityGenerator_UserModel
 
     /**
      * * e.g. nomarlizeFieldNames for tabel User
-     * @param $fields = see function generateUserModel
-     * @return
+     * @param array<int, string> $fields See generateUserModel().
+     * @return array<int, string>
      * *    Array
      * *   (
      * *       [0] => name
