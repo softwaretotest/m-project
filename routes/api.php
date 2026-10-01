@@ -4,7 +4,7 @@
 use App\Http\Controllers\Api\ProductApiController;
 use App\Http\Controllers\M_Controller;
 use App\Http\Controllers\M_Sync_Manager_Controller;
-use App\Http\Controllers\TargetController;
+use App\Http\Controllers\TargetManager_Config_Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -27,8 +27,8 @@ Route::post('/m-value/init', [M_Controller::class, 'saveAll']);
 Route::get('/config', [M_Controller::class, 'get_M_Config_json']);
 
 // Endpoint for crud target app in 3_TargetManager_Config.json
-Route::get('/target/scan', [TargetController::class, 'scanTargets']);
-Route::post('/target/save_Target_App', [TargetController::class, 'updateTargetConfig']);
+Route::get('/target/scan', [TargetManager_Config_Controller::class, 'scanTargets']);
+Route::post('/target/save_Target_App', [TargetManager_Config_Controller::class, 'updateTargetConfig']);
 
 Route::post('/sync-manager/start', [M_Sync_Manager_Controller::class, 'start']);
 Route::get('/sync-manager/status', [M_Sync_Manager_Controller::class, 'status']);

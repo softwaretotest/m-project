@@ -1,5 +1,5 @@
 {
-    "activeTarget": "ecommerce",
+    "activeTarget": "m-project",
     "targets": {
         "ecommerce": {
             "root_path": "C:/Users/o/.vscode/react/ecommerce"

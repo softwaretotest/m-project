@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class TargetController extends Controller
+class TargetManager_Config_Controller extends Controller
 {
     private const CONFIG_PATH = 'Constant/3_TargetManager_Config.json';
 
