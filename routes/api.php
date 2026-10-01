@@ -1,10 +1,11 @@
 <?php
+
 // route/api.php
 use App\Http\Controllers\Api\ProductApiController;
+use App\Http\Controllers\M_Controller;
+use App\Http\Controllers\TargetController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
-use App\Http\Controllers\M_Controller;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -21,9 +22,9 @@ Route::post('/m-value', [M_Controller::class, 'save_M_value']);
 // Endpoint for get new template from frontend , if JSON in Backend not exist 404
 Route::post('/m-value/init', [M_Controller::class, 'saveAll']);
 
-// Endpoint for get config for selected target app 
+// Endpoint for get config for selected target app
 Route::get('/config', [M_Controller::class, 'get_M_Config_json']);
 
 // Endpoint for crud target app in 3_M-Config.json
-Route::get('/target/scan',  [M_Controller::class, 'scanTargets']);
-Route::post('/target/save_Target_App', [M_Controller::class, 'updateTargetConfig']);
+Route::get('/target/scan', [TargetController::class, 'scanTargets']);
+Route::post('/target/save_Target_App', [TargetController::class, 'updateTargetConfig']);
