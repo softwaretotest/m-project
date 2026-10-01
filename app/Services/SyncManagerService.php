@@ -254,6 +254,7 @@ class SyncManagerService
 
         foreach ($script_IDs as $script_ID) {
             $this->update_Script_Status($target_Name, $run_ID, $script_ID, self::STATUS_RUNNING);
+            $this->append_Run_Output($run_ID, "[[M_SYNC_SCRIPT_START:{$script_ID}]]" . PHP_EOL);
 
             try {
                 $script_Result = $this->execute_Script($run_Record, $script_ID);
@@ -262,6 +263,8 @@ class SyncManagerService
                 $this->fail_Run($target_Name, $run_ID, $exception->getMessage());
 
                 return 1;
+            } finally {
+                $this->append_Run_Output($run_ID, "[[M_SYNC_SCRIPT_END:{$script_ID}]]" . PHP_EOL);
             }
 
             if ($script_Result['exit_code'] !== 0) {

@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./3_M_Sync_Manager.css";
 
 const script_Options = [
-    { id: "json_to_php", label: "JSON to PHP" },
-    { id: "php_to_json", label: "PHP to JSON" },
-    { id: "migration", label: "Migration" },
-    { id: "generators", label: "DTOs, Models, Controllers" },
+    { id: "json_to_php", label: "JSON to PHP", log_Class: "json-to-php" },
+    { id: "php_to_json", label: "PHP to JSON", log_Class: "php-to-json" },
+    { id: "migration", label: "Migration", log_Class: "migration" },
+    { id: "generators", label: "DTOs, Models, Controllers", log_Class: "generators" },
 ];
+const script_Log_Classes = Object.fromEntries(
+    script_Options.map(({ id, log_Class }) => [id, log_Class]),
+);
 
 const sync_Manager_Api_Path = "/api/sync-manager";
 const POLLING_INTERVAL_MS = 1000;
@@ -48,6 +51,49 @@ function get_Script_Status_Class(script_Status) {
 }
 
 /**
+ * Split run output into script-colored sections and remove backend boundary markers.
+ *
+ * @param {string} logs Accumulated output with script start/end markers.
+ * @returns {Array<{script_ID: string|null, text: string}>} Displayable output sections.
+ */
+function get_Run_Log_Segments(logs) {
+    const marker_Regex = /\[\[M_SYNC_SCRIPT_(START|END):([a-z_]+)\]\]\r?\n/g;
+    const segments = [];
+    let active_Script = null;
+    let previous_Index = 0;
+    let marker_Match;
+
+    while ((marker_Match = marker_Regex.exec(logs)) !== null) {
+        if (marker_Match.index > previous_Index) {
+            segments.push({
+                script_ID: active_Script,
+                text: logs.slice(previous_Index, marker_Match.index),
+            });
+        }
+
+        const [, boundary, script_ID] = marker_Match;
+        if (!script_Log_Classes[script_ID]) {
+            segments.push({ script_ID: active_Script, text: marker_Match[0] });
+        } else if (boundary === "START") {
+            active_Script = script_ID;
+        } else if (active_Script === script_ID) {
+            active_Script = null;
+        }
+
+        previous_Index = marker_Regex.lastIndex;
+    }
+
+    if (previous_Index < logs.length) {
+        segments.push({
+            script_ID: active_Script,
+            text: logs.slice(previous_Index),
+        });
+    }
+
+    return segments;
+}
+
+/**
  * Renders the synchronization manager modal with script selection, run controls, and live logs.
  *
  * @param {Object} props Component properties.
@@ -73,6 +119,10 @@ export default function M_Sync_Manager({
 
     const log_Cursor = useRef(0);
     const logger_Console = useRef(null);
+    const run_Log_Segments = useMemo(
+        () => get_Run_Log_Segments(run_Logs),
+        [run_Logs],
+    );
 
     /**
      * Append newly received backend log text to the visible console.
@@ -455,7 +505,18 @@ export default function M_Sync_Manager({
                                 role="log"
                                 aria-live="polite"
                             >
-                                {run_Logs || "Select scripts and press Start."}
+                                {run_Logs
+                                    ? run_Log_Segments.map((segment, index) => (
+                                        <span
+                                            key={`${segment.script_ID || "other"}-${index}`}
+                                            className={segment.script_ID
+                                                ? `m-sync-log-${script_Log_Classes[segment.script_ID]}`
+                                                : undefined}
+                                        >
+                                            {segment.text}
+                                        </span>
+                                    ))
+                                    : "Select scripts and press Start."}
                             </pre>
                         </div>
                     </div>
@@ -484,7 +545,11 @@ export default function M_Sync_Manager({
                                         onChange={() => toggle_Script(script.id)}
                                         disabled={are_Scripts_Disabled}
                                     />
-                                    <span>{script.label}</span>
+                                    <span
+                                        className={`m-sync-script-label m-sync-log-${script.log_Class}`}
+                                    >
+                                        {script.label}
+                                    </span>
                                     {script_Status && (
                                         <span className={`m-sync-status ${status_Class}`}>
                                             Status = {script_Status === "completed"
