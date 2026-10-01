@@ -7,17 +7,26 @@ use Illuminate\Http\Request;
 
 class TargetController extends Controller
 {
+    private const CONFIG_PATH = 'Constant/3_M-Config.json';
+
+    /**
+     * @return string Absolute path to 3_M-Config.json.
+     */
+    private function get_Config_Path(): string
+    {
+        return app_path(self::CONFIG_PATH);
+    }
+
     /**
      * create or update activeTarget App.
      */
     public function updateTargetConfig(Request $request): JsonResponse
     {
         $inputPath = $request->input('path', '');
-        $configPath = base_path('app/Constant/3_M-Config.json');
 
         $config = ['activeTarget' => '', 'targets' => []];
-        if (file_exists($configPath)) {
-            $old = json_decode(file_get_contents($configPath), true);
+        if (file_exists($this->get_Config_Path())) {
+            $old = json_decode(file_get_contents($this->get_Config_Path()), true);
             if (is_array($old)) {
                 $config['targets'] = $old['targets'] ?? [];
                 $config['activeTarget'] = $old['activeTarget'] ?? '';
@@ -46,7 +55,7 @@ class TargetController extends Controller
         }
 
         $written = file_put_contents(
-            $configPath,
+            $this->get_Config_Path(),
             json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
         );
 
@@ -61,8 +70,8 @@ class TargetController extends Controller
     }
 
     /**
-     * Scan a parent directory for Laravel projects, then merge saved targets from config.
-     *
+     * 1. Scan a parent directory for Laravel projects, then merge saved targets from config.
+     * 2. Save the merged list back to config
      * @param  \Illuminate\Http\Request  $request  Optional input "base", e.g. "C:/Users/o/.vscode/react"
      * @return \Illuminate\Http\JsonResponse  e.g.
      * * {
@@ -73,6 +82,10 @@ class TargetController extends Controller
      * * * * {
      * * * * * "name":"ecommerce",
      * * * * * "root_path":"C:/Users/o/.vscode/react/ecommerce"
+     * * * * },
+     * * * * {
+     * * * * * "name":"m-project",
+     * * * * * "root_path":"C:/Users/o/.vscode/react/m-project"
      * * * * }
      * * * ]
      * * }
@@ -87,6 +100,46 @@ class TargetController extends Controller
 
         $scanned_Projects = $this->scan_Laravel_Projects($parent_Path);
         $merged_Projects  = $this->merge_Saved_Targets($scanned_Projects);
+
+        $config_Data = ['activeTarget' => '', 'targets' => []];
+
+        if (file_exists($this->get_Config_Path())) {
+            $config_Content = file_get_contents($this->get_Config_Path());
+            $saved_Config   = json_decode((string) $config_Content, true);
+
+            if (!is_array($saved_Config) || !is_array($saved_Config['targets'] ?? null)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot save scan results because the target config is invalid',
+                ], 500);
+            }
+
+            $config_Data['activeTarget'] = $saved_Config['activeTarget'] ?? '';
+            $config_Data['targets']      = $saved_Config['targets'];
+        }
+
+        foreach ($merged_Projects as $project) {
+            $target_Name = $project['name'];
+            $target_Info = $config_Data['targets'][$target_Name] ?? [];
+
+            $config_Data['targets'][$target_Name] = array_merge(
+                is_array($target_Info) ? $target_Info : [],
+                ['root_path' => $project['root_path']]
+            );
+        }
+
+        $written = file_put_contents(
+            $this->get_Config_Path(),
+            json_encode($config_Data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+            LOCK_EX
+        );
+
+        if ($written === false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot save scanned targets to config file',
+            ], 500);
+        }
 
         return response()->json([
             'success'  => true,
@@ -194,12 +247,11 @@ class TargetController extends Controller
      */
     private function merge_Saved_Targets(array $scanned_Projects): array
     {
-        $config_Path = app_path('Constant/3_M-Config.json');
-        if (!file_exists($config_Path)) {
+        if (!file_exists($this->get_Config_Path())) {
             return $scanned_Projects;
         }
 
-        $config_Data    = json_decode(file_get_contents($config_Path), true);
+        $config_Data    = json_decode(file_get_contents($this->get_Config_Path()), true);
         $saved_Targets  = $config_Data['targets'] ?? null;
         if (!is_array($saved_Targets)) {
             return $scanned_Projects;
