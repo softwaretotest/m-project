@@ -2,7 +2,6 @@
 
 namespace App\Constant;
 
-
 use ReflectionClass;
 
 /**
@@ -25,8 +24,7 @@ class DataHelper
     /**
      * make directory if not exist
      * @param  string $fullPath full-qualified filename หรือ directory path
-     * @param  bool   $isFile   true = ตัดชื่อไฟล์ออกก่อน (default true)
-     * @return string directory path ที่การันตีว่ามีอยู่จริงแล้ว
+     * @return string directory path that is ensured to exist
      */
     public static function ensureDir(string $fullPath): string
     {
@@ -45,7 +43,7 @@ class DataHelper
 
     /**
      * * param = e.g. 'boolean'
-     * * return = 
+     * * return =
             Array
             (
                 [group] => d
@@ -70,16 +68,16 @@ class DataHelper
     }
 
     /** e.g.
-     * @param 
+     * @param
                  App\Constant\uf
-     * @return 
+     * @return
                 Array
                 (
                     [currency] => CURRENCY
                 )
-     * @param 
+     * @param
                 App\Constant\cd
-     * @return 
+     * @return
                 Array
                 (
                     [nullable] => NULLABLE

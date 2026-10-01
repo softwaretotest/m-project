@@ -126,7 +126,7 @@ class EntityGenerator_UserModel
 
     /**
      * * e.g. nomarlizeFieldNames for tabel User
-     * @param see function generateUserModel
+     * @param $fields = see function generateUserModel
      * @return
      * *    Array
      * *   (
@@ -190,7 +190,6 @@ class EntityGenerator_UserModel
      * Check whether a field name is allowed to be used in $fillable.
      *
      * @param mixed $fieldName Field name to validate
-     * @param array $blocked   List of reserved system field names
      * @return bool
      */
     private static function isAllowedFieldName($fieldName): bool
