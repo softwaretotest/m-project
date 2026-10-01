@@ -1,5 +1,5 @@
 {
-    "_comment": "\/M_JSON\/Entities.json",
+    "_comment": "Entities.json",
     "entities": {
         "USERS": [
             "f::NAME",

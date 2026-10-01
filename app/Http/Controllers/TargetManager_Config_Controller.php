@@ -48,6 +48,12 @@ class TargetManager_Config_Controller extends Controller
             if (!file_exists($real . '/artisan')) {
                 return response()->json(['success' => false, 'message' => 'Not a Laravel project (artisan not found)'], 422);
             }
+            if ($this->is_M_Project_Path($real)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'M-project is the management app and cannot be selected as a target.',
+                ], 422);
+            }
 
             $name = basename($real);
             $config['targets'][$name] = ['root_path' => $real];
@@ -122,10 +128,25 @@ class TargetManager_Config_Controller extends Controller
             $target_Name = $project['name'];
             $target_Info = $config_Data['targets'][$target_Name] ?? [];
 
+            if ($this->is_M_Project_Path($project['root_path'])) {
+                unset($config_Data['targets'][$target_Name]);
+                continue;
+            }
+
             $config_Data['targets'][$target_Name] = array_merge(
                 is_array($target_Info) ? $target_Info : [],
                 ['root_path' => $project['root_path']]
             );
+        }
+
+        foreach ($config_Data['targets'] as $target_Name => $target_Info) {
+            $target_Path = is_array($target_Info) ? ($target_Info['root_path'] ?? '') : '';
+            if (is_string($target_Path) && $this->is_M_Project_Path($target_Path)) {
+                unset($config_Data['targets'][$target_Name]);
+                if ($config_Data['activeTarget'] === $target_Name) {
+                    $config_Data['activeTarget'] = '';
+                }
+            }
         }
 
         $written = file_put_contents(
@@ -212,6 +233,10 @@ class TargetManager_Config_Controller extends Controller
                 continue;
             }
 
+            if ($this->is_M_Project_Path($entry_Path)) {
+                continue;
+            }
+
             $projects[] = [
                 'name'      => $entry_Name,
                 'root_path' => $this->normalize_Path(realpath($entry_Path)),
@@ -266,6 +291,9 @@ class TargetManager_Config_Controller extends Controller
             if ($target_Path === '') {
                 continue;
             }
+            if ($this->is_M_Project_Path($target_Path)) {
+                continue;
+            }
             if (in_array($target_Path, $existing_Paths)) {
                 continue;
             }
@@ -282,5 +310,28 @@ class TargetManager_Config_Controller extends Controller
         }
 
         return $scanned_Projects;
+    }
+
+    /**
+     * Determine whether a path resolves to this M-project management application.
+     *
+     * @param string $path Candidate project path.
+     * @return bool True when the candidate is this application's root.
+     */
+    private function is_M_Project_Path(string $path): bool
+    {
+        $m_Project_Path = realpath(base_path());
+        $candidate_Path = realpath($path);
+
+        if ($m_Project_Path === false || $candidate_Path === false) {
+            return false;
+        }
+
+        $m_Project_Path = rtrim($this->normalize_Path($m_Project_Path), '/');
+        $candidate_Path = rtrim($this->normalize_Path($candidate_Path), '/');
+
+        return PHP_OS_FAMILY === 'Windows'
+            ? strcasecmp($m_Project_Path, $candidate_Path) === 0
+            : $m_Project_Path === $candidate_Path;
     }
 }

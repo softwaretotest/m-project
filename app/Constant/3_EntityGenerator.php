@@ -80,7 +80,7 @@ class EntityGenerator
         }
 
         self::generateDTO($entityName, $fields);
-        self::generateController($entityName, $fields);
+        self::generateController($entityName);
     }
 
     private static function generateModel($entityName, $fields)
@@ -144,7 +144,6 @@ class EntityGenerator
      * * The definitions combine backend validation rules with field types,
      * * defaults, and optional frontend UI hints. BaseDTO::rules() and
      * * BaseDTO::uiSchema() derive their output from this metadata.
-     * @return array<string, array<string, mixed>> Field name mapped to its definition.
      */
     private static function generateDTO($entityName, $fields)
     {

@@ -24,4 +24,6 @@ class t
     public const PRODUCTS = 'products';
     public const ORDERS = 'orders';
     public const USERS = 'users';
+    public const FDSA = 'fdsa';
+    public const DFS = 'dfs';
 }
