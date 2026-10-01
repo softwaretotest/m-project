@@ -15,7 +15,7 @@ class TargetManager
     // Guard to prevent endless loop Logger <-> TargetManager
     private static bool $configLoaded = false;
 
-    public const CONFIG_FILE = __DIR__ . '/3_M-Config.json';
+    public const CONFIG_FILE = __DIR__ . '/3_TargetManager_Config.json';
 
     /**
      * getter เงียบ ไม่อ่านไฟล์ ไม่ log — ไว้ให้ Logger ใช้โดยเฉพาะ

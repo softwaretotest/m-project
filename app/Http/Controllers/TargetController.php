@@ -7,10 +7,10 @@ use Illuminate\Http\Request;
 
 class TargetController extends Controller
 {
-    private const CONFIG_PATH = 'Constant/3_M-Config.json';
+    private const CONFIG_PATH = 'Constant/3_TargetManager_Config.json';
 
     /**
-     * @return string Absolute path to 3_M-Config.json.
+     * @return string Absolute path to 3_TargetManager_Config.json.
      */
     private function get_Config_Path(): string
     {
@@ -221,7 +221,7 @@ class TargetController extends Controller
     }
 
     /**
-     * Append targets stored in 3_M-Config.json so a scan never drops history.
+     * Append targets stored in 3_TargetManager_Config.json so a scan never drops history.
      *
      * @param array<int, array{name: string, root_path: string}> $scanned_Projects Projects found on disk, e.g.
      * ```php

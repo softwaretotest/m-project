@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Services\SyncManagerService;
+use App\Constant\Sync_Manager_Service;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -67,7 +67,7 @@ class SyncManagerControllerTest extends TestCase
         file_put_contents($run_Log_Path, 'Worker launch failed');
 
         try {
-            $result = app(SyncManagerService::class)->resetFailedRun();
+            $result = app(Sync_Manager_Service::class)->resetFailedRun();
 
             $this->assertTrue($result['reset']);
             $this->assertSame(['m-project' => $completed_Other_Run], json_decode(
@@ -102,9 +102,9 @@ class SyncManagerControllerTest extends TestCase
         $run_Log_Path = $log_Directory . DIRECTORY_SEPARATOR . $run_ID . '.log';
 
         try {
-            $sync_Manager_Service = app(SyncManagerService::class);
-            $append_Output = new \ReflectionMethod(SyncManagerService::class, 'append_Run_Output');
-            $read_Output = new \ReflectionMethod(SyncManagerService::class, 'read_Log_Chunk');
+            $sync_Manager_Service = app(Sync_Manager_Service::class);
+            $append_Output = new \ReflectionMethod(Sync_Manager_Service::class, 'append_Run_Output');
+            $read_Output = new \ReflectionMethod(Sync_Manager_Service::class, 'read_Log_Chunk');
             file_put_contents($run_Log_Path, '');
 
             $append_Output->invoke($sync_Manager_Service, $run_ID, "First output line\nSecond output");
@@ -156,8 +156,8 @@ class SyncManagerControllerTest extends TestCase
         file_put_contents($unrelated_Log_Path, 'unrelated');
 
         try {
-            $sync_Manager_Service = app(SyncManagerService::class);
-            $cleanup_Logs = new \ReflectionMethod(SyncManagerService::class, 'delete_Unused_Run_Logs');
+            $sync_Manager_Service = app(Sync_Manager_Service::class);
+            $cleanup_Logs = new \ReflectionMethod(Sync_Manager_Service::class, 'delete_Unused_Run_Logs');
             $cleanup_Logs->invoke($sync_Manager_Service, [
                 'active-target' => ['run_id' => $active_Run_ID, 'status' => 'running'],
                 'review-target' => ['run_id' => $review_Run_ID, 'status' => 'awaiting_review'],
@@ -208,10 +208,10 @@ class SyncManagerControllerTest extends TestCase
         );
 
         try {
-            $sync_Manager_Service = app(SyncManagerService::class);
-            $windows_Runner = new \ReflectionMethod(SyncManagerService::class, 'execute_Windows_Script');
+            $sync_Manager_Service = app(Sync_Manager_Service::class);
+            $windows_Runner = new \ReflectionMethod(Sync_Manager_Service::class, 'execute_Windows_Script');
             $exit_Code = $windows_Runner->invoke($sync_Manager_Service, $run_Record, $worker_Script_Path);
-            $read_Output = new \ReflectionMethod(SyncManagerService::class, 'read_Log_Chunk');
+            $read_Output = new \ReflectionMethod(Sync_Manager_Service::class, 'read_Log_Chunk');
             $output_Chunk = $read_Output->invoke($sync_Manager_Service, $run_ID, 0, true);
 
             $this->assertSame(0, $exit_Code);

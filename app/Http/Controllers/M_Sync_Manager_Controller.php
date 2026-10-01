@@ -3,17 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Constant\TargetManager;
-use App\Services\SyncManagerService;
+use App\Constant\Sync_Manager_Service;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
-class SyncManagerController extends Controller
+class M_Sync_Manager_Controller extends Controller
 {
     /**
-     * @param SyncManagerService $sync_Manager_Service Manages runs, process state, and run logs.
+     * @param Sync_Manager_Service $sync_Manager_Service Manages runs, process state, and run logs.
      */
-    public function __construct(private SyncManagerService $sync_Manager_Service)
+    public function __construct(private Sync_Manager_Service $sync_Manager_Service)
     {
     }
 
@@ -43,7 +43,7 @@ class SyncManagerController extends Controller
     {
         $validated = $request->validate([
             'scripts' => 'required|array|min:1',
-            'scripts.*' => ['required', 'string', Rule::in(SyncManagerService::SCRIPT_IDS)],
+            'scripts.*' => ['required', 'string', Rule::in(Sync_Manager_Service::SCRIPT_IDS)],
         ]);
 
         if (TargetManager::get_activeTarget() === '') {

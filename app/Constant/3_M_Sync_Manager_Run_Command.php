@@ -1,12 +1,11 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Constant;
 
-use App\Services\SyncManagerService;
 use Illuminate\Console\Command;
 use Throwable;
 
-class SyncManagerRunCommand extends Command
+class Sync_Manager_Run_Command extends Command
 {
     protected $signature = 'sync-manager:run {run_id} {phase}';
 
@@ -15,10 +14,10 @@ class SyncManagerRunCommand extends Command
     /**
      * Execute a detached Sync Manager worker phase.
      *
-     * @param SyncManagerService $sync_Manager_Service Handles persisted run state and script execution.
+     * @param Sync_Manager_Service $sync_Manager_Service Handles persisted run state and script execution.
      * @return int Process exit code.
      */
-    public function handle(SyncManagerService $sync_Manager_Service): int
+    public function handle(Sync_Manager_Service $sync_Manager_Service): int
     {
         $run_ID = (string) $this->argument('run_id');
 

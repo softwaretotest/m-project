@@ -1,14 +1,13 @@
 <?php
 
-namespace App\Services;
+namespace App\Constant;
 
-use App\Constant\TargetManager;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Symfony\Component\Process\Process;
 use Throwable;
 
-class SyncManagerService
+class Sync_Manager_Service
 {
     private const STATUS_FILE = 'app/m-sync-manager/sync_status.json';
     private const LEGACY_STATUS_FILE = 'app/m-sync-manager/status.json';
