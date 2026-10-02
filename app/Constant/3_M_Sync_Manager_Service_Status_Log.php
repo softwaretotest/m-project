@@ -6,13 +6,13 @@ use RuntimeException;
 
 class M_Sync_Manager_Service_Status_Log
 {
-    private const STATUS_FILE = 'app/m-sync-manager/sync_status.json';
+    public const STATUS_FILE = 'app/m-sync-manager/sync_status.json';
 
-    private const LEGACY_STATUS_FILE = 'app/m-sync-manager/status.json';
+    public const LEGACY_STATUS_FILE = 'app/m-sync-manager/status.json';
 
-    private const LOCK_FILE = 'app/m-sync-manager/sync_status.lock';
+    public const LOCK_FILE = 'app/m-sync-manager/sync_status.lock';
 
-    private const LOG_DIRECTORY = 'app/m-sync-manager/logs';
+    public const LOG_DIRECTORY = 'app/m-sync-manager/logs';
 
     private const STATUS_FAILED = 'failed';
 
@@ -23,10 +23,10 @@ class M_Sync_Manager_Service_Status_Log
      * @param  string  $run_ID  Identifier of the run to update.
      * @param  callable(array<string, mixed>): array<string, mixed>  $update_Callback  Run record transformation.
      */
-    public function update_Run(string $target_Name, string $run_ID, callable $update_Callback): void
+    public static function update_Run(string $target_Name, string $run_ID, callable $update_Callback): void
     {
-        $this->with_Status_Lock(function () use ($target_Name, $run_ID, $update_Callback): void {
-            $status_Data = $this->read_Status_Data();
+        self::with_Status_Lock(function () use ($target_Name, $run_ID, $update_Callback): void {
+            $status_Data = self::read_Status_Data();
             $run_Record = $status_Data[$target_Name] ?? null;
 
             if (! is_array($run_Record) || $run_Record['run_id'] !== $run_ID) {
@@ -34,7 +34,7 @@ class M_Sync_Manager_Service_Status_Log
             }
 
             $status_Data[$target_Name] = $update_Callback($run_Record);
-            $this->write_Status_Data($status_Data);
+            self::write_Status_Data($status_Data);
         });
     }
 
@@ -46,13 +46,13 @@ class M_Sync_Manager_Service_Status_Log
      * @param  string  $script_ID  Allowlisted script identifier.
      * @param  string  $script_Status  Current script state.
      */
-    public function update_Script_Status(
+    public static function update_Script_Status(
         string $target_Name,
         string $run_ID,
         string $script_ID,
         string $script_Status
     ): void {
-        $this->update_Run($target_Name, $run_ID, function (array $run_Record) use ($script_ID, $script_Status): array {
+        self::update_Run($target_Name, $run_ID, function (array $run_Record) use ($script_ID, $script_Status): array {
             $run_Record['script_statuses'][$script_ID] = $script_Status;
             $run_Record['updated_at'] = date(DATE_ATOM);
 
@@ -67,9 +67,9 @@ class M_Sync_Manager_Service_Status_Log
      * @param  string  $run_ID  Identifier of the failed run.
      * @param  string  $message  Failure details.
      */
-    public function fail_Run(string $target_Name, string $run_ID, string $message): void
+    public static function fail_Run(string $target_Name, string $run_ID, string $message): void
     {
-        $this->update_Run($target_Name, $run_ID, function (array $run_Record) use ($message): array {
+        self::update_Run($target_Name, $run_ID, function (array $run_Record) use ($message): array {
             $run_Record['status'] = self::STATUS_FAILED;
             $run_Record['pid'] = null;
             $run_Record['child_pid'] = null;
@@ -87,7 +87,7 @@ class M_Sync_Manager_Service_Status_Log
      * @param  string  $run_ID  Identifier of the run receiving output.
      * @param  string  $output  Raw output received from the child script.
      */
-    public function append_Run_Output(string $run_ID, string $output): void
+    public static function append_Run_Output(string $run_ID, string $output): void
     {
         if ($output === '') {
             return;
@@ -113,7 +113,7 @@ class M_Sync_Manager_Service_Status_Log
      * @param  bool  $include_Final_Line  Include a final line without a newline for completed runs.
      * @return array{logs: string, cursor: int} Appended log text and the next byte cursor.
      */
-    public function read_Log_Chunk(string $run_ID, int $cursor, bool $include_Final_Line): array
+    public static function read_Log_Chunk(string $run_ID, int $cursor, bool $include_Final_Line): array
     {
         $log_Path = self::get_Log_File_Path($run_ID);
         if (! file_exists($log_Path)) {
@@ -151,10 +151,10 @@ class M_Sync_Manager_Service_Status_Log
      * @param  callable(): mixed  $callback  Operation that reads or writes shared status.
      * @return mixed Callback result.
      */
-    public function with_Status_Lock(callable $callback): mixed
+    public static function with_Status_Lock(callable $callback): mixed
     {
-        $this->ensure_Storage_Directories();
-        $lock_Handle = fopen($this->get_Lock_File_Path(), 'c+');
+        self::ensure_Storage_Directories();
+        $lock_Handle = fopen(storage_path(self::LOCK_FILE), 'c+');
 
         if ($lock_Handle === false) {
             throw new RuntimeException('Could not open the Sync Manager status lock file.');
@@ -178,15 +178,15 @@ class M_Sync_Manager_Service_Status_Log
      *
      * @return array<string, array<string, mixed>> Persisted runs keyed by target name.
      */
-    public function read_Status_Data(): array
+    public static function read_Status_Data(): array
     {
-        $status_Path = $this->get_Status_File_Path();
-        $legacy_Status_Path = $this->get_Legacy_Status_File_Path();
+        $status_Path = storage_path(self::STATUS_FILE);
+        $legacy_Status_Path = storage_path(self::LEGACY_STATUS_FILE);
         if (! file_exists($status_Path) && file_exists($legacy_Status_Path)) {
             $status_Path = $legacy_Status_Path;
         }
 
-        return $this->read_Status_Data_From_Path($status_Path);
+        return self::read_Status_Data_From_Path($status_Path);
     }
 
     /**
@@ -195,7 +195,7 @@ class M_Sync_Manager_Service_Status_Log
      * @param  string  $status_Path  Absolute path to a status file.
      * @return array<string, array<string, mixed>> Persisted runs keyed by target name.
      */
-    public function read_Status_Data_From_Path(string $status_Path): array
+    public static function read_Status_Data_From_Path(string $status_Path): array
     {
         if (! file_exists($status_Path)) {
             return [];
@@ -216,9 +216,9 @@ class M_Sync_Manager_Service_Status_Log
      *
      * @param  array<string, array<string, mixed>>  $status_Data  Persisted runs keyed by target name.
      */
-    public function write_Status_Data(array $status_Data): void
+    public static function write_Status_Data(array $status_Data): void
     {
-        $this->write_Status_Data_To_Path($this->get_Status_File_Path(), $status_Data);
+        self::write_Status_Data_To_Path(storage_path(self::STATUS_FILE), $status_Data);
     }
 
     /**
@@ -227,7 +227,7 @@ class M_Sync_Manager_Service_Status_Log
      * @param  string  $status_Path  Absolute path to a status file.
      * @param  array<string, array<string, mixed>>  $status_Data  Persisted runs keyed by target name.
      */
-    public function write_Status_Data_To_Path(string $status_Path, array $status_Data): void
+    public static function write_Status_Data_To_Path(string $status_Path, array $status_Data): void
     {
         $status_JSON = json_encode($status_Data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($status_JSON === false) {
@@ -243,43 +243,13 @@ class M_Sync_Manager_Service_Status_Log
     /**
      * Create private storage directories used for status and per-run logs.
      */
-    public function ensure_Storage_Directories(): void
+    public static function ensure_Storage_Directories(): void
     {
-        foreach ([dirname($this->get_Status_File_Path()), storage_path(self::LOG_DIRECTORY)] as $directory_Path) {
+        foreach ([dirname(storage_path(self::STATUS_FILE)), storage_path(self::LOG_DIRECTORY)] as $directory_Path) {
             if (! is_dir($directory_Path) && ! mkdir($directory_Path, 0775, true) && ! is_dir($directory_Path)) {
                 throw new RuntimeException("Could not create Sync Manager storage directory: {$directory_Path}");
             }
         }
-    }
-
-    /**
-     * Return the absolute path to the persisted status file.
-     *
-     * @return string Absolute status JSON path.
-     */
-    public function get_Status_File_Path(): string
-    {
-        return storage_path(self::STATUS_FILE);
-    }
-
-    /**
-     * Return the absolute path to the legacy status file.
-     *
-     * @return string Absolute legacy status JSON path.
-     */
-    public function get_Legacy_Status_File_Path(): string
-    {
-        return storage_path(self::LEGACY_STATUS_FILE);
-    }
-
-    /**
-     * Return the absolute path to the status lock file.
-     *
-     * @return string Absolute lock-file path.
-     */
-    public function get_Lock_File_Path(): string
-    {
-        return storage_path(self::LOCK_FILE);
     }
 
     /**
@@ -303,7 +273,7 @@ class M_Sync_Manager_Service_Status_Log
      * @param  array<string, array<string, mixed>>  $status_Data  Persisted runs keyed by target name.
      * @param  callable(array<string, mixed>): bool  $is_Run_Active  Checks whether a run must retain its log.
      */
-    public function delete_Unused_Run_Logs(array $status_Data, callable $is_Run_Active): void
+    public static function delete_Unused_Run_Logs(array $status_Data, callable $is_Run_Active): void
     {
         $active_Run_IDs = [];
         foreach ($status_Data as $run_Record) {
@@ -347,7 +317,7 @@ class M_Sync_Manager_Service_Status_Log
      *
      * @param  string  $run_ID  Identifier of the run.
      */
-    public function delete_Run_Log(string $run_ID): void
+    public static function delete_Run_Log(string $run_ID): void
     {
         $log_Path = self::get_Log_File_Path($run_ID);
         if (file_exists($log_Path) && ! unlink($log_Path)) {

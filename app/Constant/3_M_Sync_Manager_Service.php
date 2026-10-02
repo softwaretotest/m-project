@@ -33,13 +33,6 @@ class Sync_Manager_Service
     ];
 
     private const SCRIPT_ORDER = self::SCRIPT_IDS;
-    private M_Sync_Manager_Service_Status_Log $status_Log;
-
-    public function __construct()
-    {
-        $this->status_Log = new M_Sync_Manager_Service_Status_Log();
-    }
-
     private const SCRIPT_FILES = [
         self::SCRIPT_JSON_TO_PHP => 'app/Constant/2_M_Sync_JSON.php',
         self::SCRIPT_PHP_TO_JSON => 'app/Constant/1_M_Sync.php',
@@ -93,8 +86,8 @@ class Sync_Manager_Service
     {
         $target_Name = TargetManager::get_activeTarget();
 
-        return $this->with_Status_Lock(function () use ($target_Name): array {
-            $status_Data = $this->read_Status_Data();
+        return M_Sync_Manager_Service_Status_Log::with_Status_Lock(function () use ($target_Name): array {
+            $status_Data = M_Sync_Manager_Service_Status_Log::read_Status_Data();
             $run_Record = $status_Data[$target_Name] ?? null;
 
             if (!is_array($run_Record)) {
@@ -104,27 +97,27 @@ class Sync_Manager_Service
             $run_Record = $this->reconcile_Dead_Process($run_Record);
             if ($this->is_Run_Active($run_Record) || $run_Record['status'] !== self::STATUS_FAILED) {
                 $status_Data[$target_Name] = $run_Record;
-                $this->write_Status_Data($status_Data);
+                M_Sync_Manager_Service_Status_Log::write_Status_Data($status_Data);
 
                 return ['reset' => false, 'run' => $run_Record];
             }
 
             $failed_Run_ID = $run_Record['run_id'] ?? null;
             if (is_string($failed_Run_ID) && preg_match('/^[0-9a-f-]{36}$/i', $failed_Run_ID)) {
-                $this->delete_Run_Log($failed_Run_ID);
+                M_Sync_Manager_Service_Status_Log::delete_Run_Log($failed_Run_ID);
             }
 
             foreach ([
-                $this->get_Status_File_Path(),
-                $this->status_Log->get_Legacy_Status_File_Path(),
+                storage_path(M_Sync_Manager_Service_Status_Log::STATUS_FILE),
+                storage_path(M_Sync_Manager_Service_Status_Log::LEGACY_STATUS_FILE),
             ] as $status_Path) {
                 if (!file_exists($status_Path)) {
                     continue;
                 }
 
-                $stored_Status_Data = $this->read_Status_Data_From_Path($status_Path);
+                $stored_Status_Data = M_Sync_Manager_Service_Status_Log::read_Status_Data_From_Path($status_Path);
                 unset($stored_Status_Data[$target_Name]);
-                $this->write_Status_Data_To_Path($status_Path, $stored_Status_Data);
+                M_Sync_Manager_Service_Status_Log::write_Status_Data_To_Path($status_Path, $stored_Status_Data);
             }
 
             return ['reset' => true, 'run' => null];
@@ -159,8 +152,8 @@ class Sync_Manager_Service
     public function getCurrentStatus(?string $run_ID = null, int $cursor = 0): array
     {
         $target_Name = TargetManager::get_activeTarget();
-        $run_Record = $this->with_Status_Lock(function () use ($target_Name): ?array {
-            $status_Data = $this->read_Status_Data();
+        $run_Record = M_Sync_Manager_Service_Status_Log::with_Status_Lock(function () use ($target_Name): ?array {
+            $status_Data = M_Sync_Manager_Service_Status_Log::read_Status_Data();
             $run_Record = $status_Data[$target_Name] ?? null;
 
             if (!is_array($run_Record)) {
@@ -169,7 +162,7 @@ class Sync_Manager_Service
 
             $run_Record = $this->reconcile_Dead_Process($run_Record);
             $status_Data[$target_Name] = $run_Record;
-            $this->write_Status_Data($status_Data);
+            M_Sync_Manager_Service_Status_Log::write_Status_Data($status_Data);
 
             return $run_Record;
         });
@@ -194,7 +187,7 @@ class Sync_Manager_Service
             ];
         }
 
-        $log_Chunk = $this->read_Log_Chunk(
+        $log_Chunk = M_Sync_Manager_Service_Status_Log::read_Log_Chunk(
             $run_Record['run_id'],
             max(0, $cursor),
             in_array($run_Record['status'], [self::STATUS_COMPLETED, self::STATUS_FAILED], true)
@@ -224,8 +217,8 @@ class Sync_Manager_Service
         }
 
         $failure_Message = "Sync Manager worker failed: {$message}" . PHP_EOL;
-        $this->append_Run_Output($run_ID, $failure_Message);
-        $this->fail_Run($run_Record['target'], $run_ID, $message);
+        M_Sync_Manager_Service_Status_Log::append_Run_Output($run_ID, $failure_Message);
+        M_Sync_Manager_Service_Status_Log::fail_Run($run_Record['target'], $run_ID, $message);
     }
 
     /**
@@ -240,7 +233,7 @@ class Sync_Manager_Service
         $worker = new M_Sync_Manager_Service_EXE_Worker(
             fn (string $requested_Run_ID): ?array => $this->find_Run($requested_Run_ID),
             function (string $target_Name, string $requested_Run_ID, callable $update_Callback): void {
-                $this->update_Run($target_Name, $requested_Run_ID, $update_Callback);
+                M_Sync_Manager_Service_Status_Log::update_Run($target_Name, $requested_Run_ID, $update_Callback);
             },
             function (
                 string $target_Name,
@@ -248,14 +241,19 @@ class Sync_Manager_Service
                 string $script_ID,
                 string $script_Status
             ): void {
-                $this->update_Script_Status($target_Name, $requested_Run_ID, $script_ID, $script_Status);
+                M_Sync_Manager_Service_Status_Log::update_Script_Status(
+                    $target_Name,
+                    $requested_Run_ID,
+                    $script_ID,
+                    $script_Status
+                );
             },
             function (string $requested_Run_ID, string $output): void {
-                $this->append_Run_Output($requested_Run_ID, $output);
+                M_Sync_Manager_Service_Status_Log::append_Run_Output($requested_Run_ID, $output);
             },
             fn (array $run_Record, string $script_ID): array => $this->execute_Script($run_Record, $script_ID),
             function (string $target_Name, string $requested_Run_ID, string $message): void {
-                $this->fail_Run($target_Name, $requested_Run_ID, $message);
+                M_Sync_Manager_Service_Status_Log::fail_Run($target_Name, $requested_Run_ID, $message);
             },
             [
                 'phase_initial' => self::PHASE_INITIAL,
@@ -281,8 +279,8 @@ class Sync_Manager_Service
      */
     private function reserve_Run(string $target_Name, array $ordered_Scripts): array
     {
-        return $this->with_Status_Lock(function () use ($target_Name, $ordered_Scripts): array {
-            $status_Data = $this->read_Status_Data();
+        return M_Sync_Manager_Service_Status_Log::with_Status_Lock(function () use ($target_Name, $ordered_Scripts): array {
+            $status_Data = M_Sync_Manager_Service_Status_Log::read_Status_Data();
             $existing_Run = $status_Data[$target_Name] ?? null;
 
             if (is_array($existing_Run)) {
@@ -290,7 +288,7 @@ class Sync_Manager_Service
                 $status_Data[$target_Name] = $existing_Run;
 
                 if ($this->is_Run_Active($existing_Run)) {
-                    $this->write_Status_Data($status_Data);
+                    M_Sync_Manager_Service_Status_Log::write_Status_Data($status_Data);
 
                     return ['accepted' => false, 'run' => $existing_Run];
                 }
@@ -330,8 +328,11 @@ class Sync_Manager_Service
                 'message' => null,
             ];
 
-            $this->ensure_Storage_Directories();
-            $this->delete_Unused_Run_Logs($status_Data);
+            M_Sync_Manager_Service_Status_Log::ensure_Storage_Directories();
+            M_Sync_Manager_Service_Status_Log::delete_Unused_Run_Logs(
+                $status_Data,
+                fn (array $run_Record): bool => $this->is_Run_Active($run_Record)
+            );
             $log_Initialized = file_put_contents(
                 M_Sync_Manager_Service_Status_Log::get_Log_File_Path($run_ID),
                 '',
@@ -342,7 +343,7 @@ class Sync_Manager_Service
             }
 
             $status_Data[$target_Name] = $run_Record;
-            $this->write_Status_Data($status_Data);
+            M_Sync_Manager_Service_Status_Log::write_Status_Data($status_Data);
 
             return ['accepted' => true, 'run' => $run_Record];
         });
@@ -357,8 +358,8 @@ class Sync_Manager_Service
      */
     private function reserve_Continuation(string $target_Name, string $run_ID): array
     {
-        return $this->with_Status_Lock(function () use ($target_Name, $run_ID): array {
-            $status_Data = $this->read_Status_Data();
+        return M_Sync_Manager_Service_Status_Log::with_Status_Lock(function () use ($target_Name, $run_ID): array {
+            $status_Data = M_Sync_Manager_Service_Status_Log::read_Status_Data();
             $run_Record = $status_Data[$target_Name] ?? null;
 
             if (!is_array($run_Record) || $run_Record['run_id'] !== $run_ID) {
@@ -377,7 +378,7 @@ class Sync_Manager_Service
             $run_Record['message'] = null;
             $run_Record['updated_at'] = date(DATE_ATOM);
             $status_Data[$target_Name] = $run_Record;
-            $this->write_Status_Data($status_Data);
+            M_Sync_Manager_Service_Status_Log::write_Status_Data($status_Data);
 
             return ['accepted' => true, 'run' => $run_Record];
         });
@@ -396,11 +397,15 @@ class Sync_Manager_Service
         try {
             $process_ID = $this->launch_Worker_Process($run_Record['run_id'], $phase);
         } catch (Throwable $exception) {
-            $this->append_Run_Output(
+            M_Sync_Manager_Service_Status_Log::append_Run_Output(
                 $run_Record['run_id'],
                 "Worker launch failed: {$exception->getMessage()}" . PHP_EOL
             );
-            $this->fail_Run($target_Name, $run_Record['run_id'], $exception->getMessage());
+            M_Sync_Manager_Service_Status_Log::fail_Run(
+                $target_Name,
+                $run_Record['run_id'],
+                $exception->getMessage()
+            );
 
             return [
                 'accepted' => false,
@@ -408,7 +413,7 @@ class Sync_Manager_Service
             ];
         }
 
-        $this->update_Run($target_Name, $run_Record['run_id'], function (array $current_Run) use ($process_ID): array {
+        M_Sync_Manager_Service_Status_Log::update_Run($target_Name, $run_Record['run_id'], function (array $current_Run) use ($process_ID): array {
             if (
                 $process_ID !== null
                 && in_array($current_Run['status'], [self::STATUS_STARTING, self::STATUS_RUNNING], true)
@@ -483,16 +488,16 @@ class Sync_Manager_Service
         $windows_Script = new M_Sync_Manager_Service_Windows_Script(
             fn (string $run_ID): string => M_Sync_Manager_Service_Status_Log::get_Log_File_Path($run_ID),
             function (string $target_Name, string $run_ID, callable $update_Callback): void {
-                $this->update_Run($target_Name, $run_ID, $update_Callback);
+                M_Sync_Manager_Service_Status_Log::update_Run($target_Name, $run_ID, $update_Callback);
             }
         );
         $script_Executor = new M_Sync_Manager_Service_EXE_Script(
             fn (string $run_ID): string => M_Sync_Manager_Service_Status_Log::get_Log_File_Path($run_ID),
             function (string $target_Name, string $run_ID, callable $update_Callback): void {
-                $this->update_Run($target_Name, $run_ID, $update_Callback);
+                M_Sync_Manager_Service_Status_Log::update_Run($target_Name, $run_ID, $update_Callback);
             },
             function (string $run_ID, string $output): void {
-                $this->append_Run_Output($run_ID, $output);
+                M_Sync_Manager_Service_Status_Log::append_Run_Output($run_ID, $output);
             },
             fn (array $record, string $script_Path): int => $windows_Script->execute_Windows_Script(
                 $record,
@@ -517,7 +522,7 @@ class Sync_Manager_Service
         $windows_Script = new M_Sync_Manager_Service_Windows_Script(
             fn (string $run_ID): string => M_Sync_Manager_Service_Status_Log::get_Log_File_Path($run_ID),
             function (string $target_Name, string $run_ID, callable $update_Callback): void {
-                $this->update_Run($target_Name, $run_ID, $update_Callback);
+                M_Sync_Manager_Service_Status_Log::update_Run($target_Name, $run_ID, $update_Callback);
             }
         );
 
@@ -560,8 +565,8 @@ class Sync_Manager_Service
      */
     private function find_Run(string $run_ID): ?array
     {
-        return $this->with_Status_Lock(function () use ($run_ID): ?array {
-            foreach ($this->read_Status_Data() as $run_Record) {
+        return M_Sync_Manager_Service_Status_Log::with_Status_Lock(function () use ($run_ID): ?array {
+            foreach (M_Sync_Manager_Service_Status_Log::read_Status_Data() as $run_Record) {
                 if (is_array($run_Record) && ($run_Record['run_id'] ?? null) === $run_ID) {
                     return $run_Record;
                 }
@@ -579,55 +584,11 @@ class Sync_Manager_Service
      */
     private function get_Target_Run(string $target_Name): array
     {
-        return $this->with_Status_Lock(function () use ($target_Name): array {
-            $run_Record = $this->read_Status_Data()[$target_Name] ?? [];
+        return M_Sync_Manager_Service_Status_Log::with_Status_Lock(function () use ($target_Name): array {
+            $run_Record = M_Sync_Manager_Service_Status_Log::read_Status_Data()[$target_Name] ?? [];
 
             return is_array($run_Record) ? $run_Record : [];
         });
-    }
-
-    /**
-     * Update a run record while holding the status file lock.
-     *
-     * @param string $target_Name Configured target name.
-     * @param string $run_ID Identifier of the run to update.
-     * @param callable(array<string, mixed>): array<string, mixed> $update_Callback Run record transformation.
-     * @return void
-     */
-    private function update_Run(string $target_Name, string $run_ID, callable $update_Callback): void
-    {
-        $this->status_Log->update_Run($target_Name, $run_ID, $update_Callback);
-    }
-
-    /**
-     * Update one script's status in the persisted run record.
-     *
-     * @param string $target_Name Configured target name.
-     * @param string $run_ID Identifier of the run containing the script.
-     * @param string $script_ID Allowlisted script identifier.
-     * @param string $script_Status Current script state.
-     * @return void
-     */
-    private function update_Script_Status(
-        string $target_Name,
-        string $run_ID,
-        string $script_ID,
-        string $script_Status
-    ): void {
-        $this->status_Log->update_Script_Status($target_Name, $run_ID, $script_ID, $script_Status);
-    }
-
-    /**
-     * Mark a run failed and persist the failure reason for the UI and developer.
-     *
-     * @param string $target_Name Configured target name.
-     * @param string $run_ID Identifier of the failed run.
-     * @param string $message Failure details.
-     * @return void
-     */
-    private function fail_Run(string $target_Name, string $run_ID, string $message): void
-    {
-        $this->status_Log->fail_Run($target_Name, $run_ID, $message);
     }
 
     /**
@@ -716,141 +677,6 @@ class Sync_Manager_Service
             self::STATUS_RUNNING,
             self::STATUS_AWAITING_REVIEW,
         ], true);
-    }
-
-    /**
-     * Append worker output to the current run's private log file.
-     *
-     * @param string $run_ID Identifier of the run receiving output.
-     * @param string $output Raw output received from the child script.
-     * @return void
-     */
-    private function append_Run_Output(string $run_ID, string $output): void
-    {
-        $this->status_Log->append_Run_Output($run_ID, $output);
-    }
-
-    /**
-     * Read only complete log lines after the byte cursor, except after the run has ended.
-     *
-     * @param string $run_ID Identifier of the log to read.
-     * @param int $cursor Byte offset already consumed by the client.
-     * @param bool $include_Final_Line Include a final line without a newline for completed runs.
-     * @return array{logs: string, cursor: int} Appended log text and the next byte cursor.
-     */
-    private function read_Log_Chunk(string $run_ID, int $cursor, bool $include_Final_Line): array
-    {
-        return $this->status_Log->read_Log_Chunk($run_ID, $cursor, $include_Final_Line);
-    }
-
-    /**
-     * Run a callback while holding the cross-request status lock.
-     *
-     * @param callable(): mixed $callback Operation that reads or writes shared status.
-     * @return mixed Callback result.
-     */
-    private function with_Status_Lock(callable $callback): mixed
-    {
-        return $this->status_Log->with_Status_Lock($callback);
-    }
-
-    /**
-     * Read the status file into a target-name keyed map.
-     *
-     * @return array<string, array<string, mixed>> Persisted runs keyed by target name.
-     */
-    private function read_Status_Data(): array
-    {
-        return $this->status_Log->read_Status_Data();
-    }
-
-    /**
-     * Read one status JSON file into a target-name keyed map.
-     *
-     * @param string $status_Path Absolute path to a status file.
-     * @return array<string, array<string, mixed>> Persisted runs keyed by target name.
-     */
-    private function read_Status_Data_From_Path(string $status_Path): array
-    {
-        return $this->status_Log->read_Status_Data_From_Path($status_Path);
-    }
-
-    /**
-     * Persist the target-name keyed status map as formatted JSON.
-     *
-     * @param array<string, array<string, mixed>> $status_Data Persisted runs keyed by target name.
-     * @return void
-     */
-    private function write_Status_Data(array $status_Data): void
-    {
-        $this->status_Log->write_Status_Data($status_Data);
-    }
-
-    /**
-     * Persist the target-name keyed status map as formatted JSON at the given path.
-     *
-     * @param string $status_Path Absolute path to a status file.
-     * @param array<string, array<string, mixed>> $status_Data Persisted runs keyed by target name.
-     * @return void
-     */
-    private function write_Status_Data_To_Path(string $status_Path, array $status_Data): void
-    {
-        $this->status_Log->write_Status_Data_To_Path($status_Path, $status_Data);
-    }
-
-    /**
-     * Create private storage directories used for status and per-run logs.
-     *
-     * @return void
-     */
-    private function ensure_Storage_Directories(): void
-    {
-        $this->status_Log->ensure_Storage_Directories();
-    }
-
-    /**
-     * Return the absolute path to the persisted status file.
-     *
-     * @return string Absolute status JSON path.
-     */
-    private function get_Status_File_Path(): string
-    {
-        return $this->status_Log->get_Status_File_Path();
-    }
-
-    /**
-     * Return the absolute path to the status lock file.
-     *
-     * @return string Absolute lock-file path.
-     */
-    private function get_Lock_File_Path(): string
-    {
-        return $this->status_Log->get_Lock_File_Path();
-    }
-
-    /**
-     * Delete run logs that are no longer needed, preserving logs for active or review-pending runs.
-     *
-     * @param array<string, array<string, mixed>> $status_Data Persisted runs keyed by target name.
-     * @return void
-     */
-    private function delete_Unused_Run_Logs(array $status_Data): void
-    {
-        $this->status_Log->delete_Unused_Run_Logs(
-            $status_Data,
-            fn (array $run_Record): bool => $this->is_Run_Active($run_Record)
-        );
-    }
-
-    /**
-     * Delete one run's log when its failed status is reset.
-     *
-     * @param string $run_ID Identifier of the run.
-     * @return void
-     */
-    private function delete_Run_Log(string $run_ID): void
-    {
-        $this->status_Log->delete_Run_Log($run_ID);
     }
 
 }

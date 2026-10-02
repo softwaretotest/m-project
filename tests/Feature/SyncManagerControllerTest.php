@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Constant\Sync_Manager_Service;
+use App\Constant\M_Sync_Manager_Service_Status_Log;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -102,19 +103,18 @@ class SyncManagerControllerTest extends TestCase
         $run_Log_Path = $log_Directory . DIRECTORY_SEPARATOR . $run_ID . '.log';
 
         try {
-            $sync_Manager_Service = app(Sync_Manager_Service::class);
-            $append_Output = new \ReflectionMethod(Sync_Manager_Service::class, 'append_Run_Output');
-            $read_Output = new \ReflectionMethod(Sync_Manager_Service::class, 'read_Log_Chunk');
             file_put_contents($run_Log_Path, '');
 
-            $append_Output->invoke($sync_Manager_Service, $run_ID, "First output line\nSecond output");
-            $first_Chunk = $read_Output->invoke($sync_Manager_Service, $run_ID, 0, false);
+            M_Sync_Manager_Service_Status_Log::append_Run_Output(
+                $run_ID,
+                "First output line\nSecond output"
+            );
+            $first_Chunk = M_Sync_Manager_Service_Status_Log::read_Log_Chunk($run_ID, 0, false);
             $this->assertSame("First output line\n", $first_Chunk['logs']);
             $this->assertSame(strlen("First output line\n"), $first_Chunk['cursor']);
 
-            $append_Output->invoke($sync_Manager_Service, $run_ID, " line\n");
-            $final_Chunk = $read_Output->invoke(
-                $sync_Manager_Service,
+            M_Sync_Manager_Service_Status_Log::append_Run_Output($run_ID, " line\n");
+            $final_Chunk = M_Sync_Manager_Service_Status_Log::read_Log_Chunk(
                 $run_ID,
                 $first_Chunk['cursor'],
                 true
@@ -156,13 +156,15 @@ class SyncManagerControllerTest extends TestCase
         file_put_contents($unrelated_Log_Path, 'unrelated');
 
         try {
-            $sync_Manager_Service = app(Sync_Manager_Service::class);
-            $cleanup_Logs = new \ReflectionMethod(Sync_Manager_Service::class, 'delete_Unused_Run_Logs');
-            $cleanup_Logs->invoke($sync_Manager_Service, [
+            M_Sync_Manager_Service_Status_Log::delete_Unused_Run_Logs([
                 'active-target' => ['run_id' => $active_Run_ID, 'status' => 'running'],
                 'review-target' => ['run_id' => $review_Run_ID, 'status' => 'awaiting_review'],
                 'completed-target' => ['run_id' => $completed_Run_ID, 'status' => 'completed'],
-            ]);
+            ], static fn (array $run_Record): bool => in_array(
+                $run_Record['status'],
+                ['starting', 'running', 'awaiting_review'],
+                true
+            ));
 
             $this->assertFileExists($log_Directory . DIRECTORY_SEPARATOR . $active_Run_ID . '.log');
             $this->assertFileExists($log_Directory . DIRECTORY_SEPARATOR . $review_Run_ID . '.log');
@@ -211,8 +213,7 @@ class SyncManagerControllerTest extends TestCase
             $sync_Manager_Service = app(Sync_Manager_Service::class);
             $windows_Runner = new \ReflectionMethod(Sync_Manager_Service::class, 'execute_Windows_Script');
             $exit_Code = $windows_Runner->invoke($sync_Manager_Service, $run_Record, $worker_Script_Path);
-            $read_Output = new \ReflectionMethod(Sync_Manager_Service::class, 'read_Log_Chunk');
-            $output_Chunk = $read_Output->invoke($sync_Manager_Service, $run_ID, 0, true);
+            $output_Chunk = M_Sync_Manager_Service_Status_Log::read_Log_Chunk($run_ID, 0, true);
 
             $this->assertSame(0, $exit_Code);
             $this->assertStringContainsString('worker probe passed', $output_Chunk['logs']);
