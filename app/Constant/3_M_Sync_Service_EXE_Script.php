@@ -6,7 +6,7 @@ use Closure;
 use RuntimeException;
 use Symfony\Component\Process\Process;
 
-class M_Sync_Manager_Service_EXE_Script
+class M_Sync_Service_EXE_Script
 {
     /**
      * @param  Closure(string): string  $get_Log_File_Path  Returns the log file for a run.
@@ -39,7 +39,7 @@ class M_Sync_Manager_Service_EXE_Script
         clearstatcache(true, $log_Path);
         $log_Start_Offset = filesize($log_Path);
         if ($log_Start_Offset === false) {
-            throw new RuntimeException("Could not inspect Sync Manager log for run {$run_Record['run_id']}");
+            throw new RuntimeException("Could not inspect Sync log for run {$run_Record['run_id']}");
         }
 
         if (PHP_OS_FAMILY === 'Windows') {
@@ -87,7 +87,7 @@ class M_Sync_Manager_Service_EXE_Script
         clearstatcache(true, $log_Path);
         $log_Content = file_get_contents($log_Path);
         if ($log_Content === false) {
-            throw new RuntimeException("Could not read Sync Manager log for run {$run_Record['run_id']}");
+            throw new RuntimeException("Could not read Sync log for run {$run_Record['run_id']}");
         }
 
         $script_Output = substr($log_Content, $log_Start_Offset);

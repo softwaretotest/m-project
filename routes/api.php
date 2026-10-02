@@ -3,7 +3,7 @@
 // route/api.php
 use App\Http\Controllers\Api\ProductApiController;
 use App\Http\Controllers\M_Controller;
-use App\Http\Controllers\M_Sync_Manager_Controller;
+use App\Http\Controllers\M_Sync_Controller;
 use App\Http\Controllers\TargetManager_Config_Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -30,7 +30,7 @@ Route::get('/config', [M_Controller::class, 'get_M_Config_json']);
 Route::get('/target/scan', [TargetManager_Config_Controller::class, 'scanTargets']);
 Route::post('/target/save_Target_App', [TargetManager_Config_Controller::class, 'updateTargetConfig']);
 
-Route::post('/sync-manager/start', [M_Sync_Manager_Controller::class, 'start']);
-Route::get('/sync-manager/status', [M_Sync_Manager_Controller::class, 'status']);
-Route::post('/sync-manager/reset', [M_Sync_Manager_Controller::class, 'resetFailedRun']);
-Route::post('/sync-manager/{run_ID}/continue', [M_Sync_Manager_Controller::class, 'continueRun']);
+Route::post('/sync/start', [M_Sync_Controller::class, 'start']);
+Route::get('/sync/status', [M_Sync_Controller::class, 'status']);
+Route::post('/sync/reset', [M_Sync_Controller::class, 'resetFailedRun']);
+Route::post('/sync/{run_ID}/continue', [M_Sync_Controller::class, 'continueRun']);

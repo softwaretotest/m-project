@@ -4,15 +4,15 @@ namespace App\Constant;
 
 use RuntimeException;
 
-class M_Sync_Manager_Service_Status_Log
+class M_Sync_Service_Status_Log
 {
-    public const STATUS_FILE = 'app/m-sync-manager/sync_status.json';
+    public const STATUS_FILE = 'app/m-sync/sync_status.json';
 
-    public const LEGACY_STATUS_FILE = 'app/m-sync-manager/status.json';
+    public const LEGACY_STATUS_FILE = 'app/m-sync/status.json';
 
-    public const LOCK_FILE = 'app/m-sync-manager/sync_status.lock';
+    public const LOCK_FILE = 'app/m-sync/sync_status.lock';
 
-    public const LOG_DIRECTORY = 'app/m-sync-manager/logs';
+    public const LOG_DIRECTORY = 'app/m-sync/logs';
 
     private const STATUS_FAILED = 'failed';
 
@@ -30,7 +30,7 @@ class M_Sync_Manager_Service_Status_Log
             $run_Record = $status_Data[$target_Name] ?? null;
 
             if (! is_array($run_Record) || $run_Record['run_id'] !== $run_ID) {
-                throw new RuntimeException("Sync Manager run changed before update: {$run_ID}");
+                throw new RuntimeException("Sync run changed before update: {$run_ID}");
             }
 
             $status_Data[$target_Name] = $update_Callback($run_Record);
@@ -101,7 +101,7 @@ class M_Sync_Manager_Service_Status_Log
         );
 
         if ($written === false) {
-            throw new RuntimeException("Could not append output to Sync Manager log for run {$run_ID}");
+            throw new RuntimeException("Could not append output to Sync log for run {$run_ID}");
         }
     }
 
@@ -122,7 +122,7 @@ class M_Sync_Manager_Service_Status_Log
 
         $log_Content = file_get_contents($log_Path);
         if ($log_Content === false) {
-            throw new RuntimeException("Could not read Sync Manager log for run {$run_ID}");
+            throw new RuntimeException("Could not read Sync log for run {$run_ID}");
         }
 
         $cursor = min($cursor, strlen($log_Content));
@@ -157,12 +157,12 @@ class M_Sync_Manager_Service_Status_Log
         $lock_Handle = fopen(storage_path(self::LOCK_FILE), 'c+');
 
         if ($lock_Handle === false) {
-            throw new RuntimeException('Could not open the Sync Manager status lock file.');
+            throw new RuntimeException('Could not open the Sync status lock file.');
         }
 
         if (! flock($lock_Handle, LOCK_EX)) {
             fclose($lock_Handle);
-            throw new RuntimeException('Could not lock the Sync Manager status file.');
+            throw new RuntimeException('Could not lock the Sync status file.');
         }
 
         try {
@@ -205,7 +205,7 @@ class M_Sync_Manager_Service_Status_Log
         $status_Data = json_decode((string) $status_Content, true);
 
         if (! is_array($status_Data)) {
-            throw new RuntimeException('Sync Manager status file contains invalid JSON.');
+            throw new RuntimeException('Sync status file contains invalid JSON.');
         }
 
         return $status_Data;
@@ -231,12 +231,12 @@ class M_Sync_Manager_Service_Status_Log
     {
         $status_JSON = json_encode($status_Data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($status_JSON === false) {
-            throw new RuntimeException('Could not encode Sync Manager status as JSON.');
+            throw new RuntimeException('Could not encode Sync status as JSON.');
         }
 
         $written = file_put_contents($status_Path, $status_JSON, LOCK_EX);
         if ($written === false) {
-            throw new RuntimeException("Could not write the Sync Manager status file: {$status_Path}");
+            throw new RuntimeException("Could not write the Sync status file: {$status_Path}");
         }
     }
 
@@ -247,7 +247,7 @@ class M_Sync_Manager_Service_Status_Log
     {
         foreach ([dirname(storage_path(self::STATUS_FILE)), storage_path(self::LOG_DIRECTORY)] as $directory_Path) {
             if (! is_dir($directory_Path) && ! mkdir($directory_Path, 0775, true) && ! is_dir($directory_Path)) {
-                throw new RuntimeException("Could not create Sync Manager storage directory: {$directory_Path}");
+                throw new RuntimeException("Could not create Sync storage directory: {$directory_Path}");
             }
         }
     }
@@ -261,7 +261,7 @@ class M_Sync_Manager_Service_Status_Log
     public static function get_Log_File_Path(string $run_ID): string
     {
         if (! preg_match('/^[0-9a-f-]{36}$/i', $run_ID)) {
-            throw new RuntimeException('Invalid Sync Manager run identifier.');
+            throw new RuntimeException('Invalid Sync run identifier.');
         }
 
         return storage_path(self::LOG_DIRECTORY."/{$run_ID}.log");
@@ -294,7 +294,7 @@ class M_Sync_Manager_Service_Status_Log
 
         $log_Paths = glob(storage_path(self::LOG_DIRECTORY.'/*.log'));
         if ($log_Paths === false) {
-            throw new RuntimeException('Could not list Sync Manager run logs for cleanup.');
+            throw new RuntimeException('Could not list Sync run logs for cleanup.');
         }
 
         foreach ($log_Paths as $log_Path) {
@@ -307,7 +307,7 @@ class M_Sync_Manager_Service_Status_Log
             }
 
             if (! unlink($log_Path)) {
-                throw new RuntimeException("Could not delete unused Sync Manager log: {$log_Path}");
+                throw new RuntimeException("Could not delete unused Sync log: {$log_Path}");
             }
         }
     }
@@ -321,7 +321,7 @@ class M_Sync_Manager_Service_Status_Log
     {
         $log_Path = self::get_Log_File_Path($run_ID);
         if (file_exists($log_Path) && ! unlink($log_Path)) {
-            throw new RuntimeException("Could not delete Sync Manager log for run {$run_ID}");
+            throw new RuntimeException("Could not delete Sync log for run {$run_ID}");
         }
     }
 }

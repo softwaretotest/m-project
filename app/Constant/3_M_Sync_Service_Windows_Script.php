@@ -5,7 +5,7 @@ namespace App\Constant;
 use Closure;
 use Symfony\Component\Process\Process;
 
-class M_Sync_Manager_Service_Windows_Script
+class M_Sync_Service_Windows_Script
 {
     /**
      * @param  Closure(string): string  $get_Log_File_Path  Returns the log file for a run.

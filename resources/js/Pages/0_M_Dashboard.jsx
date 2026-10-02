@@ -11,7 +11,7 @@ import SubTab from "@/Components/0_M_SubTab.jsx";
 
 import { save_Target_App } from "@/Pages/3_M_TargetSelector";
 
-import M_Sync_Manager from "@/Components/3_M_Sync_Manager.jsx";
+import M_Sync from "@/Components/3_M_Sync.jsx";
 
 export default function M_Dashboard({ activeTarget }) {
     const data = use_M_Data();
@@ -52,7 +52,7 @@ export default function M_Dashboard({ activeTarget }) {
             )}
 
             {is_Sync_Modal_Open && (
-                <M_Sync_Manager
+                <M_Sync
                     is_Sync_Modal_Open={is_Sync_Modal_Open}
                     set_is_Sync_Modal_Open={set_is_Sync_Modal_Open}
                 />

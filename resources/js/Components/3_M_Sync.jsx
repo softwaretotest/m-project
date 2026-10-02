@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import "./3_M_Sync_Manager.css";
+import "./3_M_Sync.css";
 
 const script_Options = [
     { id: "json_to_php", label: "JSON to PHP", log_Class: "json-to-php" },
@@ -11,7 +11,7 @@ const script_Log_Classes = Object.fromEntries(
     script_Options.map(({ id, log_Class }) => [id, log_Class]),
 );
 
-const sync_Manager_Api_Path = "/api/sync-manager";
+const sync_Api_Path = "/api/sync";
 const POLLING_INTERVAL_MS = 1000;
 const RUN_STATUS = {
     STARTING: "starting",
@@ -94,14 +94,14 @@ function get_Run_Log_Segments(logs) {
 }
 
 /**
- * Renders the synchronization manager modal with script selection, run controls, and live logs.
+ * Renders the Sync modal with script selection, run controls, and live logs.
  *
  * @param {Object} props Component properties.
  * @param {boolean} props.is_Sync_Modal_Open Whether the modal is visible.
  * @param {(isOpen: boolean) => void} props.set_is_Sync_Modal_Open Closes or opens the modal.
  * @returns {JSX.Element|null} The modal markup or null while closed.
  */
-export default function M_Sync_Manager({
+export default function M_Sync({
     is_Sync_Modal_Open,
     set_is_Sync_Modal_Open,
 }) {
@@ -145,11 +145,11 @@ export default function M_Sync_Manager({
         set_request_Error("");
 
         try {
-            const response = await fetch(`${sync_Manager_Api_Path}/status`);
+            const response = await fetch(`${sync_Api_Path}/status`);
             const response_Data = await response.json();
 
             if (!response.ok) {
-                throw new Error(response_Data.message || "Could not load Sync Manager status.");
+                throw new Error(response_Data.message || "Could not load Sync status.");
             }
 
             if (!response_Data.run) {
@@ -165,7 +165,7 @@ export default function M_Sync_Manager({
             set_script_Statuses(current_Run.script_statuses || {});
             set_run_Logs(response_Data.logs || "");
             if (current_Run.status === RUN_STATUS.FAILED) {
-                set_request_Error(current_Run.message || "The previous Sync Manager run failed.");
+                set_request_Error(current_Run.message || "The previous Sync run failed.");
             }
             log_Cursor.current = response_Data.cursor || 0;
 
@@ -173,7 +173,7 @@ export default function M_Sync_Manager({
                 set_is_Polling(true);
             }
         } catch (error) {
-            set_request_Error(error.message || "Could not load Sync Manager status.");
+            set_request_Error(error.message || "Could not load Sync status.");
         }
     }, []);
 
@@ -206,13 +206,13 @@ export default function M_Sync_Manager({
                     cursor: String(log_Cursor.current),
                 });
                 const response = await fetch(
-                    `${sync_Manager_Api_Path}/status?${query.toString()}`,
+                    `${sync_Api_Path}/status?${query.toString()}`,
                     { signal: active_Request.signal },
                 );
                 const response_Data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(response_Data.message || "Could not poll Sync Manager status.");
+                    throw new Error(response_Data.message || "Could not poll Sync status.");
                 }
                 if (!is_Effect_Active) {
                     return;
@@ -242,7 +242,7 @@ export default function M_Sync_Manager({
 
                 set_is_Polling(false);
                 set_run_Status(RUN_STATUS.CONNECTION_ERROR);
-                set_request_Error(error.message || "Sync Manager polling failed.");
+                set_request_Error(error.message || "Sync polling failed.");
             }
         };
 
@@ -277,7 +277,7 @@ export default function M_Sync_Manager({
         log_Cursor.current = 0;
 
         try {
-            const response = await fetch(`${sync_Manager_Api_Path}/start`, {
+            const response = await fetch(`${sync_Api_Path}/start`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ scripts: selected_Scripts }),
@@ -300,13 +300,13 @@ export default function M_Sync_Manager({
             }
 
             if (!response.ok) {
-                throw new Error(response_Data.message || "Could not start Sync Manager.");
+                throw new Error(response_Data.message || "Could not start Sync.");
             }
 
             set_is_Polling(true);
         } catch (error) {
             set_run_Status("failed");
-            set_request_Error(error.message || "Could not start Sync Manager.");
+            set_request_Error(error.message || "Could not start Sync.");
         } finally {
             set_is_Submitting(false);
         }
@@ -327,7 +327,7 @@ export default function M_Sync_Manager({
 
         try {
             const response = await fetch(
-                `${sync_Manager_Api_Path}/${encodeURIComponent(run_ID)}/continue`,
+                `${sync_Api_Path}/${encodeURIComponent(run_ID)}/continue`,
                 { method: "POST" },
             );
             const response_Data = await response.json();
@@ -341,12 +341,12 @@ export default function M_Sync_Manager({
                 if (active_Run_Statuses.includes(response_Data.run?.status)) {
                     set_is_Polling(true);
                 }
-                throw new Error(response_Data.message || "Could not continue Sync Manager.");
+                throw new Error(response_Data.message || "Could not continue Sync.");
             }
 
             set_is_Polling(true);
         } catch (error) {
-            set_request_Error(error.message || "Could not continue Sync Manager.");
+            set_request_Error(error.message || "Could not continue Sync.");
         } finally {
             set_is_Submitting(false);
         }
@@ -372,7 +372,7 @@ export default function M_Sync_Manager({
         set_is_Submitting(true);
 
         try {
-            const response = await fetch(`${sync_Manager_Api_Path}/reset`, {
+            const response = await fetch(`${sync_Api_Path}/reset`, {
                 method: "POST",
             });
             const response_Data = await response.json();
@@ -525,7 +525,7 @@ export default function M_Sync_Manager({
                         <button
                             className="m-sync-close-btn"
                             onClick={close_Modal}
-                            aria-label="Close Sync Manager"
+                            aria-label="Close Sync"
                         >
                             ❌
                         </button>

@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Constant\Sync_Manager_Service;
-use App\Constant\M_Sync_Manager_Service_Status_Log;
+use App\Constant\M_Sync_Service;
+use App\Constant\M_Sync_Service_Status_Log;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-class SyncManagerControllerTest extends TestCase
+class SyncControllerTest extends TestCase
 {
     /**
      * Reject script identifiers that are not in the backend allowlist.
@@ -17,7 +17,7 @@ class SyncManagerControllerTest extends TestCase
      */
     public function test_start_rejects_unallowlisted_script_ids(): void
     {
-        $this->postJson('/api/sync-manager/start', [
+        $this->postJson('/api/sync/start', [
             'scripts' => ['../../artisan'],
         ])->assertUnprocessable()
             ->assertJsonValidationErrors('scripts.0');
@@ -30,7 +30,7 @@ class SyncManagerControllerTest extends TestCase
      */
     public function test_start_requires_at_least_one_script(): void
     {
-        $this->postJson('/api/sync-manager/start', [
+        $this->postJson('/api/sync/start', [
             'scripts' => [],
         ])->assertUnprocessable()
             ->assertJsonValidationErrors('scripts');
@@ -44,8 +44,8 @@ class SyncManagerControllerTest extends TestCase
     public function test_reset_failed_run_clears_backend_status_files_and_deletes_run_log(): void
     {
         $original_Storage_Path = app()->storagePath();
-        $test_Storage_Path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'sync-manager-reset-' . Str::uuid();
-        $status_Directory = $test_Storage_Path . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'm-sync-manager';
+        $test_Storage_Path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'sync-reset-' . Str::uuid();
+        $status_Directory = $test_Storage_Path . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'm-sync';
         $log_Directory = $status_Directory . DIRECTORY_SEPARATOR . 'logs';
         File::ensureDirectoryExists($log_Directory);
         app()->useStoragePath($test_Storage_Path);
@@ -68,7 +68,7 @@ class SyncManagerControllerTest extends TestCase
         file_put_contents($run_Log_Path, 'Worker launch failed');
 
         try {
-            $result = app(Sync_Manager_Service::class)->resetFailedRun();
+            $result = app(M_Sync_Service::class)->resetFailedRun();
 
             $this->assertTrue($result['reset']);
             $this->assertSame(['m-project' => $completed_Other_Run], json_decode(
@@ -94,8 +94,8 @@ class SyncManagerControllerTest extends TestCase
     public function test_worker_output_is_read_from_run_log_by_incremental_cursor(): void
     {
         $original_Storage_Path = app()->storagePath();
-        $test_Storage_Path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'sync-manager-output-' . Str::uuid();
-        $log_Directory = $test_Storage_Path . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'm-sync-manager' . DIRECTORY_SEPARATOR . 'logs';
+        $test_Storage_Path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'sync-output-' . Str::uuid();
+        $log_Directory = $test_Storage_Path . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'm-sync' . DIRECTORY_SEPARATOR . 'logs';
         File::ensureDirectoryExists($log_Directory);
         app()->useStoragePath($test_Storage_Path);
 
@@ -105,16 +105,16 @@ class SyncManagerControllerTest extends TestCase
         try {
             file_put_contents($run_Log_Path, '');
 
-            M_Sync_Manager_Service_Status_Log::append_Run_Output(
+            M_Sync_Service_Status_Log::append_Run_Output(
                 $run_ID,
                 "First output line\nSecond output"
             );
-            $first_Chunk = M_Sync_Manager_Service_Status_Log::read_Log_Chunk($run_ID, 0, false);
+            $first_Chunk = M_Sync_Service_Status_Log::read_Log_Chunk($run_ID, 0, false);
             $this->assertSame("First output line\n", $first_Chunk['logs']);
             $this->assertSame(strlen("First output line\n"), $first_Chunk['cursor']);
 
-            M_Sync_Manager_Service_Status_Log::append_Run_Output($run_ID, " line\n");
-            $final_Chunk = M_Sync_Manager_Service_Status_Log::read_Log_Chunk(
+            M_Sync_Service_Status_Log::append_Run_Output($run_ID, " line\n");
+            $final_Chunk = M_Sync_Service_Status_Log::read_Log_Chunk(
                 $run_ID,
                 $first_Chunk['cursor'],
                 true
@@ -139,8 +139,8 @@ class SyncManagerControllerTest extends TestCase
     public function test_cleanup_deletes_unused_run_logs_and_preserves_active_run_logs(): void
     {
         $original_Storage_Path = app()->storagePath();
-        $test_Storage_Path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'sync-manager-cleanup-' . Str::uuid();
-        $log_Directory = $test_Storage_Path . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'm-sync-manager' . DIRECTORY_SEPARATOR . 'logs';
+        $test_Storage_Path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'sync-cleanup-' . Str::uuid();
+        $log_Directory = $test_Storage_Path . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'm-sync' . DIRECTORY_SEPARATOR . 'logs';
         File::ensureDirectoryExists($log_Directory);
         app()->useStoragePath($test_Storage_Path);
 
@@ -156,7 +156,7 @@ class SyncManagerControllerTest extends TestCase
         file_put_contents($unrelated_Log_Path, 'unrelated');
 
         try {
-            M_Sync_Manager_Service_Status_Log::delete_Unused_Run_Logs([
+            M_Sync_Service_Status_Log::delete_Unused_Run_Logs([
                 'active-target' => ['run_id' => $active_Run_ID, 'status' => 'running'],
                 'review-target' => ['run_id' => $review_Run_ID, 'status' => 'awaiting_review'],
                 'completed-target' => ['run_id' => $completed_Run_ID, 'status' => 'completed'],
@@ -189,8 +189,8 @@ class SyncManagerControllerTest extends TestCase
         }
 
         $original_Storage_Path = app()->storagePath();
-        $test_Storage_Path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'sync-manager-worker-' . Str::uuid();
-        $status_Directory = $test_Storage_Path . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'm-sync-manager';
+        $test_Storage_Path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'sync-worker-' . Str::uuid();
+        $status_Directory = $test_Storage_Path . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'm-sync';
         $log_Directory = $status_Directory . DIRECTORY_SEPARATOR . 'logs';
         File::ensureDirectoryExists($log_Directory);
         app()->useStoragePath($test_Storage_Path);
@@ -210,10 +210,10 @@ class SyncManagerControllerTest extends TestCase
         );
 
         try {
-            $sync_Manager_Service = app(Sync_Manager_Service::class);
-            $windows_Runner = new \ReflectionMethod(Sync_Manager_Service::class, 'execute_Windows_Script');
-            $exit_Code = $windows_Runner->invoke($sync_Manager_Service, $run_Record, $worker_Script_Path);
-            $output_Chunk = M_Sync_Manager_Service_Status_Log::read_Log_Chunk($run_ID, 0, true);
+            $sync_Service = app(M_Sync_Service::class);
+            $windows_Runner = new \ReflectionMethod(M_Sync_Service::class, 'execute_Windows_Script');
+            $exit_Code = $windows_Runner->invoke($sync_Service, $run_Record, $worker_Script_Path);
+            $output_Chunk = M_Sync_Service_Status_Log::read_Log_Chunk($run_ID, 0, true);
 
             $this->assertSame(0, $exit_Code);
             $this->assertStringContainsString('worker probe passed', $output_Chunk['logs']);

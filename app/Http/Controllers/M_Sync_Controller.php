@@ -3,24 +3,24 @@
 namespace App\Http\Controllers;
 
 use App\Constant\TargetManager;
-use App\Constant\Sync_Manager_Service;
+use App\Constant\M_Sync_Service;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
-class M_Sync_Manager_Controller extends Controller
+class M_Sync_Controller extends Controller
 {
     /**
-     * @param Sync_Manager_Service $sync_Manager_Service Manages runs, process state, and run logs.
+     * @param M_Sync_Service $sync_Service Runs scripts and returns run status/logs.
      */
-    public function __construct(private Sync_Manager_Service $sync_Manager_Service)
+    public function __construct(private M_Sync_Service $sync_Service)
     {
     }
 
     /**
      * Validate selected script identifiers and start a run when the target is available.
      *
-     * @param Request $request Selected script IDs from the Sync Manager UI.
+     * @param Request $request Selected script IDs from the Sync UI.
      * @return JsonResponse e.g.
      * * {
      * * * "success": true,
@@ -43,17 +43,17 @@ class M_Sync_Manager_Controller extends Controller
     {
         $validated = $request->validate([
             'scripts' => 'required|array|min:1',
-            'scripts.*' => ['required', 'string', Rule::in(Sync_Manager_Service::SCRIPT_IDS)],
+            'scripts.*' => ['required', 'string', Rule::in(M_Sync_Service::SCRIPT_IDS)],
         ]);
 
         if (TargetManager::get_activeTarget() === '') {
             return response()->json([
                 'success' => false,
-                'message' => 'Select an active target before starting Sync Manager.',
+                'message' => 'Select an active target before starting Sync.',
             ], 422);
         }
 
-        $result = $this->sync_Manager_Service->startRun($validated['scripts']);
+        $result = $this->sync_Service->startRun($validated['scripts']);
 
         if (!$result['accepted']) {
             $run_Status = $result['run']['status'] ?? '';
@@ -102,11 +102,11 @@ class M_Sync_Manager_Controller extends Controller
         if (TargetManager::get_activeTarget() === '') {
             return response()->json([
                 'success' => false,
-                'message' => 'Select an active target before checking Sync Manager status.',
+                'message' => 'Select an active target before checking Sync status.',
             ], 422);
         }
 
-        $status = $this->sync_Manager_Service->getCurrentStatus(
+        $status = $this->sync_Service->getCurrentStatus(
             $validated['run_id'] ?? null,
             (int) ($validated['cursor'] ?? 0)
         );
@@ -114,7 +114,7 @@ class M_Sync_Manager_Controller extends Controller
         if ($status['status'] === 'not_found') {
             return response()->json([
                 'success' => false,
-                'message' => 'The requested Sync Manager run is no longer available.',
+                'message' => 'The requested Sync run is no longer available.',
             ], 404);
         }
 
@@ -122,7 +122,7 @@ class M_Sync_Manager_Controller extends Controller
     }
 
     /**
-     * Clear a failed target run so Sync Manager can start again.
+     * Clear a failed target run so Sync can start again.
      *
      * @return JsonResponse Reset confirmation or the run state that prevented reset.
      */
@@ -131,16 +131,16 @@ class M_Sync_Manager_Controller extends Controller
         if (TargetManager::get_activeTarget() === '') {
             return response()->json([
                 'success' => false,
-                'message' => 'Select an active target before resetting Sync Manager status.',
+                'message' => 'Select an active target before resetting Sync status.',
             ], 422);
         }
 
-        $result = $this->sync_Manager_Service->resetFailedRun();
+        $result = $this->sync_Service->resetFailedRun();
         if (!$result['reset']) {
             return response()->json([
                 'success' => false,
                 'message' => $result['run'] === null
-                    ? 'There is no failed Sync Manager run to reset.'
+                    ? 'There is no failed Sync run to reset.'
                     : 'Only a failed run can be reset. Active or review-pending runs are preserved.',
                 'run' => $result['run'],
             ], $result['run'] === null ? 404 : 409);
@@ -175,11 +175,11 @@ class M_Sync_Manager_Controller extends Controller
         if (TargetManager::get_activeTarget() === '') {
             return response()->json([
                 'success' => false,
-                'message' => 'Select an active target before continuing Sync Manager.',
+                'message' => 'Select an active target before continuing Sync.',
             ], 422);
         }
 
-        $result = $this->sync_Manager_Service->continueRun($run_ID);
+        $result = $this->sync_Service->continueRun($run_ID);
 
         if (!$result['accepted']) {
             $status = $result['run']['status'] ?? 'unknown';
@@ -211,13 +211,13 @@ class M_Sync_Manager_Controller extends Controller
     private function get_Blocking_Run_Message(array $run_Record): string
     {
         if (($run_Record['status'] ?? '') === 'not_found') {
-            return 'The requested Sync Manager run is no longer available.';
+            return 'The requested Sync run is no longer available.';
         }
 
         if (($run_Record['status'] ?? '') === 'awaiting_review') {
             return 'A previous run is waiting for the Entities.json review. Continue that run before starting another.';
         }
 
-        return 'A previous Sync Manager run is still active for this target. Check its status and backend log before starting another.';
+        return 'A previous Sync run is still active for this target. Check its status and backend log before starting another.';
     }
 }

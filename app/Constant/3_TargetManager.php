@@ -26,7 +26,7 @@ class TargetManager
     }
 
     /**
-     * Read the active target, honoring a valid target override for Sync Manager worker scripts.
+     * Read the active target, honoring a valid target override for Sync worker scripts.
      *
      * @return string Active target name, or an empty string when config is unavailable.
      */

@@ -6,7 +6,7 @@ use Closure;
 use RuntimeException;
 use Throwable;
 
-class M_Sync_Manager_Service_EXE_Worker
+class M_Sync_Service_EXE_Worker
 {
     /**
      * @param  Closure(string): (array<string, mixed>|null)  $find_Run  Loads the persisted run record.
@@ -48,7 +48,7 @@ class M_Sync_Manager_Service_EXE_Worker
         $run_Record = ($this->find_Run)($run_ID);
 
         if ($run_Record === null) {
-            throw new RuntimeException("Sync Manager run not found: {$run_ID}");
+            throw new RuntimeException("Sync run not found: {$run_ID}");
         }
 
         $target_Name = $run_Record['target'];
