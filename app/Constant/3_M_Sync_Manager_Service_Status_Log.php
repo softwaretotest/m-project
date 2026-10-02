@@ -1,0 +1,357 @@
+<?php
+
+namespace App\Constant;
+
+use RuntimeException;
+
+class M_Sync_Manager_Service_Status_Log
+{
+    private const STATUS_FILE = 'app/m-sync-manager/sync_status.json';
+
+    private const LEGACY_STATUS_FILE = 'app/m-sync-manager/status.json';
+
+    private const LOCK_FILE = 'app/m-sync-manager/sync_status.lock';
+
+    private const LOG_DIRECTORY = 'app/m-sync-manager/logs';
+
+    private const STATUS_FAILED = 'failed';
+
+    /**
+     * Update a run record while holding the status file lock.
+     *
+     * @param  string  $target_Name  Configured target name.
+     * @param  string  $run_ID  Identifier of the run to update.
+     * @param  callable(array<string, mixed>): array<string, mixed>  $update_Callback  Run record transformation.
+     */
+    public function update_Run(string $target_Name, string $run_ID, callable $update_Callback): void
+    {
+        $this->with_Status_Lock(function () use ($target_Name, $run_ID, $update_Callback): void {
+            $status_Data = $this->read_Status_Data();
+            $run_Record = $status_Data[$target_Name] ?? null;
+
+            if (! is_array($run_Record) || $run_Record['run_id'] !== $run_ID) {
+                throw new RuntimeException("Sync Manager run changed before update: {$run_ID}");
+            }
+
+            $status_Data[$target_Name] = $update_Callback($run_Record);
+            $this->write_Status_Data($status_Data);
+        });
+    }
+
+    /**
+     * Update one script's status in the persisted run record.
+     *
+     * @param  string  $target_Name  Configured target name.
+     * @param  string  $run_ID  Identifier of the run containing the script.
+     * @param  string  $script_ID  Allowlisted script identifier.
+     * @param  string  $script_Status  Current script state.
+     */
+    public function update_Script_Status(
+        string $target_Name,
+        string $run_ID,
+        string $script_ID,
+        string $script_Status
+    ): void {
+        $this->update_Run($target_Name, $run_ID, function (array $run_Record) use ($script_ID, $script_Status): array {
+            $run_Record['script_statuses'][$script_ID] = $script_Status;
+            $run_Record['updated_at'] = date(DATE_ATOM);
+
+            return $run_Record;
+        });
+    }
+
+    /**
+     * Mark a run failed and persist the failure reason for the UI and developer.
+     *
+     * @param  string  $target_Name  Configured target name.
+     * @param  string  $run_ID  Identifier of the failed run.
+     * @param  string  $message  Failure details.
+     */
+    public function fail_Run(string $target_Name, string $run_ID, string $message): void
+    {
+        $this->update_Run($target_Name, $run_ID, function (array $run_Record) use ($message): array {
+            $run_Record['status'] = self::STATUS_FAILED;
+            $run_Record['pid'] = null;
+            $run_Record['child_pid'] = null;
+            $run_Record['message'] = $message;
+            $run_Record['finished_at'] = date(DATE_ATOM);
+            $run_Record['updated_at'] = date(DATE_ATOM);
+
+            return $run_Record;
+        });
+    }
+
+    /**
+     * Append worker output to the current run's private log file.
+     *
+     * @param  string  $run_ID  Identifier of the run receiving output.
+     * @param  string  $output  Raw output received from the child script.
+     */
+    public function append_Run_Output(string $run_ID, string $output): void
+    {
+        if ($output === '') {
+            return;
+        }
+
+        $valid_Output = mb_convert_encoding($output, 'UTF-8', 'UTF-8');
+        $written = file_put_contents(
+            $this->get_Log_File_Path($run_ID),
+            $valid_Output,
+            FILE_APPEND | LOCK_EX
+        );
+
+        if ($written === false) {
+            throw new RuntimeException("Could not append output to Sync Manager log for run {$run_ID}");
+        }
+    }
+
+    /**
+     * Read only complete log lines after the byte cursor, except after the run has ended.
+     *
+     * @param  string  $run_ID  Identifier of the log to read.
+     * @param  int  $cursor  Byte offset already consumed by the client.
+     * @param  bool  $include_Final_Line  Include a final line without a newline for completed runs.
+     * @return array{logs: string, cursor: int} Appended log text and the next byte cursor.
+     */
+    public function read_Log_Chunk(string $run_ID, int $cursor, bool $include_Final_Line): array
+    {
+        $log_Path = $this->get_Log_File_Path($run_ID);
+        if (! file_exists($log_Path)) {
+            return ['logs' => '', 'cursor' => 0];
+        }
+
+        $log_Content = file_get_contents($log_Path);
+        if ($log_Content === false) {
+            throw new RuntimeException("Could not read Sync Manager log for run {$run_ID}");
+        }
+
+        $cursor = min($cursor, strlen($log_Content));
+        $new_Content = substr($log_Content, $cursor);
+        $last_Newline = strrpos($new_Content, "\n");
+
+        if ($last_Newline === false) {
+            if (! $include_Final_Line) {
+                return ['logs' => '', 'cursor' => $cursor];
+            }
+
+            $complete_Content = $new_Content;
+        } else {
+            $complete_Content = substr($new_Content, 0, $last_Newline + 1);
+        }
+
+        return [
+            'logs' => mb_convert_encoding($complete_Content, 'UTF-8', 'UTF-8'),
+            'cursor' => $cursor + strlen($complete_Content),
+        ];
+    }
+
+    /**
+     * Run a callback while holding the cross-request status lock.
+     *
+     * @param  callable(): mixed  $callback  Operation that reads or writes shared status.
+     * @return mixed Callback result.
+     */
+    public function with_Status_Lock(callable $callback): mixed
+    {
+        $this->ensure_Storage_Directories();
+        $lock_Handle = fopen($this->get_Lock_File_Path(), 'c+');
+
+        if ($lock_Handle === false) {
+            throw new RuntimeException('Could not open the Sync Manager status lock file.');
+        }
+
+        if (! flock($lock_Handle, LOCK_EX)) {
+            fclose($lock_Handle);
+            throw new RuntimeException('Could not lock the Sync Manager status file.');
+        }
+
+        try {
+            return $callback();
+        } finally {
+            flock($lock_Handle, LOCK_UN);
+            fclose($lock_Handle);
+        }
+    }
+
+    /**
+     * Read the status file into a target-name keyed map.
+     *
+     * @return array<string, array<string, mixed>> Persisted runs keyed by target name.
+     */
+    public function read_Status_Data(): array
+    {
+        $status_Path = $this->get_Status_File_Path();
+        $legacy_Status_Path = $this->get_Legacy_Status_File_Path();
+        if (! file_exists($status_Path) && file_exists($legacy_Status_Path)) {
+            $status_Path = $legacy_Status_Path;
+        }
+
+        return $this->read_Status_Data_From_Path($status_Path);
+    }
+
+    /**
+     * Read one status JSON file into a target-name keyed map.
+     *
+     * @param  string  $status_Path  Absolute path to a status file.
+     * @return array<string, array<string, mixed>> Persisted runs keyed by target name.
+     */
+    public function read_Status_Data_From_Path(string $status_Path): array
+    {
+        if (! file_exists($status_Path)) {
+            return [];
+        }
+
+        $status_Content = file_get_contents($status_Path);
+        $status_Data = json_decode((string) $status_Content, true);
+
+        if (! is_array($status_Data)) {
+            throw new RuntimeException('Sync Manager status file contains invalid JSON.');
+        }
+
+        return $status_Data;
+    }
+
+    /**
+     * Persist the target-name keyed status map as formatted JSON.
+     *
+     * @param  array<string, array<string, mixed>>  $status_Data  Persisted runs keyed by target name.
+     */
+    public function write_Status_Data(array $status_Data): void
+    {
+        $this->write_Status_Data_To_Path($this->get_Status_File_Path(), $status_Data);
+    }
+
+    /**
+     * Persist the target-name keyed status map as formatted JSON at the given path.
+     *
+     * @param  string  $status_Path  Absolute path to a status file.
+     * @param  array<string, array<string, mixed>>  $status_Data  Persisted runs keyed by target name.
+     */
+    public function write_Status_Data_To_Path(string $status_Path, array $status_Data): void
+    {
+        $status_JSON = json_encode($status_Data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        if ($status_JSON === false) {
+            throw new RuntimeException('Could not encode Sync Manager status as JSON.');
+        }
+
+        $written = file_put_contents($status_Path, $status_JSON, LOCK_EX);
+        if ($written === false) {
+            throw new RuntimeException("Could not write the Sync Manager status file: {$status_Path}");
+        }
+    }
+
+    /**
+     * Create private storage directories used for status and per-run logs.
+     */
+    public function ensure_Storage_Directories(): void
+    {
+        foreach ([dirname($this->get_Status_File_Path()), storage_path(self::LOG_DIRECTORY)] as $directory_Path) {
+            if (! is_dir($directory_Path) && ! mkdir($directory_Path, 0775, true) && ! is_dir($directory_Path)) {
+                throw new RuntimeException("Could not create Sync Manager storage directory: {$directory_Path}");
+            }
+        }
+    }
+
+    /**
+     * Return the absolute path to the persisted status file.
+     *
+     * @return string Absolute status JSON path.
+     */
+    public function get_Status_File_Path(): string
+    {
+        return storage_path(self::STATUS_FILE);
+    }
+
+    /**
+     * Return the absolute path to the legacy status file.
+     *
+     * @return string Absolute legacy status JSON path.
+     */
+    public function get_Legacy_Status_File_Path(): string
+    {
+        return storage_path(self::LEGACY_STATUS_FILE);
+    }
+
+    /**
+     * Return the absolute path to the status lock file.
+     *
+     * @return string Absolute lock-file path.
+     */
+    public function get_Lock_File_Path(): string
+    {
+        return storage_path(self::LOCK_FILE);
+    }
+
+    /**
+     * Return the absolute path to one run's private output log.
+     *
+     * @param  string  $run_ID  Identifier of the run.
+     * @return string Absolute run-log path.
+     */
+    public function get_Log_File_Path(string $run_ID): string
+    {
+        if (! preg_match('/^[0-9a-f-]{36}$/i', $run_ID)) {
+            throw new RuntimeException('Invalid Sync Manager run identifier.');
+        }
+
+        return storage_path(self::LOG_DIRECTORY."/{$run_ID}.log");
+    }
+
+    /**
+     * Delete run logs that are no longer needed, preserving active or review-pending runs.
+     *
+     * @param  array<string, array<string, mixed>>  $status_Data  Persisted runs keyed by target name.
+     * @param  callable(array<string, mixed>): bool  $is_Run_Active  Checks whether a run must retain its log.
+     */
+    public function delete_Unused_Run_Logs(array $status_Data, callable $is_Run_Active): void
+    {
+        $active_Run_IDs = [];
+        foreach ($status_Data as $run_Record) {
+            if (! is_array($run_Record)) {
+                continue;
+            }
+
+            $run_ID = $run_Record['run_id'] ?? null;
+            if (
+                is_string($run_ID)
+                && preg_match('/^[0-9a-f-]{36}$/i', $run_ID)
+                && isset($run_Record['status'])
+                && $is_Run_Active($run_Record)
+            ) {
+                $active_Run_IDs[] = strtolower($run_ID);
+            }
+        }
+
+        $log_Paths = glob(storage_path(self::LOG_DIRECTORY.'/*.log'));
+        if ($log_Paths === false) {
+            throw new RuntimeException('Could not list Sync Manager run logs for cleanup.');
+        }
+
+        foreach ($log_Paths as $log_Path) {
+            $run_ID = basename($log_Path, '.log');
+            if (
+                ! preg_match('/^[0-9a-f-]{36}$/i', $run_ID)
+                || in_array(strtolower($run_ID), $active_Run_IDs, true)
+            ) {
+                continue;
+            }
+
+            if (! unlink($log_Path)) {
+                throw new RuntimeException("Could not delete unused Sync Manager log: {$log_Path}");
+            }
+        }
+    }
+
+    /**
+     * Delete one run's log when its failed status is reset.
+     *
+     * @param  string  $run_ID  Identifier of the run.
+     */
+    public function delete_Run_Log(string $run_ID): void
+    {
+        $log_Path = $this->get_Log_File_Path($run_ID);
+        if (file_exists($log_Path) && ! unlink($log_Path)) {
+            throw new RuntimeException("Could not delete Sync Manager log for run {$run_ID}");
+        }
+    }
+}

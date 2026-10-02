@@ -9,10 +9,6 @@ use Throwable;
 
 class Sync_Manager_Service
 {
-    private const STATUS_FILE = 'app/m-sync-manager/sync_status.json';
-    private const LEGACY_STATUS_FILE = 'app/m-sync-manager/status.json';
-    private const LOCK_FILE = 'app/m-sync-manager/sync_status.lock';
-    private const LOG_DIRECTORY = 'app/m-sync-manager/logs';
     private const STATUS_STARTING = 'starting';
     private const STATUS_RUNNING = 'running';
     private const STATUS_AWAITING_REVIEW = 'awaiting_review';
@@ -37,6 +33,12 @@ class Sync_Manager_Service
     ];
 
     private const SCRIPT_ORDER = self::SCRIPT_IDS;
+    private M_Sync_Manager_Service_Status_Log $status_Log;
+
+    public function __construct()
+    {
+        $this->status_Log = new M_Sync_Manager_Service_Status_Log();
+    }
 
     private const SCRIPT_FILES = [
         self::SCRIPT_JSON_TO_PHP => 'app/Constant/2_M_Sync_JSON.php',
@@ -112,7 +114,10 @@ class Sync_Manager_Service
                 $this->delete_Run_Log($failed_Run_ID);
             }
 
-            foreach ([$this->get_Status_File_Path(), storage_path(self::LEGACY_STATUS_FILE)] as $status_Path) {
+            foreach ([
+                $this->get_Status_File_Path(),
+                $this->status_Log->get_Legacy_Status_File_Path(),
+            ] as $status_Path) {
                 if (!file_exists($status_Path)) {
                     continue;
                 }
@@ -587,17 +592,7 @@ class Sync_Manager_Service
      */
     private function update_Run(string $target_Name, string $run_ID, callable $update_Callback): void
     {
-        $this->with_Status_Lock(function () use ($target_Name, $run_ID, $update_Callback): void {
-            $status_Data = $this->read_Status_Data();
-            $run_Record = $status_Data[$target_Name] ?? null;
-
-            if (!is_array($run_Record) || $run_Record['run_id'] !== $run_ID) {
-                throw new RuntimeException("Sync Manager run changed before update: {$run_ID}");
-            }
-
-            $status_Data[$target_Name] = $update_Callback($run_Record);
-            $this->write_Status_Data($status_Data);
-        });
+        $this->status_Log->update_Run($target_Name, $run_ID, $update_Callback);
     }
 
     /**
@@ -615,12 +610,7 @@ class Sync_Manager_Service
         string $script_ID,
         string $script_Status
     ): void {
-        $this->update_Run($target_Name, $run_ID, function (array $run_Record) use ($script_ID, $script_Status): array {
-            $run_Record['script_statuses'][$script_ID] = $script_Status;
-            $run_Record['updated_at'] = date(DATE_ATOM);
-
-            return $run_Record;
-        });
+        $this->status_Log->update_Script_Status($target_Name, $run_ID, $script_ID, $script_Status);
     }
 
     /**
@@ -633,16 +623,7 @@ class Sync_Manager_Service
      */
     private function fail_Run(string $target_Name, string $run_ID, string $message): void
     {
-        $this->update_Run($target_Name, $run_ID, function (array $run_Record) use ($message): array {
-            $run_Record['status'] = self::STATUS_FAILED;
-            $run_Record['pid'] = null;
-            $run_Record['child_pid'] = null;
-            $run_Record['message'] = $message;
-            $run_Record['finished_at'] = date(DATE_ATOM);
-            $run_Record['updated_at'] = date(DATE_ATOM);
-
-            return $run_Record;
-        });
+        $this->status_Log->fail_Run($target_Name, $run_ID, $message);
     }
 
     /**
@@ -742,20 +723,7 @@ class Sync_Manager_Service
      */
     private function append_Run_Output(string $run_ID, string $output): void
     {
-        if ($output === '') {
-            return;
-        }
-
-        $valid_Output = mb_convert_encoding($output, 'UTF-8', 'UTF-8');
-        $written = file_put_contents(
-            $this->get_Log_File_Path($run_ID),
-            $valid_Output,
-            FILE_APPEND | LOCK_EX
-        );
-
-        if ($written === false) {
-            throw new RuntimeException("Could not append output to Sync Manager log for run {$run_ID}");
-        }
+        $this->status_Log->append_Run_Output($run_ID, $output);
     }
 
     /**
@@ -768,34 +736,7 @@ class Sync_Manager_Service
      */
     private function read_Log_Chunk(string $run_ID, int $cursor, bool $include_Final_Line): array
     {
-        $log_Path = $this->get_Log_File_Path($run_ID);
-        if (!file_exists($log_Path)) {
-            return ['logs' => '', 'cursor' => 0];
-        }
-
-        $log_Content = file_get_contents($log_Path);
-        if ($log_Content === false) {
-            throw new RuntimeException("Could not read Sync Manager log for run {$run_ID}");
-        }
-
-        $cursor = min($cursor, strlen($log_Content));
-        $new_Content = substr($log_Content, $cursor);
-        $last_Newline = strrpos($new_Content, "\n");
-
-        if ($last_Newline === false) {
-            if (!$include_Final_Line) {
-                return ['logs' => '', 'cursor' => $cursor];
-            }
-
-            $complete_Content = $new_Content;
-        } else {
-            $complete_Content = substr($new_Content, 0, $last_Newline + 1);
-        }
-
-        return [
-            'logs' => mb_convert_encoding($complete_Content, 'UTF-8', 'UTF-8'),
-            'cursor' => $cursor + strlen($complete_Content),
-        ];
+        return $this->status_Log->read_Log_Chunk($run_ID, $cursor, $include_Final_Line);
     }
 
     /**
@@ -806,24 +747,7 @@ class Sync_Manager_Service
      */
     private function with_Status_Lock(callable $callback): mixed
     {
-        $this->ensure_Storage_Directories();
-        $lock_Handle = fopen($this->get_Lock_File_Path(), 'c+');
-
-        if ($lock_Handle === false) {
-            throw new RuntimeException('Could not open the Sync Manager status lock file.');
-        }
-
-        if (!flock($lock_Handle, LOCK_EX)) {
-            fclose($lock_Handle);
-            throw new RuntimeException('Could not lock the Sync Manager status file.');
-        }
-
-        try {
-            return $callback();
-        } finally {
-            flock($lock_Handle, LOCK_UN);
-            fclose($lock_Handle);
-        }
+        return $this->status_Log->with_Status_Lock($callback);
     }
 
     /**
@@ -833,12 +757,7 @@ class Sync_Manager_Service
      */
     private function read_Status_Data(): array
     {
-        $status_Path = $this->get_Status_File_Path();
-        if (!file_exists($status_Path) && file_exists(storage_path(self::LEGACY_STATUS_FILE))) {
-            $status_Path = storage_path(self::LEGACY_STATUS_FILE);
-        }
-
-        return $this->read_Status_Data_From_Path($status_Path);
+        return $this->status_Log->read_Status_Data();
     }
 
     /**
@@ -849,18 +768,7 @@ class Sync_Manager_Service
      */
     private function read_Status_Data_From_Path(string $status_Path): array
     {
-        if (!file_exists($status_Path)) {
-            return [];
-        }
-
-        $status_Content = file_get_contents($status_Path);
-        $status_Data = json_decode((string) $status_Content, true);
-
-        if (!is_array($status_Data)) {
-            throw new RuntimeException('Sync Manager status file contains invalid JSON.');
-        }
-
-        return $status_Data;
+        return $this->status_Log->read_Status_Data_From_Path($status_Path);
     }
 
     /**
@@ -871,7 +779,7 @@ class Sync_Manager_Service
      */
     private function write_Status_Data(array $status_Data): void
     {
-        $this->write_Status_Data_To_Path($this->get_Status_File_Path(), $status_Data);
+        $this->status_Log->write_Status_Data($status_Data);
     }
 
     /**
@@ -883,15 +791,7 @@ class Sync_Manager_Service
      */
     private function write_Status_Data_To_Path(string $status_Path, array $status_Data): void
     {
-        $status_JSON = json_encode($status_Data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-        if ($status_JSON === false) {
-            throw new RuntimeException('Could not encode Sync Manager status as JSON.');
-        }
-
-        $written = file_put_contents($status_Path, $status_JSON, LOCK_EX);
-        if ($written === false) {
-            throw new RuntimeException("Could not write the Sync Manager status file: {$status_Path}");
-        }
+        $this->status_Log->write_Status_Data_To_Path($status_Path, $status_Data);
     }
 
     /**
@@ -901,11 +801,7 @@ class Sync_Manager_Service
      */
     private function ensure_Storage_Directories(): void
     {
-        foreach ([dirname($this->get_Status_File_Path()), storage_path(self::LOG_DIRECTORY)] as $directory_Path) {
-            if (!is_dir($directory_Path) && !mkdir($directory_Path, 0775, true) && !is_dir($directory_Path)) {
-                throw new RuntimeException("Could not create Sync Manager storage directory: {$directory_Path}");
-            }
-        }
+        $this->status_Log->ensure_Storage_Directories();
     }
 
     /**
@@ -915,7 +811,7 @@ class Sync_Manager_Service
      */
     private function get_Status_File_Path(): string
     {
-        return storage_path(self::STATUS_FILE);
+        return $this->status_Log->get_Status_File_Path();
     }
 
     /**
@@ -925,7 +821,7 @@ class Sync_Manager_Service
      */
     private function get_Lock_File_Path(): string
     {
-        return storage_path(self::LOCK_FILE);
+        return $this->status_Log->get_Lock_File_Path();
     }
 
     /**
@@ -936,11 +832,7 @@ class Sync_Manager_Service
      */
     private function get_Log_File_Path(string $run_ID): string
     {
-        if (!preg_match('/^[0-9a-f-]{36}$/i', $run_ID)) {
-            throw new RuntimeException('Invalid Sync Manager run identifier.');
-        }
-
-        return storage_path(self::LOG_DIRECTORY . "/{$run_ID}.log");
+        return $this->status_Log->get_Log_File_Path($run_ID);
     }
 
     /**
@@ -951,41 +843,10 @@ class Sync_Manager_Service
      */
     private function delete_Unused_Run_Logs(array $status_Data): void
     {
-        $active_Run_IDs = [];
-        foreach ($status_Data as $run_Record) {
-            if (!is_array($run_Record)) {
-                continue;
-            }
-
-            $run_ID = $run_Record['run_id'] ?? null;
-            if (
-                is_string($run_ID)
-                && preg_match('/^[0-9a-f-]{36}$/i', $run_ID)
-                && isset($run_Record['status'])
-                && $this->is_Run_Active($run_Record)
-            ) {
-                $active_Run_IDs[] = strtolower($run_ID);
-            }
-        }
-
-        $log_Paths = glob(storage_path(self::LOG_DIRECTORY . '/*.log'));
-        if ($log_Paths === false) {
-            throw new RuntimeException('Could not list Sync Manager run logs for cleanup.');
-        }
-
-        foreach ($log_Paths as $log_Path) {
-            $run_ID = basename($log_Path, '.log');
-            if (
-                !preg_match('/^[0-9a-f-]{36}$/i', $run_ID)
-                || in_array(strtolower($run_ID), $active_Run_IDs, true)
-            ) {
-                continue;
-            }
-
-            if (!unlink($log_Path)) {
-                throw new RuntimeException("Could not delete unused Sync Manager log: {$log_Path}");
-            }
-        }
+        $this->status_Log->delete_Unused_Run_Logs(
+            $status_Data,
+            fn (array $run_Record): bool => $this->is_Run_Active($run_Record)
+        );
     }
 
     /**
@@ -996,10 +857,7 @@ class Sync_Manager_Service
      */
     private function delete_Run_Log(string $run_ID): void
     {
-        $log_Path = $this->get_Log_File_Path($run_ID);
-        if (file_exists($log_Path) && !unlink($log_Path)) {
-            throw new RuntimeException("Could not delete Sync Manager log for run {$run_ID}");
-        }
+        $this->status_Log->delete_Run_Log($run_ID);
     }
 
     /**
