@@ -5,7 +5,13 @@ namespace App\Constant;
 use Illuminate\Console\Command;
 use Throwable;
 
-class Sync_Manager_Run_Command extends Command
+/**
+ * * Sync_Manager_Artisan is
+ * * the Artisan entry point for the detached command.
+ * * It does not reserve runs or execute the scripts itself;
+ * * handle() passes run_id and phase to the Service.
+ */
+class Sync_Manager_Artisan extends Command
 {
     protected $signature = 'sync-manager:run {run_id} {phase}';
 
