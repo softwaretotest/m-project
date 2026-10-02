@@ -11,7 +11,7 @@ class Sync_Manager_Service
 {
     private const STATUS_FILE = 'app/m-sync-manager/sync_status.json';
     private const LEGACY_STATUS_FILE = 'app/m-sync-manager/status.json';
-    private const LOCK_FILE = 'app/m-sync-manager/status.lock';
+    private const LOCK_FILE = 'app/m-sync-manager/sync_status.lock';
     private const LOG_DIRECTORY = 'app/m-sync-manager/logs';
     private const STATUS_STARTING = 'starting';
     private const STATUS_RUNNING = 'running';
@@ -767,7 +767,11 @@ class Sync_Manager_Service
      */
     private function reconcile_Dead_Process(array $run_Record): array
     {
-        if (!in_array($run_Record['status'], [self::STATUS_STARTING, self::STATUS_RUNNING], true)) {
+        if (false === in_array(
+            $run_Record['status'],
+            [self::STATUS_STARTING, self::STATUS_RUNNING],
+            true
+        )) {
             return $run_Record;
         }
 
