@@ -55,7 +55,7 @@ class Sync_Manager_Service
      */
     public function startRun(array $selected_Scripts): array
     {
-        $target_Name = $this->get_Active_Target_Name();
+        $target_Name = TargetManager::get_activeTarget();
         $ordered_Scripts = $this->order_Selected_Scripts($selected_Scripts);
         $run_Record = $this->reserve_Run($target_Name, $ordered_Scripts);
 
@@ -74,7 +74,7 @@ class Sync_Manager_Service
      */
     public function continueRun(string $run_ID): array
     {
-        $target_Name = $this->get_Active_Target_Name();
+        $target_Name = TargetManager::get_activeTarget();
         $run_Record = $this->reserve_Continuation($target_Name, $run_ID);
 
         if (!$run_Record['accepted']) {
@@ -91,7 +91,7 @@ class Sync_Manager_Service
      */
     public function resetFailedRun(): array
     {
-        $target_Name = $this->get_Active_Target_Name();
+        $target_Name = TargetManager::get_activeTarget();
 
         return $this->with_Status_Lock(function () use ($target_Name): array {
             $status_Data = $this->read_Status_Data();
@@ -158,7 +158,7 @@ class Sync_Manager_Service
      */
     public function getCurrentStatus(?string $run_ID = null, int $cursor = 0): array
     {
-        $target_Name = $this->get_Active_Target_Name();
+        $target_Name = TargetManager::get_activeTarget();
         $run_Record = $this->with_Status_Lock(function () use ($target_Name): ?array {
             $status_Data = $this->read_Status_Data();
             $run_Record = $status_Data[$target_Name] ?? null;
@@ -332,7 +332,11 @@ class Sync_Manager_Service
 
             $this->ensure_Storage_Directories();
             $this->delete_Unused_Run_Logs($status_Data);
-            $log_Initialized = file_put_contents($this->get_Log_File_Path($run_ID), '', LOCK_EX);
+            $log_Initialized = file_put_contents(
+                M_Sync_Manager_Service_Status_Log::get_Log_File_Path($run_ID),
+                '',
+                LOCK_EX
+            );
             if ($log_Initialized === false) {
                 throw new RuntimeException("Could not initialize Sync Manager log for run {$run_ID}");
             }
@@ -477,13 +481,13 @@ class Sync_Manager_Service
     private function execute_Script(array $run_Record, string $script_ID): array
     {
         $windows_Script = new M_Sync_Manager_Service_Windows_Script(
-            fn (string $run_ID): string => $this->get_Log_File_Path($run_ID),
+            fn (string $run_ID): string => M_Sync_Manager_Service_Status_Log::get_Log_File_Path($run_ID),
             function (string $target_Name, string $run_ID, callable $update_Callback): void {
                 $this->update_Run($target_Name, $run_ID, $update_Callback);
             }
         );
         $script_Executor = new M_Sync_Manager_Service_EXE_Script(
-            fn (string $run_ID): string => $this->get_Log_File_Path($run_ID),
+            fn (string $run_ID): string => M_Sync_Manager_Service_Status_Log::get_Log_File_Path($run_ID),
             function (string $target_Name, string $run_ID, callable $update_Callback): void {
                 $this->update_Run($target_Name, $run_ID, $update_Callback);
             },
@@ -511,7 +515,7 @@ class Sync_Manager_Service
     private function execute_Windows_Script(array $run_Record, string $script_Path): int
     {
         $windows_Script = new M_Sync_Manager_Service_Windows_Script(
-            fn (string $run_ID): string => $this->get_Log_File_Path($run_ID),
+            fn (string $run_ID): string => M_Sync_Manager_Service_Status_Log::get_Log_File_Path($run_ID),
             function (string $target_Name, string $run_ID, callable $update_Callback): void {
                 $this->update_Run($target_Name, $run_ID, $update_Callback);
             }
@@ -825,17 +829,6 @@ class Sync_Manager_Service
     }
 
     /**
-     * Return the absolute path to one run's private output log.
-     *
-     * @param string $run_ID Identifier of the run.
-     * @return string Absolute run-log path.
-     */
-    private function get_Log_File_Path(string $run_ID): string
-    {
-        return $this->status_Log->get_Log_File_Path($run_ID);
-    }
-
-    /**
      * Delete run logs that are no longer needed, preserving logs for active or review-pending runs.
      *
      * @param array<string, array<string, mixed>> $status_Data Persisted runs keyed by target name.
@@ -858,21 +851,6 @@ class Sync_Manager_Service
     private function delete_Run_Log(string $run_ID): void
     {
         $this->status_Log->delete_Run_Log($run_ID);
-    }
-
-    /**
-     * Return the configured active target name required for Sync Manager runs.
-     *
-     * @return string Active target name.
-     */
-    private function get_Active_Target_Name(): string
-    {
-        $target_Name = TargetManager::get_activeTarget();
-        if ($target_Name === '') {
-            throw new RuntimeException('Select an active target before starting Sync Manager.');
-        }
-
-        return $target_Name;
     }
 
 }

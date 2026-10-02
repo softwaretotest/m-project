@@ -95,7 +95,7 @@ class M_Sync_Manager_Service_Status_Log
 
         $valid_Output = mb_convert_encoding($output, 'UTF-8', 'UTF-8');
         $written = file_put_contents(
-            $this->get_Log_File_Path($run_ID),
+            self::get_Log_File_Path($run_ID),
             $valid_Output,
             FILE_APPEND | LOCK_EX
         );
@@ -115,7 +115,7 @@ class M_Sync_Manager_Service_Status_Log
      */
     public function read_Log_Chunk(string $run_ID, int $cursor, bool $include_Final_Line): array
     {
-        $log_Path = $this->get_Log_File_Path($run_ID);
+        $log_Path = self::get_Log_File_Path($run_ID);
         if (! file_exists($log_Path)) {
             return ['logs' => '', 'cursor' => 0];
         }
@@ -288,7 +288,7 @@ class M_Sync_Manager_Service_Status_Log
      * @param  string  $run_ID  Identifier of the run.
      * @return string Absolute run-log path.
      */
-    public function get_Log_File_Path(string $run_ID): string
+    public static function get_Log_File_Path(string $run_ID): string
     {
         if (! preg_match('/^[0-9a-f-]{36}$/i', $run_ID)) {
             throw new RuntimeException('Invalid Sync Manager run identifier.');
@@ -349,7 +349,7 @@ class M_Sync_Manager_Service_Status_Log
      */
     public function delete_Run_Log(string $run_ID): void
     {
-        $log_Path = $this->get_Log_File_Path($run_ID);
+        $log_Path = self::get_Log_File_Path($run_ID);
         if (file_exists($log_Path) && ! unlink($log_Path)) {
             throw new RuntimeException("Could not delete Sync Manager log for run {$run_ID}");
         }
