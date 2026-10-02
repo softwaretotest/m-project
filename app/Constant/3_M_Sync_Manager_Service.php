@@ -232,80 +232,39 @@ class Sync_Manager_Service
      */
     public function executeWorker(string $run_ID, string $phase): int
     {
-        $run_Record = $this->find_Run($run_ID);
+        $worker = new M_Sync_Manager_Service_EXE_Worker(
+            fn (string $requested_Run_ID): ?array => $this->find_Run($requested_Run_ID),
+            function (string $target_Name, string $requested_Run_ID, callable $update_Callback): void {
+                $this->update_Run($target_Name, $requested_Run_ID, $update_Callback);
+            },
+            function (
+                string $target_Name,
+                string $requested_Run_ID,
+                string $script_ID,
+                string $script_Status
+            ): void {
+                $this->update_Script_Status($target_Name, $requested_Run_ID, $script_ID, $script_Status);
+            },
+            function (string $requested_Run_ID, string $output): void {
+                $this->append_Run_Output($requested_Run_ID, $output);
+            },
+            fn (array $run_Record, string $script_ID): array => $this->execute_Script($run_Record, $script_ID),
+            function (string $target_Name, string $requested_Run_ID, string $message): void {
+                $this->fail_Run($target_Name, $requested_Run_ID, $message);
+            },
+            [
+                'phase_initial' => self::PHASE_INITIAL,
+                'phase_continue' => self::PHASE_CONTINUE,
+                'status_running' => self::STATUS_RUNNING,
+                'status_awaiting_review' => self::STATUS_AWAITING_REVIEW,
+                'status_completed' => self::STATUS_COMPLETED,
+                'status_failed' => self::STATUS_FAILED,
+                'script_json_to_php' => self::SCRIPT_JSON_TO_PHP,
+                'script_status_warning' => self::SCRIPT_STATUS_WARNING,
+            ]
+        );
 
-        if ($run_Record === null) {
-            throw new RuntimeException("Sync Manager run not found: {$run_ID}");
-        }
-
-        $target_Name = $run_Record['target'];
-        $script_IDs = $phase === self::PHASE_CONTINUE
-            ? $run_Record['final_scripts']
-            : $run_Record['initial_scripts'];
-
-        $this->update_Run($target_Name, $run_ID, function (array $current_Run): array {
-            $current_Run['status'] = self::STATUS_RUNNING;
-            $current_Run['pid'] = getmypid();
-            $current_Run['updated_at'] = date(DATE_ATOM);
-
-            return $current_Run;
-        });
-
-        foreach ($script_IDs as $script_ID) {
-            $this->update_Script_Status($target_Name, $run_ID, $script_ID, self::STATUS_RUNNING);
-            $this->append_Run_Output($run_ID, "[[M_SYNC_SCRIPT_START:{$script_ID}]]" . PHP_EOL);
-
-            try {
-                $script_Result = $this->execute_Script($run_Record, $script_ID);
-            } catch (Throwable $exception) {
-                $this->update_Script_Status($target_Name, $run_ID, $script_ID, self::STATUS_FAILED);
-                $this->fail_Run($target_Name, $run_ID, $exception->getMessage());
-
-                return 1;
-            } finally {
-                $this->append_Run_Output($run_ID, "[[M_SYNC_SCRIPT_END:{$script_ID}]]" . PHP_EOL);
-            }
-
-            if ($script_Result['exit_code'] !== 0) {
-                $this->update_Script_Status($target_Name, $run_ID, $script_ID, self::STATUS_FAILED);
-                $this->fail_Run(
-                    $target_Name,
-                    $run_ID,
-                    "Script '{$script_ID}' exited with code {$script_Result['exit_code']}"
-                );
-
-                return $script_Result['exit_code'];
-            }
-
-            $script_Status = $script_ID === self::SCRIPT_JSON_TO_PHP && $script_Result['has_missing_entities_json']
-                ? self::SCRIPT_STATUS_WARNING
-                : self::STATUS_COMPLETED;
-            $this->update_Script_Status($target_Name, $run_ID, $script_ID, $script_Status);
-        }
-
-        if ($phase === self::PHASE_INITIAL && $run_Record['requires_review']) {
-            $this->update_Run($target_Name, $run_ID, function (array $current_Run): array {
-                $current_Run['status'] = self::STATUS_AWAITING_REVIEW;
-                $current_Run['pid'] = null;
-                $current_Run['message'] = 'Review Entities.json, then continue the selected generation scripts.';
-                $current_Run['updated_at'] = date(DATE_ATOM);
-
-                return $current_Run;
-            });
-
-            return 0;
-        }
-
-        $this->update_Run($target_Name, $run_ID, function (array $current_Run): array {
-            $current_Run['status'] = self::STATUS_COMPLETED;
-            $current_Run['pid'] = null;
-            $current_Run['finished_at'] = date(DATE_ATOM);
-            $current_Run['updated_at'] = date(DATE_ATOM);
-
-            return $current_Run;
-        });
-
-        return 0;
+        return $worker->execute_Worker($run_ID, $phase);
     }
 
     /**
@@ -512,68 +471,29 @@ class Sync_Manager_Service
      */
     private function execute_Script(array $run_Record, string $script_ID): array
     {
-        $script_Path = base_path(self::SCRIPT_FILES[$script_ID]);
-        $log_Path = $this->get_Log_File_Path($run_Record['run_id']);
-        clearstatcache(true, $log_Path);
-        $log_Start_Offset = filesize($log_Path);
-        if ($log_Start_Offset === false) {
-            throw new RuntimeException("Could not inspect Sync Manager log for run {$run_Record['run_id']}");
-        }
-
-        if (PHP_OS_FAMILY === 'Windows') {
-            $exit_Code = $this->execute_Windows_Script($run_Record, $script_Path);
-        } else {
-            $script_Process = new Process(
-                [PHP_BINARY, $script_Path],
-                base_path(),
-                [TargetManager::SYNC_TARGET_ENV => $run_Record['target']]
-            );
-            $script_Process->setTimeout(null);
-            $script_Process->start();
-            $child_Process_ID = $script_Process->getPid();
-
-            if ($child_Process_ID !== null) {
-                $this->update_Run(
-                    $run_Record['target'],
-                    $run_Record['run_id'],
-                    function (array $current_Run) use ($child_Process_ID): array {
-                        $current_Run['child_pid'] = $child_Process_ID;
-                        $current_Run['updated_at'] = date(DATE_ATOM);
-
-                        return $current_Run;
-                    }
-                );
+        $windows_Script = new M_Sync_Manager_Service_Windows_Script(
+            fn (string $run_ID): string => $this->get_Log_File_Path($run_ID),
+            function (string $target_Name, string $run_ID, callable $update_Callback): void {
+                $this->update_Run($target_Name, $run_ID, $update_Callback);
             }
+        );
+        $script_Executor = new M_Sync_Manager_Service_EXE_Script(
+            fn (string $run_ID): string => $this->get_Log_File_Path($run_ID),
+            function (string $target_Name, string $run_ID, callable $update_Callback): void {
+                $this->update_Run($target_Name, $run_ID, $update_Callback);
+            },
+            function (string $run_ID, string $output): void {
+                $this->append_Run_Output($run_ID, $output);
+            },
+            fn (array $record, string $script_Path): int => $windows_Script->execute_Windows_Script(
+                $record,
+                $script_Path
+            ),
+            self::SCRIPT_FILES,
+            self::MISSING_ENTITIES_JSON_WARNING
+        );
 
-            $script_Process->wait(function (string $type, string $output) use ($run_Record): void {
-                $this->append_Run_Output($run_Record['run_id'], $output);
-            });
-            $exit_Code = $script_Process->getExitCode() ?? 1;
-
-            $this->update_Run(
-                $run_Record['target'],
-                $run_Record['run_id'],
-                function (array $current_Run): array {
-                    $current_Run['child_pid'] = null;
-                    $current_Run['updated_at'] = date(DATE_ATOM);
-
-                    return $current_Run;
-                }
-            );
-        }
-
-        clearstatcache(true, $log_Path);
-        $log_Content = file_get_contents($log_Path);
-        if ($log_Content === false) {
-            throw new RuntimeException("Could not read Sync Manager log for run {$run_Record['run_id']}");
-        }
-
-        $script_Output = substr($log_Content, $log_Start_Offset);
-
-        return [
-            'exit_code' => $exit_Code,
-            'has_missing_entities_json' => str_contains($script_Output, self::MISSING_ENTITIES_JSON_WARNING),
-        ];
+        return $script_Executor->execute_EXE_Script($run_Record, $script_ID);
     }
 
     /**
@@ -585,48 +505,14 @@ class Sync_Manager_Service
      */
     private function execute_Windows_Script(array $run_Record, string $script_Path): int
     {
-        $script_Process = Process::fromShellCommandline(
-            '"${:SYNC_PHP_BINARY}" "${:SYNC_SCRIPT_PATH}" >> "${:SYNC_RUN_LOG}" 2>&1',
-            base_path(),
-            [
-                TargetManager::SYNC_TARGET_ENV => $run_Record['target'],
-                'SYNC_PHP_BINARY' => PHP_BINARY,
-                'SYNC_SCRIPT_PATH' => $script_Path,
-                'SYNC_RUN_LOG' => $this->get_Log_File_Path($run_Record['run_id']),
-            ]
-        );
-        $script_Process->disableOutput();
-        $script_Process->setTimeout(null);
-        $script_Process->start();
-        $child_Process_ID = $script_Process->getPid();
-
-        if ($child_Process_ID !== null) {
-            $this->update_Run(
-                $run_Record['target'],
-                $run_Record['run_id'],
-                function (array $current_Run) use ($child_Process_ID): array {
-                    $current_Run['child_pid'] = $child_Process_ID;
-                    $current_Run['updated_at'] = date(DATE_ATOM);
-
-                    return $current_Run;
-                }
-            );
-        }
-
-        $script_Process->wait();
-        $exit_Code = $script_Process->getExitCode() ?? 1;
-        $this->update_Run(
-            $run_Record['target'],
-            $run_Record['run_id'],
-            function (array $current_Run): array {
-                $current_Run['child_pid'] = null;
-                $current_Run['updated_at'] = date(DATE_ATOM);
-
-                return $current_Run;
+        $windows_Script = new M_Sync_Manager_Service_Windows_Script(
+            fn (string $run_ID): string => $this->get_Log_File_Path($run_ID),
+            function (string $target_Name, string $run_ID, callable $update_Callback): void {
+                $this->update_Run($target_Name, $run_ID, $update_Callback);
             }
         );
 
-        return $exit_Code;
+        return $windows_Script->execute_Windows_Script($run_Record, $script_Path);
     }
 
     /**
