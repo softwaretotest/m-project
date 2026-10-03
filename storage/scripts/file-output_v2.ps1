@@ -4,6 +4,8 @@
 
 # C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\resources\css\0_M_UI.css"
 
+# C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\resources\js\Components\3_M_Sync.jsx"
+
 param (
     [string]$Path = "resources/js/Components",
     [string]$OutputFile = "SingleSourceCode.txt"
@@ -26,7 +28,7 @@ else {
 foreach ($folder in $folders) {
     if (Test-Path $folder) {
         Add-Content $OutputFile "`n--- FOLDER: $folder ---`n"
-        Get-ChildItem -Path $folder -Recurse -Include *.php, *.js, *.jsx | ForEach-Object {
+            Get-ChildItem -Path $folder -Recurse -Include *.php, *.js, *.jsx | ForEach-Object {
             Add-Content $OutputFile "`n[FILE: $($_.FullName)]`n"
             Get-Content $_.FullName | Add-Content $OutputFile
             Add-Content $OutputFile "`n"

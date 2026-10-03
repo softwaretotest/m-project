@@ -6,11 +6,7 @@ use RuntimeException;
 
 class M_Sync_Service_Status_Log
 {
-    public const STATUS_FILE = 'app/m-sync/sync_status.json';
-
-    public const LEGACY_STATUS_FILE = 'app/m-sync/status.json';
-
-    public const LOCK_FILE = 'app/m-sync/sync_status.lock';
+    public const STATUS_FILE = 'app/Constant/3_M_Sync_Status.json';
 
     public const LOG_DIRECTORY = 'app/m-sync/logs';
 
@@ -25,17 +21,15 @@ class M_Sync_Service_Status_Log
      */
     public static function update_Run(string $target_Name, string $run_ID, callable $update_Callback): void
     {
-        self::with_Status_Lock(function () use ($target_Name, $run_ID, $update_Callback): void {
-            $status_Data = self::read_Status_Data();
-            $run_Record = $status_Data[$target_Name] ?? null;
+        $status_Data = self::read_Status_Data();
+        $run_Record = $status_Data[$target_Name] ?? null;
 
-            if (! is_array($run_Record) || $run_Record['run_id'] !== $run_ID) {
-                throw new RuntimeException("Sync run changed before update: {$run_ID}");
-            }
+        if (! is_array($run_Record) || $run_Record['run_id'] !== $run_ID) {
+            throw new RuntimeException("Sync run changed before update: {$run_ID}");
+        }
 
-            $status_Data[$target_Name] = $update_Callback($run_Record);
-            self::write_Status_Data($status_Data);
-        });
+        $status_Data[$target_Name] = $update_Callback($run_Record);
+        self::write_Status_Data($status_Data);
     }
 
     /**
@@ -146,69 +140,17 @@ class M_Sync_Service_Status_Log
     }
 
     /**
-     * Run a callback while holding the cross-request status lock.
-     *
-     * @param  callable(): mixed  $callback  Operation that reads or writes shared status.
-     * @return mixed Callback result.
-     */
-    public static function with_Status_Lock(callable $callback): mixed
-    {
-        self::ensure_Storage_Directories();
-        $lock_Handle = fopen(storage_path(self::LOCK_FILE), 'c+');
-
-        if ($lock_Handle === false) {
-            throw new RuntimeException('Could not open the Sync status lock file.');
-        }
-
-        if (! flock($lock_Handle, LOCK_EX)) {
-            fclose($lock_Handle);
-            throw new RuntimeException('Could not lock the Sync status file.');
-        }
-
-        try {
-            return $callback();
-        } finally {
-            flock($lock_Handle, LOCK_UN);
-            fclose($lock_Handle);
-        }
-    }
-
-    /**
-     * Read the status file into a target-name keyed map.
+     * Read one status JSON file into a target-name keyed map.
      *
      * @return array<string, array<string, mixed>> Persisted runs keyed by target name.
      */
     public static function read_Status_Data(): array
     {
-        $status_Path = storage_path(self::STATUS_FILE);
-        $legacy_Status_Path = storage_path(self::LEGACY_STATUS_FILE);
-        if (! file_exists($status_Path) && file_exists($legacy_Status_Path)) {
-            $status_Path = $legacy_Status_Path;
-        }
-
-        return self::read_Status_Data_From_Path($status_Path);
-    }
-
-    /**
-     * Read one status JSON file into a target-name keyed map.
-     *
-     * @param  string  $status_Path  Absolute path to a status file.
-     * @return array<string, array<string, mixed>> Persisted runs keyed by target name.
-     */
-    public static function read_Status_Data_From_Path(string $status_Path): array
-    {
-        if (! file_exists($status_Path)) {
+        $status_Path = base_path(self::STATUS_FILE);
+        if (!file_exists($status_Path)) {
             return [];
         }
-
-        $status_Content = file_get_contents($status_Path);
-        $status_Data = json_decode((string) $status_Content, true);
-
-        if (! is_array($status_Data)) {
-            throw new RuntimeException('Sync status file contains invalid JSON.');
-        }
-
-        return $status_Data;
+        return json_decode((string) file_get_contents($status_Path), true) ?? [];
     }
 
     /**
@@ -218,7 +160,11 @@ class M_Sync_Service_Status_Log
      */
     public static function write_Status_Data(array $status_Data): void
     {
-        self::write_Status_Data_To_Path(storage_path(self::STATUS_FILE), $status_Data);
+        self::ensureDir();
+        file_put_contents(
+            base_path(self::STATUS_FILE),
+            json_encode($status_Data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+        );
     }
 
     /**
@@ -243,12 +189,18 @@ class M_Sync_Service_Status_Log
     /**
      * Create private storage directories used for status and per-run logs.
      */
-    public static function ensure_Storage_Directories(): void
+    public static function ensureDir(): void
     {
-        foreach ([dirname(storage_path(self::STATUS_FILE)), storage_path(self::LOG_DIRECTORY)] as $directory_Path) {
-            if (! is_dir($directory_Path) && ! mkdir($directory_Path, 0775, true) && ! is_dir($directory_Path)) {
-                throw new RuntimeException("Could not create Sync storage directory: {$directory_Path}");
-            }
+        // 1. จัดการโฟลเดอร์ของไฟล์สถานะใหม่ที่พาร์ท app/Constant/
+        $status_Dir = dirname(base_path(self::STATUS_FILE));
+        if (!is_dir($status_Dir)) {
+            mkdir($status_Dir, 0775, true);
+        }
+
+        // 2. จัดการโฟลเดอร์เก็บ Log ฝั่ง storage
+        $log_Dir = storage_path(self::LOG_DIRECTORY);
+        if (!is_dir($log_Dir)) {
+            mkdir($log_Dir, 0775, true);
         }
     }
 

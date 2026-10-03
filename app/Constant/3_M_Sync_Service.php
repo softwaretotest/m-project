@@ -14,7 +14,6 @@ class M_Sync_Service
     private const STATUS_AWAITING_REVIEW = 'awaiting_review';
     private const STATUS_COMPLETED = 'completed';
     private const STATUS_FAILED = 'failed';
-    private const STARTING_STALE_AFTER_SECONDS = 30;
     private const PHASE_INITIAL = 'initial';
     private const PHASE_CONTINUE = 'continue';
     public const SCRIPT_JSON_TO_PHP = 'json_to_php';
@@ -86,42 +85,30 @@ class M_Sync_Service
     {
         $target_Name = TargetManager::get_activeTarget();
 
-        return M_Sync_Service_Status_Log::with_Status_Lock(function () use ($target_Name): array {
-            $status_Data = M_Sync_Service_Status_Log::read_Status_Data();
-            $run_Record = $status_Data[$target_Name] ?? null;
+        $status_Data = M_Sync_Service_Status_Log::read_Status_Data();
+        $run_Record = $status_Data[$target_Name] ?? null;
 
-            if (!is_array($run_Record)) {
-                return ['reset' => false, 'run' => null];
-            }
+        if (!is_array($run_Record)) {
+            return ['reset' => false, 'run' => null];
+        }
 
-            $run_Record = $this->reconcile_Dead_Process($run_Record);
-            if ($this->is_Run_Active($run_Record) || $run_Record['status'] !== self::STATUS_FAILED) {
-                $status_Data[$target_Name] = $run_Record;
-                M_Sync_Service_Status_Log::write_Status_Data($status_Data);
+        // $run_Record = $this->reconcile_Dead_Process($run_Record);
+        if ($this->is_Run_Active($run_Record) || $run_Record['status'] !== self::STATUS_FAILED) {
+            $status_Data[$target_Name] = $run_Record;
+            M_Sync_Service_Status_Log::write_Status_Data($status_Data);
 
-                return ['reset' => false, 'run' => $run_Record];
-            }
+            return ['reset' => false, 'run' => $run_Record];
+        }
 
-            $failed_Run_ID = $run_Record['run_id'] ?? null;
-            if (is_string($failed_Run_ID) && preg_match('/^[0-9a-f-]{36}$/i', $failed_Run_ID)) {
-                M_Sync_Service_Status_Log::delete_Run_Log($failed_Run_ID);
-            }
+        $failed_Run_ID = $run_Record['run_id'] ?? null;
+        if (is_string($failed_Run_ID) && preg_match('/^[0-9a-f]{36}$/i', $failed_Run_ID)) {
+            M_Sync_Service_Status_Log::delete_Run_Log($failed_Run_ID);
+        }
 
-            foreach ([
-                storage_path(M_Sync_Service_Status_Log::STATUS_FILE),
-                storage_path(M_Sync_Service_Status_Log::LEGACY_STATUS_FILE),
-            ] as $status_Path) {
-                if (!file_exists($status_Path)) {
-                    continue;
-                }
+        unset($status_Data[$target_Name]);
+        M_Sync_Service_Status_Log::write_Status_Data($status_Data);
 
-                $stored_Status_Data = M_Sync_Service_Status_Log::read_Status_Data_From_Path($status_Path);
-                unset($stored_Status_Data[$target_Name]);
-                M_Sync_Service_Status_Log::write_Status_Data_To_Path($status_Path, $stored_Status_Data);
-            }
-
-            return ['reset' => true, 'run' => null];
-        });
+        return ['reset' => true, 'run' => null];
     }
 
     /**
@@ -152,20 +139,16 @@ class M_Sync_Service
     public function getCurrentStatus(?string $run_ID = null, int $cursor = 0): array
     {
         $target_Name = TargetManager::get_activeTarget();
-        $run_Record = M_Sync_Service_Status_Log::with_Status_Lock(function () use ($target_Name): ?array {
-            $status_Data = M_Sync_Service_Status_Log::read_Status_Data();
-            $run_Record = $status_Data[$target_Name] ?? null;
+        $status_Data = M_Sync_Service_Status_Log::read_Status_Data();
+        $run_Record = $status_Data[$target_Name] ?? null;
 
-            if (!is_array($run_Record)) {
-                return null;
-            }
+        if (!is_array($run_Record)) {
+            $run_Record = null;
+        }
 
-            $run_Record = $this->reconcile_Dead_Process($run_Record);
-            $status_Data[$target_Name] = $run_Record;
-            M_Sync_Service_Status_Log::write_Status_Data($status_Data);
-
-            return $run_Record;
-        });
+        // $run_Record = $this->reconcile_Dead_Process($run_Record);
+        $status_Data[$target_Name] = $run_Record;
+        M_Sync_Service_Status_Log::write_Status_Data($status_Data);
 
         if ($run_Record === null) {
             return [
@@ -279,74 +262,71 @@ class M_Sync_Service
      */
     private function reserve_Run(string $target_Name, array $ordered_Scripts): array
     {
-        return M_Sync_Service_Status_Log::with_Status_Lock(function () use ($target_Name, $ordered_Scripts): array {
-            $status_Data = M_Sync_Service_Status_Log::read_Status_Data();
-            $existing_Run = $status_Data[$target_Name] ?? null;
+        $status_Data = M_Sync_Service_Status_Log::read_Status_Data();
+        $existing_Run = $status_Data[$target_Name] ?? null;
 
-            if (is_array($existing_Run)) {
-                $existing_Run = $this->reconcile_Dead_Process($existing_Run);
-                $status_Data[$target_Name] = $existing_Run;
+        if (is_array($existing_Run)) {
+            $status_Data[$target_Name] = $existing_Run;
 
-                if ($this->is_Run_Active($existing_Run)) {
-                    M_Sync_Service_Status_Log::write_Status_Data($status_Data);
+            if ($this->is_Run_Active($existing_Run)) {
+                M_Sync_Service_Status_Log::write_Status_Data($status_Data);
 
-                    return ['accepted' => false, 'run' => $existing_Run];
-                }
+                return ['accepted' => false, 'run' => $existing_Run];
             }
+        }
 
-            $run_ID = (string) Str::uuid();
-            $sync_Scripts = [];
-            $generation_Scripts = [];
-            $script_Statuses = [];
+        $run_ID = (string) Str::uuid();
+        $sync_Scripts = [];
+        $generation_Scripts = [];
+        $script_Statuses = [];
 
-            foreach ($ordered_Scripts as $script_ID) {
-                $script_Statuses[$script_ID] = self::SCRIPT_STATUS_PENDING;
-                if (in_array($script_ID, [self::SCRIPT_JSON_TO_PHP, self::SCRIPT_PHP_TO_JSON], true)) {
-                    $sync_Scripts[] = $script_ID;
-                } else {
-                    $generation_Scripts[] = $script_ID;
-                }
+        foreach ($ordered_Scripts as $script_ID) {
+            $script_Statuses[$script_ID] = self::SCRIPT_STATUS_PENDING;
+            if (in_array($script_ID, [self::SCRIPT_JSON_TO_PHP, self::SCRIPT_PHP_TO_JSON], true)) {
+                $sync_Scripts[] = $script_ID;
+            } else {
+                $generation_Scripts[] = $script_ID;
             }
+        }
 
-            $requires_Review = $sync_Scripts !== [] && $generation_Scripts !== [];
-            $initial_Scripts = $requires_Review ? $sync_Scripts : $ordered_Scripts;
-            $final_Scripts = $requires_Review ? $generation_Scripts : [];
-            $run_Record = [
-                'run_id' => $run_ID,
-                'target' => $target_Name,
-                'status' => self::STATUS_STARTING,
-                'pid' => null,
-                'child_pid' => null,
-                'scripts' => $ordered_Scripts,
-                'initial_scripts' => $initial_Scripts,
-                'final_scripts' => $final_Scripts,
-                'script_statuses' => $script_Statuses,
-                'requires_review' => $requires_Review,
-                'started_at' => date(DATE_ATOM),
-                'finished_at' => null,
-                'updated_at' => date(DATE_ATOM),
-                'message' => null,
-            ];
+        $requires_Review = $sync_Scripts !== [] && $generation_Scripts !== [];
+        $initial_Scripts = $requires_Review ? $sync_Scripts : $ordered_Scripts;
+        $final_Scripts = $requires_Review ? $generation_Scripts : [];
+        $run_Record = [
+            'run_id' => $run_ID,
+            'target' => $target_Name,
+            'status' => self::STATUS_STARTING,
+            'pid' => null,
+            'child_pid' => null,
+            'scripts' => $ordered_Scripts,
+            'initial_scripts' => $initial_Scripts,
+            'final_scripts' => $final_Scripts,
+            'script_statuses' => $script_Statuses,
+            'requires_review' => $requires_Review,
+            'started_at' => date(DATE_ATOM),
+            'finished_at' => null,
+            'updated_at' => date(DATE_ATOM),
+            'message' => null,
+        ];
 
-            M_Sync_Service_Status_Log::ensure_Storage_Directories();
-            M_Sync_Service_Status_Log::delete_Unused_Run_Logs(
-                $status_Data,
-                fn (array $run_Record): bool => $this->is_Run_Active($run_Record)
-            );
-            $log_Initialized = file_put_contents(
-                M_Sync_Service_Status_Log::get_Log_File_Path($run_ID),
-                '',
-                LOCK_EX
-            );
-            if ($log_Initialized === false) {
-                throw new RuntimeException("Could not initialize Sync log for run {$run_ID}");
-            }
+        M_Sync_Service_Status_Log::ensureDir();
+        M_Sync_Service_Status_Log::delete_Unused_Run_Logs(
+            $status_Data,
+            fn (array $run_Record): bool => $this->is_Run_Active($run_Record)
+        );
+        $log_Initialized = file_put_contents(
+            M_Sync_Service_Status_Log::get_Log_File_Path($run_ID),
+            '',
+            LOCK_EX
+        );
+        if ($log_Initialized === false) {
+            throw new RuntimeException("Could not initialize Sync log for run {$run_ID}");
+        }
 
-            $status_Data[$target_Name] = $run_Record;
-            M_Sync_Service_Status_Log::write_Status_Data($status_Data);
+        $status_Data[$target_Name] = $run_Record;
+        M_Sync_Service_Status_Log::write_Status_Data($status_Data);
 
-            return ['accepted' => true, 'run' => $run_Record];
-        });
+        return ['accepted' => true, 'run' => $run_Record];
     }
 
     /**
@@ -358,30 +338,28 @@ class M_Sync_Service
      */
     private function reserve_Continuation(string $target_Name, string $run_ID): array
     {
-        return M_Sync_Service_Status_Log::with_Status_Lock(function () use ($target_Name, $run_ID): array {
-            $status_Data = M_Sync_Service_Status_Log::read_Status_Data();
-            $run_Record = $status_Data[$target_Name] ?? null;
+        $status_Data = M_Sync_Service_Status_Log::read_Status_Data();
+        $run_Record = $status_Data[$target_Name] ?? null;
 
-            if (!is_array($run_Record) || $run_Record['run_id'] !== $run_ID) {
-                return [
-                    'accepted' => false,
-                    'run' => ['status' => 'not_found', 'run_id' => $run_ID],
-                ];
-            }
+        if (!is_array($run_Record) || $run_Record['run_id'] !== $run_ID) {
+            return [
+                'accepted' => false,
+                'run' => ['status' => 'not_found', 'run_id' => $run_ID],
+            ];
+        }
 
-            if ($run_Record['status'] !== self::STATUS_AWAITING_REVIEW) {
-                return ['accepted' => false, 'run' => $run_Record];
-            }
+        if ($run_Record['status'] !== self::STATUS_AWAITING_REVIEW) {
+            return ['accepted' => false, 'run' => $run_Record];
+        }
 
-            $run_Record['status'] = self::STATUS_STARTING;
-            $run_Record['pid'] = null;
-            $run_Record['message'] = null;
-            $run_Record['updated_at'] = date(DATE_ATOM);
-            $status_Data[$target_Name] = $run_Record;
-            M_Sync_Service_Status_Log::write_Status_Data($status_Data);
+        $run_Record['status'] = self::STATUS_STARTING;
+        $run_Record['pid'] = null;
+        $run_Record['message'] = null;
+        $run_Record['updated_at'] = date(DATE_ATOM);
+        $status_Data[$target_Name] = $run_Record;
+        M_Sync_Service_Status_Log::write_Status_Data($status_Data);
 
-            return ['accepted' => true, 'run' => $run_Record];
-        });
+        return ['accepted' => true, 'run' => $run_Record];
     }
 
     /**
@@ -565,15 +543,12 @@ class M_Sync_Service
      */
     private function find_Run(string $run_ID): ?array
     {
-        return M_Sync_Service_Status_Log::with_Status_Lock(function () use ($run_ID): ?array {
-            foreach (M_Sync_Service_Status_Log::read_Status_Data() as $run_Record) {
-                if (is_array($run_Record) && ($run_Record['run_id'] ?? null) === $run_ID) {
-                    return $run_Record;
-                }
+        foreach (M_Sync_Service_Status_Log::read_Status_Data() as $run_Record) {
+            if (is_array($run_Record) && ($run_Record['run_id'] ?? null) === $run_ID) {
+                return $run_Record;
             }
-
-            return null;
-        });
+        }
+        return null;
     }
 
     /**
@@ -584,84 +559,8 @@ class M_Sync_Service
      */
     private function get_Target_Run(string $target_Name): array
     {
-        return M_Sync_Service_Status_Log::with_Status_Lock(function () use ($target_Name): array {
-            $run_Record = M_Sync_Service_Status_Log::read_Status_Data()[$target_Name] ?? [];
-
-            return is_array($run_Record) ? $run_Record : [];
-        });
-    }
-
-    /**
-     * Change a dead worker's running status to failed so a later run is not blocked forever.
-     *
-     * @param array<string, mixed> $run_Record Persisted run record.
-     * @return array<string, mixed> Updated or unchanged run record.
-     */
-    private function reconcile_Dead_Process(array $run_Record): array
-    {
-        if (false === in_array(
-            $run_Record['status'],
-            [self::STATUS_STARTING, self::STATUS_RUNNING],
-            true
-        )) {
-            return $run_Record;
-        }
-
-        $process_IDs = array_filter([
-            $run_Record['pid'] ?? null,
-            $run_Record['child_pid'] ?? null,
-        ], static fn ($process_ID): bool => $process_ID !== null);
-
-        if ($process_IDs !== []) {
-            foreach ($process_IDs as $process_ID) {
-                if ($this->is_Process_Running((int) $process_ID)) {
-                    return $run_Record;
-                }
-            }
-        } elseif (
-            $run_Record['status'] === self::STATUS_STARTING
-            && time() - (strtotime($run_Record['updated_at']) ?: time()) < self::STARTING_STALE_AFTER_SECONDS
-        ) {
-            return $run_Record;
-        }
-
-        $run_Record['status'] = self::STATUS_FAILED;
-        $run_Record['pid'] = null;
-        $run_Record['child_pid'] = null;
-        $run_Record['message'] = 'Worker process exited before recording a completed status.';
-        $run_Record['finished_at'] = date(DATE_ATOM);
-        $run_Record['updated_at'] = date(DATE_ATOM);
-
-        return $run_Record;
-    }
-
-    /**
-     * Check whether an operating-system process identifier is still active.
-     *
-     * @param int $process_ID Operating-system process identifier.
-     * @return bool True when the process exists.
-     */
-    private function is_Process_Running(int $process_ID): bool
-    {
-        if (PHP_OS_FAMILY === 'Windows') {
-            $process_Check = new Process([
-                'powershell.exe',
-                '-NoProfile',
-                '-NonInteractive',
-                '-Command',
-                "(Get-Process -Id {$process_ID} -ErrorAction SilentlyContinue) -ne \$null",
-            ]);
-            $process_Check->setTimeout(10);
-            $process_Check->mustRun();
-
-            return strtolower(trim($process_Check->getOutput())) === 'true';
-        }
-
-        if (function_exists('posix_kill')) {
-            return posix_kill($process_ID, 0);
-        }
-
-        return is_dir("/proc/{$process_ID}");
+        $run_Record = M_Sync_Service_Status_Log::read_Status_Data()[$target_Name] ?? [];
+        return is_array($run_Record) ? $run_Record : [];
     }
 
     /**

@@ -1,3 +1,6 @@
+
+--- FILE: C:\Users\o\.vscode\react\m-project\resources\js\Components\3_M_Sync.jsx ---
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./3_M_Sync.css";
 
@@ -390,128 +393,6 @@ export default function M_Sync({
     const can_Reset_Failed_Run = is_Run_Failed && run_ID !== null;
     const are_Scripts_Disabled = is_Run_Active || is_Awaiting_Review || is_Submitting;
 
-    const LEFT_SECTION = 
-            <div className="m-sync-left-section">
-                <div className="m-sync-control-box">
-                    <div className="m-sync-run-controls">
-                        {is_Awaiting_Review ? (
-                            <button
-                                className="m-sync-start-btn"
-                                onClick={continue_Run}
-                                disabled={is_Submitting}
-                            >
-                                Continue after review
-                            </button>
-                        ) : (
-                            <button
-                                className="m-sync-start-btn"
-                                onClick={start_Run}
-                                disabled={are_Scripts_Disabled}
-                            >
-                                {is_Run_Active ? "Running" : "Start"}
-                                {is_Run_Active && (
-                                    <span className="m-sync-spinner" aria-label="Running" />
-                                )}
-                            </button>
-                        )}
-                        {is_Run_Active && (
-                            <button
-                                className="m-sync-cancel-btn"
-                                onClick={cancel_Polling}
-                                aria-label="Cancel frontend polling"
-                                title="Stop polling only; backend script continues"
-                            >
-                                ■
-                            </button>
-                        )}
-                        {can_Reset_Failed_Run && (
-                            <button
-                                className="m-sync-reset-btn"
-                                onClick={reset_Failed_Run}
-                                disabled={is_Submitting}
-                                title="Clear failed status; keep the saved run log"
-                            >
-                                Reset
-                            </button>
-                        )}
-                        <span className={`m-sync-run-status ${run_Status}`}>
-                            {get_Run_Status_Label()}
-                        </span>
-                    </div>
-                    {is_Awaiting_Review && (
-                        <p className="m-sync-review-message">
-                            Review and order Entities.json in the target app, then continue.
-                        </p>
-                    )}
-                    {request_Error && (
-                        <div className="m-sync-error-message" role="alert">
-                            {request_Error}
-                        </div>
-                    )}
-                    <pre
-                        className="m-sync-logger-console"
-                        ref={logger_Console}
-                        role="log"
-                        aria-live="polite"
-                    >
-                        {run_Logs
-                            ? run_Log_Segments.map((segment, index) => (
-                                <span
-                                    key={`${segment.script_ID || "other"}-${index}`}
-                                    className={segment.script_ID
-                                        ? `m-sync-log-${script_Log_Classes[segment.script_ID]}`
-                                        : undefined}
-                                >
-                                    {segment.text}
-                                </span>
-                            ))
-                            : "Select scripts and press Start."}
-                    </pre>
-                </div>
-            </div>
-
-    const RIGHT_SECTION = 
-            <div className="m-sync-right-section">
-                <button
-                    className="m-sync-close-btn"
-                    onClick={close_Modal}
-                    aria-label="Close Sync"
-                >
-                    ❌
-                </button>
-                <h3 className="m-sync-sidebar-title">choose script</h3>
-                {script_Options.map((script) => {
-                    const script_Status = script_Statuses[script.id];
-                    const status_Class = get_Script_Status_Class(script_Status);
-
-                    return (
-                        <label
-                            key={script.id}
-                            className={`m-sync-script-item ${status_Class}`}
-                        >
-                            <input
-                                type="checkbox"
-                                checked={selected_Scripts.includes(script.id)}
-                                onChange={() => toggle_Script(script.id)}
-                                disabled={are_Scripts_Disabled}
-                            />
-                            <span
-                                className={`m-sync-script-label m-sync-log-${script.log_Class}`}
-                            >
-                                {script.label}
-                            </span>
-                            {script_Status && (
-                                <span className={`m-sync-status ${status_Class}`}>
-                                    Status = {script_Status === "completed"
-                                        ? "PASS"
-                                        : script_Status.toUpperCase()}
-                                </span>
-                            )}
-                        </label>
-                    );
-                })}
-            </div>
-
     return (
         <>
             <div className="m-sync-backdrop" onClick={close_Modal}>
@@ -519,10 +400,129 @@ export default function M_Sync({
                     className="m-sync-modal-container"
                     onClick={(event) => event.stopPropagation()}
                 >
-                    {LEFT_SECTION}
-                    {RIGHT_SECTION}
+                    <div className="m-sync-left-section">
+                        <div className="m-sync-control-box">
+                            <div className="m-sync-run-controls">
+                                {is_Awaiting_Review ? (
+                                    <button
+                                        className="m-sync-start-btn"
+                                        onClick={continue_Run}
+                                        disabled={is_Submitting}
+                                    >
+                                        Continue after review
+                                    </button>
+                                ) : (
+                                    <button
+                                        className="m-sync-start-btn"
+                                        onClick={start_Run}
+                                        disabled={are_Scripts_Disabled}
+                                    >
+                                        {is_Run_Active ? "Running" : "Start"}
+                                        {is_Run_Active && (
+                                            <span className="m-sync-spinner" aria-label="Running" />
+                                        )}
+                                    </button>
+                                )}
+                                {is_Run_Active && (
+                                    <button
+                                        className="m-sync-cancel-btn"
+                                        onClick={cancel_Polling}
+                                        aria-label="Cancel frontend polling"
+                                        title="Stop polling only; backend script continues"
+                                    >
+                                        ■
+                                    </button>
+                                )}
+                                {can_Reset_Failed_Run && (
+                                    <button
+                                        className="m-sync-reset-btn"
+                                        onClick={reset_Failed_Run}
+                                        disabled={is_Submitting}
+                                        title="Clear failed status; keep the saved run log"
+                                    >
+                                        Reset
+                                    </button>
+                                )}
+                                <span className={`m-sync-run-status ${run_Status}`}>
+                                    {get_Run_Status_Label()}
+                                </span>
+                            </div>
+                            {is_Awaiting_Review && (
+                                <p className="m-sync-review-message">
+                                    Review and order Entities.json in the target app, then continue.
+                                </p>
+                            )}
+                            {request_Error && (
+                                <div className="m-sync-error-message" role="alert">
+                                    {request_Error}
+                                </div>
+                            )}
+                            <pre
+                                className="m-sync-logger-console"
+                                ref={logger_Console}
+                                role="log"
+                                aria-live="polite"
+                            >
+                                {run_Logs
+                                    ? run_Log_Segments.map((segment, index) => (
+                                        <span
+                                            key={`${segment.script_ID || "other"}-${index}`}
+                                            className={segment.script_ID
+                                                ? `m-sync-log-${script_Log_Classes[segment.script_ID]}`
+                                                : undefined}
+                                        >
+                                            {segment.text}
+                                        </span>
+                                    ))
+                                    : "Select scripts and press Start."}
+                            </pre>
+                        </div>
+                    </div>
+
+                    <div className="m-sync-right-section">
+                        <button
+                            className="m-sync-close-btn"
+                            onClick={close_Modal}
+                            aria-label="Close Sync"
+                        >
+                            ❌
+                        </button>
+                        <h3 className="m-sync-sidebar-title">choose script</h3>
+                        {script_Options.map((script) => {
+                            const script_Status = script_Statuses[script.id];
+                            const status_Class = get_Script_Status_Class(script_Status);
+
+                            return (
+                                <label
+                                    key={script.id}
+                                    className={`m-sync-script-item ${status_Class}`}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={selected_Scripts.includes(script.id)}
+                                        onChange={() => toggle_Script(script.id)}
+                                        disabled={are_Scripts_Disabled}
+                                    />
+                                    <span
+                                        className={`m-sync-script-label m-sync-log-${script.log_Class}`}
+                                    >
+                                        {script.label}
+                                    </span>
+                                    {script_Status && (
+                                        <span className={`m-sync-status ${status_Class}`}>
+                                            Status = {script_Status === "completed"
+                                                ? "PASS"
+                                                : script_Status.toUpperCase()}
+                                        </span>
+                                    )}
+                                </label>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
         </>
     );
 }
+
+
