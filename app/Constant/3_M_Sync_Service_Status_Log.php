@@ -136,7 +136,7 @@ class M_Sync_Service_Status_Log
             self::write_Status_Data($status_Data);
         }
 
-        \Illuminate\Support\Facades\Log::info("[ ✅ SUCCESS ] Reset log for {$target_Name} : {$log_Path}");
+        // \Illuminate\Support\Facades\Log::info("[ ✅ SUCCESS ] Reset log for {$target_Name} : {$log_Path}");
         return 0;
     }
 
@@ -188,16 +188,13 @@ class M_Sync_Service_Status_Log
     public static function write_Log(string $content, bool $append = true): void
     {
         $valid_content = mb_convert_encoding($content, 'UTF-8', 'UTF-8');
-        if ($content === '') return;
+        if ($content === '') {
+            return;
+        }
         $log_Path = self::get_Log_File_Path();
 
         $flags = $append ? (FILE_APPEND | LOCK_EX) : LOCK_EX;
-        $result = @file_put_contents($log_Path, $valid_content, $flags);
-        if ($result === false) {
-            \Illuminate\Support\Facades\Log::info('[ 🚫 ERROR ] Status_Log - write_Log: content = '.$valid_content);
-        } else {
-            \Illuminate\Support\Facades\Log::info('[ ✅ SUCCESS ] Status_Log - write_Log: content = '.$valid_content);
-        }
+        @file_put_contents($log_Path, $valid_content, $flags);
     }
 
     /**

@@ -174,9 +174,6 @@ class M_Sync_Service
             return ['reset' => false, 'run' => $run_Record];
         }
 
-        // M_Sync_Service_Status_Log::reset_Log();
-
-        // unset($status_Data[$target_Name]);
         M_Sync_Service_Status_Log::write_Status_Data($status_Data);
 
         return ['reset' => true, 'run' => null];
