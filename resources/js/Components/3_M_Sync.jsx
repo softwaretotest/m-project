@@ -11,7 +11,8 @@ const script_Log_Classes = Object.fromEntries(
     script_Options.map(({ id, log_Class }) => [id, log_Class]),
 );
 
-const sync_Api_Path = "/api/sync";
+const sync_Api_Path = "/api/m-sync";
+
 const POLLING_INTERVAL_MS = 1000;
 const RUN_STATUS = {
     STARTING: "starting",
@@ -111,7 +112,7 @@ export default function M_Sync({
         "migration",
         "generators",
     ]);
-    const [run_ID, set_run_ID] = useState(null);
+    
     const [run_Status, set_run_Status] = useState("idle");
     const [script_Statuses, set_script_Statuses] = useState({});
     const [run_Logs, set_run_Logs] = useState("");
@@ -139,7 +140,7 @@ export default function M_Sync({
     }, []);
 
     useEffect(() => {
-        if (!is_Polling || !run_ID) {
+        if (!is_Polling) {
             return undefined;
         }
 
@@ -157,7 +158,6 @@ export default function M_Sync({
 
             try {
                 const query = new URLSearchParams({
-                    run_id: run_ID,
                     cursor: String(log_Cursor.current),
                 });
                 const response = await fetch(
@@ -201,6 +201,59 @@ export default function M_Sync({
             }
         };
 
+// const poll_Run_Status = async () => {
+//     active_Request = new AbortController();
+
+//     try {
+//         const query = new URLSearchParams({
+//             cursor: String(log_Cursor.current),
+//         });
+        
+//         const response = await fetch(
+//             `${sync_Api_Path}/status?${query.toString()}`,
+//             { signal: active_Request.signal }
+//         );
+//         const response_Data = await response.json();
+
+//         if (!response.ok) {
+//             throw new Error(response_Data.message || "Could not poll Sync status.");
+//         }
+//         if (!is_Effect_Active) {
+//             return;
+//         }
+
+//         // 1. รับ Log และอัปเดต Cursor
+//         append_Run_Logs(response_Data.logs || "");
+//         log_Cursor.current = response_Data.cursor || log_Cursor.current;
+
+//         // 2. รับสถานะภาพรวมและสถานะแต่ละสคริปต์
+//         const current_Run = response_Data.run;
+//         if (current_Run) {
+//             set_run_Status(current_Run.status);
+//             set_script_Statuses(current_Run.script_statuses || {});
+//         }
+
+//         // 3. จุดสำคัญที่ขาดไป: เช็กว่ายัง Active อยู่ไหม ถ้าเสร็จแล้วให้หยุดวนลูป!
+//         const active_Run_Statuses = ["starting", "running", "awaiting_review"];
+//         if (active_Run_Statuses.includes(current_Run?.status)) {
+//             poll_Timer = window.setTimeout(
+//                 poll_Run_Status,
+//                 POLLING_INTERVAL_MS
+//             );
+//         } else {
+//             set_is_Polling(false); // หยุดหมุนติ้วทันทีเมื่อสถานะเปลี่ยนเป็น completed/failed
+//         }
+//     } catch (error) {
+//         if (!is_Effect_Active || error.name === "AbortError") {
+//             return;
+//         }
+
+//         set_is_Polling(false);
+//         set_run_Status(RUN_STATUS.CONNECTION_ERROR);
+//         set_request_Error(error.message || "Sync polling failed.");
+//     }
+// };
+
         poll_Run_Status();
 
         return () => {
@@ -208,7 +261,7 @@ export default function M_Sync({
             window.clearTimeout(poll_Timer);
             active_Request?.abort();
         };
-    }, [append_Run_Logs, is_Polling, run_ID]);
+    }, [append_Run_Logs, is_Polling]);
 
     useEffect(() => {
         const console_Element = logger_Console.current;
@@ -226,31 +279,28 @@ export default function M_Sync({
         set_request_Error("");
         set_is_Submitting(true);
         set_is_Polling(false);
-        set_run_ID(null);
         set_run_Logs("");
         set_script_Statuses({});
         log_Cursor.current = 0;
 
         try {
+            console.log("Starting run with scripts:", selected_Scripts);
             const response = await fetch(`${sync_Api_Path}/start`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ scripts: selected_Scripts }),
             });
             const response_Data = await response.json();
-
+            
             if (response_Data.run) {
-                set_run_ID(response_Data.run.run_id);
                 set_run_Status(response_Data.run.status);
                 set_script_Statuses(response_Data.run.script_statuses || {});
                 set_selected_Scripts(response_Data.run.scripts || selected_Scripts);
             }
 
             if (response.status === 409) {
-                set_request_Error(response_Data.message || "An earlier run blocks this target.");
-                if (response_Data.run?.run_id) {
-                    set_is_Polling(true);
-                }
+                set_request_Error(response_Data.message || "An earlier run blocks this target.");                
+                    set_is_Polling(true);                
                 return;
             }
 
@@ -273,18 +323,21 @@ export default function M_Sync({
      * @returns {Promise<void>} Resolves after the continue request has been handled.
      */
     const continue_Run = async () => {
-        if (!run_ID) {
-            return;
-        }
-
         set_request_Error("");
         set_is_Submitting(true);
 
         try {
             const response = await fetch(
-                `${sync_Api_Path}/${encodeURIComponent(run_ID)}/continue`,
-                { method: "POST" },
+                `${sync_Api_Path}/continue`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json",
+                    },
+                }
             );
+
             const response_Data = await response.json();
 
             if (response_Data.run) {
@@ -315,37 +368,6 @@ export default function M_Sync({
     const cancel_Polling = () => {
         set_is_Polling(false);
         set_run_Status(RUN_STATUS.BREAK_BY_USER);
-    };
-
-    /**
-     * Clear a failed backend run record and its log file.
-     *
-     * @returns {Promise<void>} Resolves after the reset request is handled.
-     */
-    const reset_Failed_Run = async () => {
-        set_request_Error("");
-        set_is_Submitting(true);
-
-        try {
-            const response = await fetch(`${sync_Api_Path}/reset`, {
-                method: "POST",
-            });
-            const response_Data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(response_Data.message || "Could not reset the failed run.");
-            }
-
-            set_run_ID(null);
-            set_run_Status("idle");
-            set_script_Statuses({});
-            set_run_Logs("");
-            log_Cursor.current = 0;
-        } catch (error) {
-            set_request_Error(error.message || "Could not reset the failed run.");
-        } finally {
-            set_is_Submitting(false);
-        }
     };
 
     /**
@@ -387,7 +409,6 @@ export default function M_Sync({
     const is_Run_Active = active_Run_Statuses.includes(run_Status);
     const is_Awaiting_Review = run_Status === RUN_STATUS.AWAITING_REVIEW;
     const is_Run_Failed = run_Status === RUN_STATUS.FAILED;
-    const can_Reset_Failed_Run = is_Run_Failed && run_ID !== null;
     const are_Scripts_Disabled = is_Run_Active || is_Awaiting_Review || is_Submitting;
 
     const LEFT_SECTION = 
@@ -422,16 +443,6 @@ export default function M_Sync({
                                 title="Stop polling only; backend script continues"
                             >
                                 ■
-                            </button>
-                        )}
-                        {can_Reset_Failed_Run && (
-                            <button
-                                className="m-sync-reset-btn"
-                                onClick={reset_Failed_Run}
-                                disabled={is_Submitting}
-                                title="Clear failed status; keep the saved run log"
-                            >
-                                Reset
                             </button>
                         )}
                         <span className={`m-sync-run-status ${run_Status}`}>

@@ -5,33 +5,25 @@ namespace App\Constant;
 use Illuminate\Console\Command;
 use Throwable;
 
-/**
- * Artisan entry point for the detached Sync command.
- * It passes the run ID and phase to the service.
- */
 class M_Sync_Artisan extends Command
 {
-    protected $signature = 'sync:run {run_id} {phase}';
+    protected $signature = 'sync:run {phase}';
 
-    protected $description = 'Run one persisted Sync phase.';
+    protected $description = 'Run a detached Sync worker phase using static log and status.';
 
-    /**
-     * Execute a detached Sync worker phase.
-     *
-     * @param M_Sync_Service $sync_Service Handles persisted run state and script execution.
-     * @return int Process exit code.
-     */
     public function handle(M_Sync_Service $sync_Service): int
     {
-        $run_ID = (string) $this->argument('run_id');
+        // \Illuminate\Support\Facades\Log::info('[ -2 ] ARTISAN COMMAND HANDLE CALLED');
+
+        $phase = (string) $this->argument('phase');
 
         try {
-            return $sync_Service->executeWorker(
-                $run_ID,
-                (string) $this->argument('phase')
-            );
+            // \Illuminate\Support\Facades\Log::info('[ -1 ]  ARTISAN COMMAND TRYING TO EXECUTE WORKER: phase = ' . $phase);
+            $EXE_Worker = new M_Sync_Service_EXE_Worker();
+            return $EXE_Worker->execute_Worker($phase);
         } catch (Throwable $exception) {
-            $sync_Service->reportWorkerFailure($run_ID, $exception->getMessage());
+            \Illuminate\Support\Facades\Log::info('[🚫] ARTISAN COMMAND FAILED: phase = ' . $phase);
+            $sync_Service->reportWorkerFailure($exception->getMessage());
             $this->error($exception->getMessage());
 
             return self::FAILURE;

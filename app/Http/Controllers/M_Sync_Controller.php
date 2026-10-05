@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Constant\TargetManager;
 use App\Constant\M_Sync_Service;
+use App\Constant\TargetManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class M_Sync_Controller extends Controller
 {
@@ -25,7 +24,6 @@ class M_Sync_Controller extends Controller
      * * {
      * * * "success": true,
      * * * "run": {
-     * * * * "run_id": "7a3f...",
      * * * * "target": "ecommerce",
      * * * * "status": "starting",
      * * * * "scripts":
@@ -42,34 +40,23 @@ class M_Sync_Controller extends Controller
     public function start(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'scripts' => 'required|array|min:1',
-            'scripts.*' => ['required', 'string', Rule::in(M_Sync_Service::SCRIPT_IDS)],
+            'selected_scripts' => 'nullable|array',
+            'selected_scripts.*' => 'string',
         ]);
 
-        if (TargetManager::get_activeTarget() === '') {
+        $target_Name = TargetManager::get_activeTarget();
+        if ($target_Name === '') {
             return response()->json([
                 'success' => false,
-                'message' => 'Select an active target before starting Sync.',
+                'message' => 'Select an active target before starting a Sync run.',
             ], 422);
         }
 
-        $result = $this->sync_Service->startRun($validated['scripts']);
+        $validated = $validated['selected_scripts'] ?? [];
 
-        if (!$result['accepted']) {
-            $run_Status = $result['run']['status'] ?? '';
-            $http_Status = $run_Status === 'failed' ? 500 : 409;
+        $result = $this->sync_Service->startRun($validated);
 
-            return response()->json([
-                'success' => false,
-                'message' => $result['run']['message'] ?? $this->get_Blocking_Run_Message($result['run']),
-                'run' => $result['run'],
-            ], $http_Status);
-        }
-
-        return response()->json([
-            'success' => true,
-            'run' => $result['run'],
-        ], 202);
+        return response()->json($result);
     }
 
     /**
@@ -82,7 +69,6 @@ class M_Sync_Controller extends Controller
      * * * "target": "ecommerce",
      * * * "status": "running",
      * * * "run": {
-     * * * * "run_id": "7a3f...",
      * * * * "script_statuses":
      * * * * {
      * * * * * "json_to_php": "running"
@@ -95,7 +81,6 @@ class M_Sync_Controller extends Controller
     public function status(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'run_id' => 'nullable|uuid',
             'cursor' => 'nullable|integer|min:0',
         ]);
 
@@ -106,19 +91,17 @@ class M_Sync_Controller extends Controller
             ], 422);
         }
 
-        $status = $this->sync_Service->getCurrentStatus(
-            $validated['run_id'] ?? null,
-            (int) ($validated['cursor'] ?? 0)
-        );
+        $cursor = (int) ($validated['cursor'] ?? 0);
+        $status = $this->sync_Service->getCurrentStatus($cursor);
 
-        if ($status['status'] === 'not_found') {
+        if (($status['status'] ?? '') === 'not_found') {
             return response()->json([
                 'success' => false,
                 'message' => 'The requested Sync run is no longer available.',
             ], 404);
         }
 
-        return response()->json(['success' => true] + $status);
+        return response()->json($status);
     }
 
     /**
@@ -155,13 +138,10 @@ class M_Sync_Controller extends Controller
 
     /**
      * Start the selected generation scripts after the user confirms the Entities.json review.
-     *
-     * @param string $run_ID Identifier of the run waiting for review.
      * @return JsonResponse e.g.
      * * {
      * * * "success": true,
      * * * "run": {
-     * * * * "run_id": "7a3f...",
      * * * * "status": "starting",
      * * * * "script_statuses":
      * * * * {
@@ -170,54 +150,31 @@ class M_Sync_Controller extends Controller
      * * * }
      * * }
      */
-    public function continueRun(string $run_ID): JsonResponse
+    public function continueRun(): JsonResponse
     {
-        if (TargetManager::get_activeTarget() === '') {
+        $target_Name = TargetManager::get_activeTarget();
+        if ($target_Name === '') {
             return response()->json([
                 'success' => false,
                 'message' => 'Select an active target before continuing Sync.',
             ], 422);
         }
 
-        $result = $this->sync_Service->continueRun($run_ID);
+        $result = $this->sync_Service->continueRun();
 
-        if (!$result['accepted']) {
-            $status = $result['run']['status'] ?? 'unknown';
-            $http_Status = match ($status) {
-                'not_found' => 404,
-                'failed' => 500,
-                default => 409,
-            };
-
+        if (!($result['success'] ?? false)) {
             return response()->json([
                 'success' => false,
-                'message' => $result['run']['message'] ?? $this->get_Blocking_Run_Message($result['run']),
-                'run' => $result['run'],
-            ], $http_Status);
+                'message' => $result['message'] ?? 'Could not continue Sync run.',
+            ], 422);
         }
+
+        $current_Status = $this->sync_Service->getCurrentStatus();
 
         return response()->json([
             'success' => true,
-            'run' => $result['run'],
-        ], 202);
-    }
-
-    /**
-     * Explain why a prior run prevents starting or continuing another run.
-     *
-     * @param array<string, mixed> $run_Record Existing persisted run state.
-     * @return string User-readable reason.
-     */
-    private function get_Blocking_Run_Message(array $run_Record): string
-    {
-        if (($run_Record['status'] ?? '') === 'not_found') {
-            return 'The requested Sync run is no longer available.';
-        }
-
-        if (($run_Record['status'] ?? '') === 'awaiting_review') {
-            return 'A previous run is waiting for the Entities.json review. Continue that run before starting another.';
-        }
-
-        return 'A previous Sync run is still active for this target. Check its status and backend log before starting another.';
+            'message' => 'Sync run continued successfully.',
+            'run' => $current_Status['run'] ?? null,
+        ], 200);
     }
 }

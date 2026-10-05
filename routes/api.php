@@ -12,7 +12,7 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::get('/products', [ProductApiController::class, 'index']);
+// Route::get('/products', [ProductApiController::class, 'index']);
 
 // Endpoint for the UI to fetch the metadata JSON
 Route::get('/m-value', [M_Controller::class, 'get_M_value']);
@@ -30,7 +30,9 @@ Route::get('/config', [M_Controller::class, 'get_M_Config_json']);
 Route::get('/target/scan', [TargetManager_Config_Controller::class, 'scanTargets']);
 Route::post('/target/save_Target_App', [TargetManager_Config_Controller::class, 'updateTargetConfig']);
 
-Route::post('/sync/start', [M_Sync_Controller::class, 'start']);
-Route::get('/sync/status', [M_Sync_Controller::class, 'status']);
-Route::post('/sync/reset', [M_Sync_Controller::class, 'resetFailedRun']);
-Route::post('/sync/{run_ID}/continue', [M_Sync_Controller::class, 'continueRun']);
+Route::prefix('m-sync')->group(function () {
+    Route::post('/start', [M_Sync_Controller::class, 'start']);
+    Route::get('/status', [M_Sync_Controller::class, 'status']);
+    Route::post('/continue', [M_Sync_Controller::class, 'continueRun']);
+    Route::post('/reset', [M_Sync_Controller::class, 'resetRun']);
+});
