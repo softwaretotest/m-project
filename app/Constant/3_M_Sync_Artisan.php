@@ -22,7 +22,7 @@ class M_Sync_Artisan extends Command
             $EXE_Worker = new M_Sync_Service_EXE_Worker();
             return $EXE_Worker->execute_Worker($phase);
         } catch (Throwable $exception) {
-            \Illuminate\Support\Facades\Log::info('[🚫] ARTISAN COMMAND FAILED: phase = ' . $phase);
+            // \Illuminate\Support\Facades\Log::info('[🚫] ARTISAN COMMAND FAILED: phase = ' . $phase);
             $sync_Service->reportWorkerFailure($exception->getMessage());
             $this->error($exception->getMessage());
 

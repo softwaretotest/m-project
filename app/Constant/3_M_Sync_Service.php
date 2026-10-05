@@ -32,6 +32,8 @@ class M_Sync_Service
 
     public function startRun(array $selected_Scripts): array
     {
+        M_Sync_Service_Status_Log::reset_Log();
+
         $target_Name = TargetManager::get_activeTarget();
         if ($target_Name === '') {
             return [
@@ -49,8 +51,9 @@ class M_Sync_Service
 
         $validated_Scripts = [];
 
+        // \Illuminate\Support\Facades\Log::info(print_r($selected_Scripts));
+
         foreach ($selected_Scripts as $script_ID) {
-            echo "I AM IN LOOP OF SELECTED SCRIPT";
             $normalized_ID = strtolower(trim($script_ID));
             if (!in_array($normalized_ID, $allowed_Scripts, true)) {
                 return [
@@ -59,10 +62,6 @@ class M_Sync_Service
                 ];
             }
             $validated_Scripts[] = $normalized_ID;
-        }
-
-        if (empty($validated_Scripts)) {
-            $validated_Scripts = $allowed_Scripts;
         }
 
         $script_Statuses = [];
@@ -81,21 +80,7 @@ class M_Sync_Service
 
         M_Sync_Service_Status_Log::write_Status_Data($status_Data);
 
-        // $log_Path = base_path(M_Sync_Service_Status_Log::LOG_FILE);
-        // file_put_contents($log_Path, "---------- START SYNCHRONIZATION RUN ----------" . PHP_EOL);
         M_Sync_Service_Status_Log::write_Log("---------- START SYNCHRONIZATION RUN ----------" . PHP_EOL);
-
-        // $log_Path = base_path(M_Sync_Service_Status_Log::LOG_FILE);
-
-        // $attempts = 0;
-        // while ($attempts < 5) {
-        //     $written = @file_put_contents($log_Path, "---------- START SYNCHRONIZATION RUN ----------" . PHP_EOL);
-        //     if ($written !== false) {
-        //         break;
-        //     }
-        //     $attempts++;
-        //     usleep(50000);
-        // }
 
         $this->launch_Worker_Process(self::PHASE_INITIAL);
 
@@ -108,7 +93,7 @@ class M_Sync_Service
 
     private function launch_Worker_Process(string $phase): ?int
     {
-        \Illuminate\Support\Facades\Log::info('LAUNCH WORKER START: phase = ' . $phase);
+        // \Illuminate\Support\Facades\Log::info('LAUNCH WORKER START: phase = ' . $phase);
 
         $artisan_Path = base_path('artisan');
 
@@ -122,11 +107,11 @@ class M_Sync_Service
             $launcher = Process::fromShellCommandline($command, base_path());
             $launcher->setTimeout(15);
 
-            \Illuminate\Support\Facades\Log::info('WINDOWS COMMAND: ' . $command);
+            // \Illuminate\Support\Facades\Log::info('WINDOWS COMMAND: ' . $command);
 
             $launcher->mustRun();
 
-            \Illuminate\Support\Facades\Log::info('WINDOWS COMMAND FINISHED');
+            // \Illuminate\Support\Facades\Log::info('WINDOWS COMMAND FINISHED');
 
             return null;
         } else {
@@ -149,43 +134,6 @@ class M_Sync_Service
 
         return $process_ID;
     }
-
-    // private function launch_Worker_Process(string $phase): ?int
-    // {
-    //     $artisan_Path = base_path('artisan');
-    //     $log_Path = base_path(M_Sync_Service_Status_Log::LOG_FILE);
-
-    //     if (PHP_OS_FAMILY === 'Windows') {
-    //         $command = 'start "" /B '
-    //             . escapeshellarg(PHP_BINARY) . ' '
-    //             . escapeshellarg($artisan_Path) . ' sync:run '
-    //             . escapeshellarg($phase)
-    //             . ' >> ' . escapeshellarg($log_Path) . ' 2>&1';
-
-    //         $launcher = Process::fromShellCommandline($command, base_path());
-    //         $launcher->setTimeout(15);
-    //         $launcher->mustRun();
-
-    //         return null;
-    //     }
-
-    //     $command = 'nohup '
-    //         . escapeshellarg(PHP_BINARY) . ' '
-    //         . escapeshellarg($artisan_Path) . ' sync:run '
-    //         . escapeshellarg($phase)
-    //         . ' >> ' . escapeshellarg($log_Path) . ' 2>&1 & echo $!';
-
-    //     $launcher = Process::fromShellCommandline($command, base_path());
-    //     $launcher->setTimeout(15);
-    //     $launcher->mustRun();
-
-    //     $process_ID = (int) trim($launcher->getOutput());
-    //     if ($process_ID <= 0) {
-    //         throw new RuntimeException('Could not start the Sync worker process.');
-    //     }
-
-    //     return $process_ID;
-    // }
 
     /**
      * Continue a run after its selected sync scripts finish and the user reviews Entities.json.
@@ -226,9 +174,9 @@ class M_Sync_Service
             return ['reset' => false, 'run' => $run_Record];
         }
 
-        M_Sync_Service_Status_Log::reset_Log();
+        // M_Sync_Service_Status_Log::reset_Log();
 
-        unset($status_Data[$target_Name]);
+        // unset($status_Data[$target_Name]);
         M_Sync_Service_Status_Log::write_Status_Data($status_Data);
 
         return ['reset' => true, 'run' => null];

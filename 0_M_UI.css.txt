@@ -1,0 +1,892 @@
+
+--- FILE: C:\Users\o\.vscode\react\m-project\resources\css\0_M_UI.css ---
+
+/* 0_M_UI.css */
+:root {
+    --cd-col-width: 550px;
+}
+body {
+    background-color: #888;
+}
+
+/* --- Sub-Tabs --- */
+.subtab-container {
+    display: flex;
+    gap: 5px;
+    margin: 5px;
+}
+.subtab-button {
+    padding: 5px 15px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background-color: #eee;
+}
+.subtab-button.active {
+    background-color: #333;
+    color: #fff;
+}
+
+/* --- Data Grid & Columns --- */
+.content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.column-flex-form,
+.column-flex {
+    flex: 1;
+}
+
+.column-flex-form {
+    max-width: var(--cd-col-width);
+}
+
+/* --- Inputs & Fields --- */
+.field-wrapper {
+    margin-bottom: 15px;
+}
+
+.field-label {
+    display: block;
+    font-weight: bold;
+    margin: 0px;
+}
+.field-input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    width: 100%;
+    border-radius: 4px;
+}
+
+/* --- JSON Preview --- */
+.json-preview-column {
+    background-color: #2d2d2d;
+    color: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    overflow-y: auto;
+}
+.json-header {
+    margin-top: 0;
+    font-size: 1.1rem;
+}
+.json-pre {
+    overflow-x: auto;
+    font-family: monospace;
+    white-space: pre-wrap;
+    font-size: 14px;
+}
+.json-item {
+    margin-left: 20px;
+}
+/* --- Dashboard Main Layout --- */
+div.dashboard-wrapper {
+    padding: 0px !important;
+    display: flex;
+    height: 100%;
+    padding: 0px;
+    margin: 0px;
+}
+.dashboard-wrapper {
+    flex: 1;
+    flex-direction: column;
+    gap: 5px;
+    max-width: 2000px;
+    font-family: Arial;
+}
+/* --- Dashboard Header Layout (left - middle - right) --- */
+h1.dashboard-header {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* --- Dashboard Header Layout (Fixed & Clean) --- */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 5px;
+    box-sizing: border-box;
+    background-color: #94fb60; /* ปรับตามสีพื้นหลังเดิมของคุณ */
+}
+
+/* 3 Blocks have same size */
+.dashboard-header > * {
+    flex: 1;
+    align-items: center;
+}
+
+/* left block */
+.dashboard-header > *:first-child,
+/* middle block */
+.dashboard-header > *:nth-child(2),
+/* right block */
+.dashboard-header > *:last-child {
+    justify-content: center;
+}
+
+.tab-switcher-container {
+    display: flex;
+    gap: 10px;
+}
+
+.tch-label {
+    align-self: center;
+    background-color: #aabba3;
+    padding: 10px;
+}
+
+.dashboard-main-box {
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 8px;
+    min-height: 400px;
+}
+
+/* --- Dashboard Buttons --- */
+.nav-button {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    color: #fff;
+    background-color: #9e6464;
+}
+.nav-button.active {
+    background-color: #333;
+}
+
+.input-engine-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 3px;
+}
+
+.field-separator {
+    text-align: center;
+    font-weight: bold;
+    padding: 0 5px;
+}
+
+/* --- Field Row & Wrapper --- */
+.form-subtab-content-row {
+    display: inline-block;
+    align-items: center;
+    gap: 10px;
+    border: 2px solid white;
+    padding: 3px;
+    border-radius: 4px;
+    background-color: transparent;
+    font-size: larger;
+    transition: all 0.2s ease-in-out;
+}
+
+.field-key-capital {
+    border: 1px solid #000;
+    padding: 5px 10px;
+    font-weight: bold;
+    text-align: center;
+}
+/* --- Field Component Styles --- */
+.field-wrapper-box {
+    border: 1px solid #000;
+    padding: 7px;
+}
+.field-header-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 5px;
+}
+.field-header-container * {
+    flex: 1;
+}
+
+.fieldname,
+.M_value_KEY,
+.new_field_name {
+    border: 2px solid #3498db;
+    padding: 6px 8px;
+    font-weight: bold;
+    font-size: large;
+    border-radius: 4px;
+    width: 160px;
+}
+.fieldname,
+.M_value_KEY,
+.justify-items-center {
+    justify-items: center;
+}
+
+.tablename {
+    width: 100%;
+    border: 2px solid green;
+    padding: 6px 8px;
+    color: green;
+    font-weight: bold;
+    font-size: large;
+    width: 175px;
+    border-radius: 4px;
+}
+.field-separator-colon {
+    font-size: xx-large;
+    font-weight: bold;
+    text-align: center;
+    align-self: end;
+}
+.field-dropdown-grid {
+    display: grid;
+    /* สมมติสัดส่วนเป็น D (กว้างพอดี หรือ 1fr), CD (1fr), U (ตามเนื้อหา), CU (1fr) */
+    grid-template-columns: 1fr 1fr auto 1fr;
+    gap: 7px;
+}
+.field-column {
+    flex: 1;
+    text-align: center;
+    width: 100%;
+}
+.field-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.D_Dropdown,
+.U_Dropdown {
+    padding: 3px;
+    width: 100%;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.M_checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.M_checkbox-list label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.M_checkbox-list input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.form-subtab-content-row.is-focused {
+    border: 2px solid #e3342f;
+    background-color: #aabba3;
+
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+    z-index: 10;
+}
+
+.input-engine-container {
+    overflow-y: auto;
+
+    padding-right: 10px;
+
+    max-height: 70vh;
+
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
+}
+
+.input-engine-container.lock-scroll {
+    overflow-y: hidden !important;
+}
+
+.content-box {
+    display: grid;
+    grid-template-columns: min-content var(--cd-col-width) 250px;
+    gap: 20px;
+    height: 80vh;
+}
+
+.field-sidebar {
+    overflow-y: auto;
+    border-right: 1px solid #ddd;
+    gap: 4px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    max-width: 250px;
+}
+
+/*
+    drag able for sidebar
+    to sort entities
+*/
+.field-nav-link {
+    cursor: grab; /* change arrow to hand */
+    user-select: none; /* prevent highlight text while dragging */
+}
+
+.field-nav-link:active {
+    cursor: grabbing; /* change arrow to hand , while dragging */
+}
+
+.field-nav-link.dragging {
+    opacity: 0.4;
+}
+
+/* --- Drag and Drop Target Highlight --- */
+.field-nav-link.drag-over {
+    /* same color as JSON Highlight  */
+    background-color: #38f5e8b9 !important;
+    border: 2px dashed #0056b3 !important;
+    color: #000 !important;
+
+    /* expand item size to see more blink effect */
+    transform: scale(1.2);
+    transition: all 0.15s ease-in-out;
+}
+
+/* --- Drop Success Blink Effect --- */
+.dropped-blink {
+    animation: blink-frequenz 0.7s ease-in-out 4;
+    background-color: #38f5e8b9 !important;
+    border-color: #0056b3 !important;
+}
+
+.dashboard-header-title,
+.dashboard-header-button,
+.delete-button,
+.field-nav-link {
+    text-align: left;
+    border: 3px solid #ddd;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+    white-space: nowrap;
+    padding: 0;
+    margin: 5px;
+    background: #f8f9fa;
+}
+
+.dashboard-header-title {
+    text-align: center;
+    border-color: transparent;
+    background-color: transparent;
+}
+
+.field-nav-link {
+    padding: 10;
+    margin: 0px;
+}
+
+.btn-setting:hover,
+.dashboard-header-button:hover,
+.delete-button:hover,
+.field-nav-link:hover {
+    background: #e2e6ea;
+}
+
+.btn-setting:active,
+.dashboard-header-button.active,
+.delete-button.active,
+.field-nav-link.active {
+    background-color: #e3342f;
+    color: white;
+    border-color: #e3342f;
+    font-weight: bold;
+}
+
+.dashboard-header-button {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 2px;
+    background-color: #3498db;
+}
+
+.dashboard-header-button p {
+    margin: 0;
+}
+
+.button-info {
+    font-size: 10px;
+    color: #511c29;
+    background-color: #b5e5a7;
+}
+
+.btn-setting {
+    flex: 0; /* prevent flex squeeze */
+    height: 100%; /* high full of header */
+    padding: 5px;
+    margin-right: 5px;
+    transition: 0.2s ease;
+    cursor: pointer;
+    transform: scale(1);
+
+    /* make to square */
+    aspect-ratio: 1 / 1;
+
+    font-weight: bold;
+    border-radius: 3px;
+    background-color: rgb(45, 202, 45);
+
+    align-items: center;
+}
+
+.delete-button {
+    background-color: #f08730;
+    margin: 0;
+    padding: 12px 20px;
+}
+
+.json-list {
+    font-family: monospace;
+    padding: 10px;
+    background: #2d2d2d;
+}
+
+.json-line {
+    padding: 2px 5px;
+    transition: background-color 0.3s ease;
+}
+
+.json-highlight {
+    color: #000;
+    background-color: #38f5e8b9; /* สีเหลือง Highlight */
+    border-radius: 3px;
+    font-weight: bold;
+}
+
+.d_params_container {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    margin: 0px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #fcfcfc;
+}
+
+.field_param_header {
+    font-size: 12px;
+    font-weight: bold;
+    margin: 0 0 5px 0;
+    color: #444;
+    white-space: nowrap;
+}
+
+.d_param_body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: "d_param_label d_param_input";
+    gap: 3px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 3px;
+}
+
+.d_param_label {
+    grid-area: d_param_label;
+    font-size: 11px;
+    color: #666;
+    text-align: right;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.d_param_input {
+    grid-area: d_param_input;
+    width: 100%;
+    padding: 2px 4px;
+    border: 1px solid #bbb;
+    border-radius: 3px;
+    font-size: 12px;
+    box-sizing: border-box;
+}
+
+.DEFAULT_Panel {
+    width: 100%;
+    border-radius: 4px;
+}
+.tab-content-header {
+    gap: 5px;
+    padding: 8px;
+    display: grid;
+    /* คอลัมน์แรกพอดีตัว, คอลัมน์สองกินพื้นที่ที่เหลือทั้งหมด, คอลัมน์สามพอดีตัวปุ่ม */
+    grid-template-columns: max-content minmax(0, 1fr) max-content;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+        "tch-label new_field_name dashboard-header-button"
+        "error-text error-text error-text";
+    align-items: center;
+}
+
+.tch-label {
+    grid-area: tch-label;
+}
+
+.new_field_name {
+    grid-area: new_field_name;
+    justify-self: end;
+}
+
+.dashboard-header-button {
+    grid-area: dashboard-header-button;
+}
+
+@keyframes blink-frequenz {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.2;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.error-text {
+    position: absolute;
+    grid-area: unset;
+    z-index: 99;
+
+    padding: 2px 5px;
+
+    color: red;
+    font-size: 20px;
+    font-weight: bold;
+    background-color: white;
+    text-align: center;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+
+    animation: blink-frequenz 0.5s ease-in-out 4;
+}
+
+/* CSS for ENTITIES TAB */
+
+.entities-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+.entities-seleted_F_S {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.entities-select-container {
+    min-height: 200px;
+    max-height: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+.entities-choices-list {
+    max-height: 180px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 8px;
+    background-color: #fff;
+    box-sizing: border-box;
+}
+
+.entities-choices-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.entities-choices-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.entities-choices-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.entities-choices-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+.entities-choice-item {
+    padding: 6px 8px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s ease;
+}
+
+.entities-selected-item:hover,
+.entities-choice-item:hover {
+    background-color: #fcfa95;
+}
+
+.entities-no-choice {
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+    color: #072cc3;
+}
+.entity-search-box-wrapper {
+    margin-bottom: 8px;
+}
+
+.entities-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    font-size: medium;
+}
+
+.entities-selected-container {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    gap: 8px;
+}
+
+.entities-selected-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 18px;
+    padding: 6px 12px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.entities-icon {
+    margin-left: 8px;
+    color: #e53e3e;
+    font-weight: bold;
+}
+
+.entities-left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.entities-input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.entities-M_value_KEY-and-delete-button {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+}
+
+.entities-M_value_KEY-and-delete-button .delete-button {
+    height: 100%;
+    padding: 3px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* reusable input buttons group */
+.field-group-M_value_KEY button {
+    margin: 0;
+    padding: 0;
+}
+.field-group-M_value_KEY {
+    display: grid;
+    /* label(1fr = take rest aria), 3xbuttons(auto) */
+    grid-template-columns: 1fr auto auto;
+
+    grid-template-areas:
+        "label save-button cancel-button"
+        "M_value_KEY M_value_KEY M_value_KEY";
+
+    align-items: center;
+    gap: 1px;
+}
+
+.label {
+    grid-area: label;
+    font-size: small;
+    font-weight: bold;
+}
+
+.clear-button {
+    grid-area: clear-button;
+}
+
+.save-button {
+    grid-area: save-button;
+}
+
+.cancel-button {
+    grid-area: cancel-button;
+}
+
+input.M_value_KEY {
+    grid-area: M_value_KEY;
+}
+
+.field-group-fieldname {
+    display: grid;
+    /* 1 column , 2 rows */
+    grid-template-columns: 1fr;
+
+    grid-template-areas:
+        "label"
+        "fieldname";
+
+    align-items: center;
+    gap: 1px;
+}
+
+.fieldname {
+    grid-area: fieldname;
+}
+
+/* lock the whole screen except .activeField */
+.backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6); /* กระจกดำโปร่งแสง */
+    backdrop-filter: blur(2px); /* เบลอฉากหลังเล็กน้อยเพื่อให้ดูพรีเมียม */
+    z-index: 99;
+}
+
+/* this must be over the backdrop , when is_Editing = true */
+.activeField,
+.error-text,
+/* parent of .activeField must be over the backdrop too*/
+.form-subtab-content-row.is-focused {
+    position: relative;
+    z-index: 100;
+}
+
+/* this lock Scroll if backdrop is showing */
+body.overflow-hidden {
+    overflow: hidden !important;
+}
+
+/* --- Target Selector Component Styles --- */
+.target-selector-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f3f4f6;
+    font-family: sans-serif;
+    padding: 20px;
+}
+
+.target-selector-card {
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 600px;
+}
+
+.target-selector-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #1f2937;
+    margin-bottom: 8px;
+}
+
+.target-selector-subtitle {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 20px;
+}
+
+.target-selector-scan-box {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.target-selector-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.target-selector-btn-scan {
+    background-color: #e5e7eb;
+    color: #374151;
+}
+
+.target-selector-btn-scan:hover {
+    background-color: #acb080;
+    color: #000;
+}
+
+.target-selector-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    border: 1px solid #e5e7eb;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.target-selector-name {
+    font-weight: bold;
+    color: #111827;
+    font-size: 15px;
+}
+
+.target-selector-path {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+    word-break: break-all;
+}
+
+.target-selector-btn {
+    background-color: #b5e5a7;
+    color: white;
+    width: 100%;
+    padding: 10px;
+}
+
+.target-selector-btn:hover {
+    background-color: #738ed7;
+}
+
+/* --- Path Info Box --- */
+.target-selector-path-info {
+    font-size: 13px;
+    color: #b45309;
+    background-color: #fef3c7;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    border: 1px solid #f59e0b;
+    line-height: 1.4;
+}
+
+

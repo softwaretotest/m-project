@@ -2,8 +2,6 @@
 
 namespace App\Constant;
 
-use Illuminate\Support\Facades\Log;
-
 //0_Runner.php
 
 class Runner
@@ -12,7 +10,7 @@ class Runner
     /**
      * * Instance counter does :
      * * 1. limit Runner to MAX_MIGRATIONS
-     * * 2. ensures unique migration 
+     * * 2. ensures unique migration
      * * timestamps and prevents filename collisions.
      * * e.g.
      * * 2026_06_23_080333_01_create_shops_table.php
@@ -22,7 +20,7 @@ class Runner
 
     public static function run(): void
     {
-        // dynamicly get app/Constant/EntityContant.php 
+        // dynamicly get app/Constant/EntityContant.php
         $entities = (array) self::get_Entities();
 
         $count = count($entities);
@@ -52,12 +50,13 @@ class Runner
 
             Maker::run($entity);
         }
+        Logger::finish();
     }
 
     /**
-     * * read Entities.from จาก target app 
+     * * read Entities.from จาก target app
      * * and conver to list Constant class
-     * * ordered by Entities.json that DEV-User 
+     * * ordered by Entities.json that DEV-User
      * * defined in UI (ordering of table has impact with FK on Laravel migration)
      *
      * @return string[] FQCN list e.g. ['App\Constant\UserConstant', 'App\Constant\ShopConstant']

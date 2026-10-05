@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Constant;
+
 //0_MigrationFile.php
 
 class MigrationFile
@@ -94,7 +95,6 @@ class MigrationFile
             echo "║" . str_pad("SUCCESSFUL", 48, " ", STR_PAD_BOTH) . "║\n";
             echo "╚" . str_repeat("═", 48) . "╝\n";
             echo "\n";
-            Logger::finish();
         } else {
             Logger::error("Error! Failed to copy to : " . self::$destinationPath);
         }

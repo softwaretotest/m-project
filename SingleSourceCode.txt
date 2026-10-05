@@ -1,3 +1,6 @@
+
+--- FILE: C:\Users\o\.vscode\react\m-project\resources\js\Components\3_M_Sync.jsx ---
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./3_M_Sync.css";
 
@@ -489,3 +492,5 @@ export default function M_Sync({
         </>
     );
 }
+
+

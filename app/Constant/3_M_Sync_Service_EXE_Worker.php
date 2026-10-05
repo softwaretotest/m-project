@@ -7,7 +7,6 @@ use Throwable;
 class M_Sync_Service_EXE_Worker
 {
     private string $target_Name;
-
     public function __construct()
     {
         $this->target_Name = TargetManager::get_activeTarget();
@@ -17,12 +16,12 @@ class M_Sync_Service_EXE_Worker
     * Loads the persisted run record for the active target.
     *
     * @return array<string, mixed>|null The run record array or null if not found.
-    */    private function find_Run(): ?array
+    */
+    private function find_Run(): ?array
     {
         $status_Data = M_Sync_Service_Status_Log::read_Status_Data();
         return $status_Data[$this->target_Name] ?? null;
     }
-
 
     /**
      * Executes the requested allowlisted script via the execution runner.
@@ -34,7 +33,6 @@ class M_Sync_Service_EXE_Worker
     private function execute_Script(array $run_Record, string $script_ID): array
     {
         $EXE_Script = new M_Sync_Service_EXE_Script();
-
         return $EXE_Script->execute_EXE_Script($run_Record, $script_ID);
     }
 
@@ -76,9 +74,8 @@ class M_Sync_Service_EXE_Worker
         $log_Path = base_path(M_Sync_Service_Status_Log::LOG_FILE);
         $failure_Message = "[ 🚫 fail_Run ] EXE_Worker FAILED : {$message}" . PHP_EOL;
         file_put_contents($log_Path, $failure_Message, FILE_APPEND);
-        \Illuminate\Support\Facades\Log::error($failure_Message);
+        // \Illuminate\Support\Facades\Log::error($failure_Message);
     }
-
 
     /**
     * Updates a persisted run record using a callback function.
