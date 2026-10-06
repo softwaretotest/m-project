@@ -5,6 +5,10 @@ namespace App\Constant;
 use Illuminate\Console\Command;
 use Throwable;
 
+/**
+ * execute worker process
+ * @return int failure code to artisan
+ */
 class M_Sync_Artisan extends Command
 {
     protected $signature = 'sync:run {phase}';
@@ -13,20 +17,24 @@ class M_Sync_Artisan extends Command
 
     public function handle(M_Sync_Service $sync_Service): int
     {
-        // \Illuminate\Support\Facades\Log::info('[ -2 ] ARTISAN COMMAND HANDLE CALLED');
-
         $phase = (string) $this->argument('phase');
 
         try {
-            // \Illuminate\Support\Facades\Log::info('[ -1 ]  ARTISAN COMMAND TRYING TO EXECUTE WORKER: phase = ' . $phase);
             $EXE_Worker = new M_Sync_Service_EXE_Worker();
             return $EXE_Worker->execute_Worker($phase);
         } catch (Throwable $exception) {
-            // \Illuminate\Support\Facades\Log::info('[🚫] ARTISAN COMMAND FAILED: phase = ' . $phase);
-            $sync_Service->reportWorkerFailure($exception->getMessage());
-            $this->error($exception->getMessage());
+            $error_text = $exception->getMessage();
+            Logger::collect_error(
+                'ARTISAN COMMAND FAILED: phase = ' . $phase . PHP_EOL .
+                ' ERROR = '. $error_text
+            );
+            M_Sync_Service_Status_Log::write_Log(Logger::$collected_message);
+            $sync_Service->reportWorkerFailure($error_text);
 
-            return self::FAILURE;
+            parent::error($error_text);
+
+            // to return failure code to artisan
+            return parent::FAILURE;
         }
     }
 }

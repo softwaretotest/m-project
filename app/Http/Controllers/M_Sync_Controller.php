@@ -165,7 +165,7 @@ class M_Sync_Controller extends Controller
         if (!($result['success'] ?? false)) {
             return response()->json([
                 'success' => false,
-                'message' => $result['message'] ?? 'Could not continue Sync run.',
+                'message' => $result['message'] ?? 'Could not continue Sync run.  CLOSE and Check this   :   Maby no Entities.json found or empty eintities [] ',
             ], 422);
         }
 

@@ -121,7 +121,7 @@ class M_Sync_Service_Status_Log
         // clean remaining file of worker
         $fp = @fopen($log_Path, 'w');
         if ($fp === false) {
-            \Illuminate\Support\Facades\Log::error("[ 🚫 ERROR ] Could not clear log : {$log_Path}");
+            Logger::collect_error("Could not clear log : {$log_Path}");
             return 1;
         }
         @flock($fp, LOCK_EX);
@@ -135,8 +135,6 @@ class M_Sync_Service_Status_Log
             $status_Data[$target_Name]['log_cursor'] = 0;
             self::write_Status_Data($status_Data);
         }
-
-        // \Illuminate\Support\Facades\Log::info("[ ✅ SUCCESS ] Reset log for {$target_Name} : {$log_Path}");
         return 0;
     }
 
@@ -178,7 +176,7 @@ class M_Sync_Service_Status_Log
      */
     public static function write_Status_Data(array $status_Data): void
     {
-        self::ensureDir(base_path(self::STATUS_FILE));
+        DataHelper::ensureDir(base_path(self::STATUS_FILE));
         file_put_contents(
             base_path(self::STATUS_FILE),
             json_encode($status_Data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
@@ -194,18 +192,10 @@ class M_Sync_Service_Status_Log
         $log_Path = self::get_Log_File_Path();
 
         $flags = $append ? (FILE_APPEND | LOCK_EX) : LOCK_EX;
+        /**
+         * @ = stop showing error
+         */
         @file_put_contents($log_Path, $valid_content, $flags);
-    }
-
-    /**
-     * Create private storage directories used for status and per-run logs.
-     */
-    public static function ensureDir(string $filePath): void
-    {
-        $status_Dir = dirname($filePath);
-        if (!is_dir($status_Dir)) {
-            mkdir($status_Dir, 0775, true);
-        }
     }
 
     /**

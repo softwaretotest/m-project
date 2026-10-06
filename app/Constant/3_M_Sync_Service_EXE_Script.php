@@ -29,7 +29,7 @@ class M_Sync_Service_EXE_Script
         clearstatcache(true, $log_Path);
         $log_Start_Offset = filesize($log_Path);
         if ($log_Start_Offset === false) {
-            throw new RuntimeException("Could not inspect Sync log for target {$target_Name}");
+            Logger::collect_error("Could not inspect Sync log for target {$target_Name}");
         }
 
         // force change Temp Dir to storage to prevent Permission denied on C:\WINDOWS
@@ -44,6 +44,13 @@ class M_Sync_Service_EXE_Script
         putenv('TMP=' . $temp_Dir);
         putenv('TEMP=' . $temp_Dir);
 
+        /**
+         * * Symfony will truncate it own files , not our log
+         * * during the synfony write it own log and truncate after finish a script
+         * * we write apend content(buffer) to logs of all script at the end
+         * * IMPORTANT : Do not remove param string $type , because Symfony Process use it ,
+         * *             to make UI show Log message, insteat of 'out'
+         */
         $script_Process = new Process(
             [PHP_BINARY, $script_Path],
             base_path(),
@@ -54,11 +61,10 @@ class M_Sync_Service_EXE_Script
 
         // START MarK-Script-Color
         M_Sync_Service_Status_Log::write_Log("[[M_SYNC_SCRIPT_START:{$script_ID}]]\n", true);
-        // Symfony will truncate it own files , not our log
 
+        // Do not remove param string $type , because Symfony Process use it ,
+        // to make UI show Log message, insteat of 'out'
         $script_Process->start(function (string $type, string $buffer): void {
-            // during the synfony write it own log and truncate after finish a script
-            // we write apend content(buffer) to logs of all script at the end
             M_Sync_Service_Status_Log::write_Log($buffer, true);
         });
 

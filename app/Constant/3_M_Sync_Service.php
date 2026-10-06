@@ -2,7 +2,6 @@
 
 namespace App\Constant;
 
-use RuntimeException;
 use Symfony\Component\Process\Process;
 use Throwable;
 
@@ -51,8 +50,6 @@ class M_Sync_Service
 
         $validated_Scripts = [];
 
-        // \Illuminate\Support\Facades\Log::info(print_r($selected_Scripts));
-
         foreach ($selected_Scripts as $script_ID) {
             $normalized_ID = strtolower(trim($script_ID));
             if (!in_array($normalized_ID, $allowed_Scripts, true)) {
@@ -84,6 +81,8 @@ class M_Sync_Service
 
         $this->launch_Worker_Process(self::PHASE_INITIAL);
 
+        M_Sync_Service_Status_Log::write_Log(Logger::$collected_message);
+
         return [
             'success' => true,
             'target' => $target_Name,
@@ -91,45 +90,51 @@ class M_Sync_Service
         ];
     }
 
+    /**
+     * * Execute worker process in the background.
+     * * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+     * * for Windows : call start "" /B ,
+     * *        to run background without cmd windows
+     * * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+     * * for Linux   : nohup ... & echo $!
+     * *        to continue process , although HTTP Request ended
+     * * LINUX need processs_ID to
+     * *    1. sync current_Run
+     * *    2. check background PID = Ref. for still running process
+     * *    3. Kill Process
+     * * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+     * @param string $phase
+     *   Worker phase to launch (e.g. initial, continue)
+     * @return int|null
+     *   Process ID (PID) on Linux, or null on Windows
+     */
     private function launch_Worker_Process(string $phase): ?int
     {
-        // \Illuminate\Support\Facades\Log::info('LAUNCH WORKER START: phase = ' . $phase);
-
         $artisan_Path = base_path('artisan');
 
+        $core_Command = escapeshellarg(PHP_BINARY) . ' '
+            . escapeshellarg($artisan_Path) . ' sync:run '
+            . escapeshellarg($phase);
+
         if (PHP_OS_FAMILY === 'Windows') {
-            $command = 'start "" /B '
-                . escapeshellarg(PHP_BINARY) . ' '
-                . escapeshellarg($artisan_Path) . ' sync:run '
-                . escapeshellarg($phase)
-                . ' >NUL 2>&1';
-
-            $launcher = Process::fromShellCommandline($command, base_path());
-            $launcher->setTimeout(15);
-
-            // \Illuminate\Support\Facades\Log::info('WINDOWS COMMAND: ' . $command);
-
-            $launcher->mustRun();
-
-            // \Illuminate\Support\Facades\Log::info('WINDOWS COMMAND FINISHED');
-
-            return null;
+            $command = 'start "" /B ' . $core_Command . ' >NUL 2>&1';
         } else {
-            $command = 'nohup '
-                . escapeshellarg(PHP_BINARY) . ' '
-                . escapeshellarg($artisan_Path) . ' sync:run '
-                . escapeshellarg($phase)
-                . ' > /dev/null 2>&1 & echo $!';
-
-            $launcher = Process::fromShellCommandline($command, base_path());
-            $launcher->setTimeout(15);
-            $launcher->mustRun();
-            $process_ID = (int) trim($launcher->getOutput());
+            $command = 'nohup ' . $core_Command . ' > /dev/null 2>&1 & echo $!';
         }
 
+        $launcher = Process::fromShellCommandline($command, base_path());
+        $launcher->setTimeout(15);
+        $launcher->mustRun();
+
+        if (PHP_OS_FAMILY === 'Windows') {
+            return null;
+        }
+
+        // CASE : OS = LINUX
+        $process_ID = (int) trim($launcher->getOutput());
+
         if ($process_ID <= 0) {
-            // throw new RuntimeException('Could not start the Sync worker process.');
-            \Illuminate\Support\Facades\Log::info('[🚫] Could not start the Sync worker process');
+            Logger::collect_error('Could not start the Sync worker process, $process_ID = ' . $process_ID);
         }
 
         return $process_ID;
@@ -148,7 +153,38 @@ class M_Sync_Service
             return $run_Record;
         }
 
-        return $this->launch_Reserved_Run($target_Name, self::PHASE_CONTINUE);
+        try {
+            $process_ID = $this->launch_Worker_Process(self::PHASE_CONTINUE);
+        } catch (Throwable $exception) {
+            M_Sync_Service_Status_Log::fail_Run(
+                $target_Name,
+                $exception->getMessage()
+            );
+
+            return [
+                'accepted' => false,
+                'run' => $this->get_Target_Run($target_Name),
+            ];
+        }
+
+        M_Sync_Service_Status_Log::update_Run($target_Name, function (array $current_Run) use ($process_ID): array {
+            // $process_ID is only for Linux to sync current_Run
+            if (
+                $process_ID !== null
+                && in_array($current_Run['status'], [self::STATUS_STARTING, self::STATUS_RUNNING], true)
+            ) {
+                $current_Run['pid'] = $process_ID;
+            }
+
+            $current_Run['updated_at'] = date(DATE_ATOM);
+
+            return $current_Run;
+        });
+
+        return [
+            'accepted' => true,
+            'run' => $this->get_Target_Run($target_Name),
+        ];
     }
 
     /**
@@ -289,47 +325,6 @@ class M_Sync_Service
         M_Sync_Service_Status_Log::write_Status_Data($status_Data);
 
         return ['accepted' => true, 'run' => $run_Record];
-    }
-
-    /**
-     * Launch a reserved run phase
-     *
-     * @param string $target_Name Configured active target name.
-     * @param string $phase Worker phase to launch.
-     * @return array{accepted: bool, run: array<string, mixed>}
-     */
-    private function launch_Reserved_Run(string $target_Name, string $phase): array
-    {
-        try {
-            $process_ID = $this->launch_Worker_Process($phase);
-        } catch (Throwable $exception) {
-            M_Sync_Service_Status_Log::fail_Run(
-                $target_Name,
-                $exception->getMessage()
-            );
-
-            return [
-                'accepted' => false,
-                'run' => $this->get_Target_Run($target_Name),
-            ];
-        }
-
-        M_Sync_Service_Status_Log::update_Run($target_Name, function (array $current_Run) use ($process_ID): array {
-            if (
-                $process_ID !== null
-                && in_array($current_Run['status'], [self::STATUS_STARTING, self::STATUS_RUNNING], true)
-            ) {
-                $current_Run['pid'] = $process_ID;
-            }
-            $current_Run['updated_at'] = date(DATE_ATOM);
-
-            return $current_Run;
-        });
-
-        return [
-            'accepted' => true,
-            'run' => $this->get_Target_Run($target_Name),
-        ];
     }
 
     /**

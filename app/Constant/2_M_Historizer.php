@@ -9,7 +9,7 @@ require __DIR__ . '/../../vendor/autoload.php';
  */
 class M_Historizer
 {
-    const HISTORY_DIR = __DIR__ . '/../../../history';
+    public const HISTORY_DIR = __DIR__ . '/../../../history';
     public static string $target_HISTORY_DIR;
 
     /**
@@ -45,7 +45,7 @@ class M_Historizer
         echo "[2.3] Checking if source file exists: {$sourceFile}\n";
 
         if (file_exists($filePath)) {
-            $timestamp = time();
+            $timestamp = (new \DateTime())->format('Ymd_His_v');
             $newFileName = $timestamp . '_' . basename($sourceFile);
             $destinationPath = $target_HISTORY_DIR . '/' . $newFileName;
 
@@ -61,9 +61,9 @@ class M_Historizer
     }
 
     /**
-     * * 3.1 get a List of Entities from $jsonFile 
+     * * 3.1 get a List of Entities from $jsonFile
      * * 3.2 Loop Entities : (USERS,PRODUCTS,ORDERS,etc.)
-     * * 3.2.1 check if PHP file of each Entitiy exists , e.g. UserConstant.php 
+     * * 3.2.1 check if PHP file of each Entitiy exists , e.g. UserConstant.php
      * * 3.2.2 if file exist rename e.g. UserConstant.php to unixtimestamp() + "_" + UserConstant.php
      * * 2.3 move php file to ./history
      * @param $jsonFile = Entities.json
@@ -83,7 +83,9 @@ class M_Historizer
         }
 
         $result = file_get_contents($jsonFilePath);
-        if (!$result) Logger::error("Failure - file_get_contents($jsonFilePath)");
+        if (!$result) {
+            Logger::error("Failure - file_get_contents($jsonFilePath)");
+        }
 
         $jsonData = json_decode($result, true);
         if (!isset($jsonData['entities'])) {
@@ -103,7 +105,7 @@ class M_Historizer
 
             echo "[3.2.1] Checking entity file: {$phpFileName}\n";
             if (file_exists($phpFilePath)) {
-                $timestamp = time();
+                $timestamp =  (new \DateTime())->format('Ymd_His_v');
                 $newFileName = $timestamp . '_' . $phpFileName;
                 $destinationPath = self::HISTORY_DIR . '/' . TargetManager::get_activeTarget() . '/' . $newFileName;
 

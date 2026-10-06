@@ -53,7 +53,7 @@ class TargetManager
         // 2. get config data from JSON
         $jsonData = json_decode(file_get_contents(self::CONFIG_FILE), true);
 
-        // 3. throw Error if wrong jsonData
+        // 3. clear jsonData
         if (!isset($jsonData['activeTarget']) || !isset($jsonData['targets'])) {
             // Logger::error("Invalid Config format in: " . self::CONFIG_FILE);
             self::$activeTarget = '';
@@ -77,7 +77,7 @@ class TargetManager
      * * generate target app path (e.g. ecommerce) to put generated files on it, e.g.
      * @param $path = migrations/2026_09_20_162853_01_create_orders_table.php
      * @param $baseFolder = database
-     * @return path to target app_name_root/app or /any_defined_foldername
+     * @return string $path to target app_name_root/app or /any_defined_foldername
      */
     public static function gen_path($path = '', $baseFolder = 'app'): string
     {
@@ -85,7 +85,7 @@ class TargetManager
         if (empty(self::$activeTarget) || !isset(self::$targets[self::$activeTarget])) {
             // ดึงค่าล่าสุดมาก่อนเผื่อยังไม่ได้โหลด
             self::get_activeTarget();
-
+            self::get_activeTarget();
             if (empty(self::$activeTarget) || !isset(self::$targets[self::$activeTarget])) {
                 return base_path($path); // คืนค่าพาธหลักของ m-project กันพัง
             }

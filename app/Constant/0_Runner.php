@@ -26,15 +26,19 @@ class Runner
         $count = count($entities);
 
         if ($count === 0) {
-            Logger::error("--- Runner: No entity found. Nothing to migrate. ---\n"
+            $error_no_entities = "--- Runner: No entity found. Nothing to migrate. ---\n"
                 . "    Target : " . TargetManager::get_activeTarget() . "\n"
-                . "    Path   : " . (string)TargetManager::gen_path('Constant'));
+                . "    Path   : " . (string)TargetManager::gen_path('Constant');
+            Logger::error($error_no_entities);
+            Logger::collect_error($error_no_entities); // for 3_M_Sync_Service
         }
 
         if ($count > self::MAX_MIGRATIONS) {
-            Logger::error("--- CRITICAL: Migration limit exceeded. "
+            $error_max_migrations = "--- CRITICAL: Migration limit exceeded. "
                 . "\n Found {$count} tables, limit is " . self::MAX_MIGRATIONS
-                . "\n Please split your migration tasks across multiple runs. ---");
+                . "\n Please split your migration tasks across multiple runs. ---";
+            Logger::error($error_max_migrations);
+            Logger::collect_error($error_max_migrations); // for 3_M_Sync_Service
         }
 
         foreach ($entities as $entity) {

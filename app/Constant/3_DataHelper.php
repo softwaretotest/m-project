@@ -33,9 +33,11 @@ class DataHelper
         $dir = !empty($extension) ? dirname($fullPath) : $fullPath;
 
         if (!is_dir($dir)) {
-            $result = mkdir($dir, 0777, true);
+            $result = mkdir($dir, 0775, true);
             if ($result === false) {
-                Logger::error("Could not make directory : $dir");
+                $error_text = "Could not make directory : $dir";
+                Logger::collect_error($error_text);
+                Logger::error($error_text);
             }
         }
         return $dir;
@@ -44,12 +46,12 @@ class DataHelper
     /**
      * * param = e.g. 'boolean'
      * * return =
-            Array
-            (
-                [group] => d
-                [name] => BOOLEAN
-                [value] => boolean
-            )
+     * *    Array
+     * *       (
+     * *           [group] => d
+     * *           [name] => BOOLEAN
+     * *           [value] => boolean
+     * *       )
      */
     public static function resolve($key): ?array
     {
@@ -67,25 +69,28 @@ class DataHelper
         return null;
     }
 
-    /** e.g.
-     * @param
-                 App\Constant\uf
-     * @return
-                Array
-                (
-                    [currency] => CURRENCY
-                )
-     * @param
-                App\Constant\cd
-     * @return
-                Array
-                (
-                    [nullable] => NULLABLE
-                    [default] => DEFAULT
-                    [unique] => UNIQUE
-                    [index] => INDEX
-                    [foreign] => FOREIGN
-                )
+    /**
+     * Map class constants to array.
+     *
+     * @param string $class
+     * * e.g. App\Constant\uf
+     * @return array
+     * * Array
+     * * (
+     * *     [currency] => CURRENCY
+     * * )
+     *
+     * @param string $class
+     * * e.g. App\Constant\cd
+     * @return array
+     * * Array
+     * * (
+     * *     [nullable] => NULLABLE
+     * *     [default] => DEFAULT
+     * *     [unique] => UNIQUE
+     * *     [index] => INDEX
+     * *     [foreign] => FOREIGN
+     * * )
      */
     public static function constMap(string $class): array
     {

@@ -2,8 +2,6 @@
 
 namespace App\Constant;
 
-use Throwable;
-
 class Logger
 {
     public const SUCCESS = '[ ✅ SUCCESS ] ';
@@ -12,8 +10,102 @@ class Logger
     public const FINISH  = '[ 🆗 FINISH  ] ';
 
     /**
-     * find Class and Method of File that called Logger 
-     **/
+     * Centralized log message formatter.
+     */
+    private static function formatMessage(string $level, string $message, ?string $location = null): string
+    {
+        $timestamp = date('Y-m-d H:i:s');
+        $location ??= self::getCaller();
+        return "[ {$timestamp} ] [ {$level} ] [ {$location} ] {$message}";
+    }
+
+    public static string $collected_message = '';
+
+    /**
+     * Centralize error details formatting.
+     */
+    private static function formatErrorDetails(string $message, ?\Throwable $exception): string
+    {
+        $exception ??= new \RuntimeException($message);
+        return $message . ' | Exception: ' . get_class($exception)
+            . ' | Message: ' . $exception->getMessage()
+            . ' | File: ' . $exception->getFile()
+            . ' | Line: ' . $exception->getLine();
+    }
+
+    /**
+     * * this function is only for 3_M_Sync_Service
+     * * to collect error without throw exception
+     * * 3_M_Sync_Service will write $collected_message to UI at the end
+     * @param string $message   Custom error message
+     * @return void
+     */
+    public static function collect_error(?string $message): void
+    {
+        $exception = new \RuntimeException($message);
+        $detailedMessage = self::formatErrorDetails($message, $exception);
+        $formatted = self::formatMessage(self::ERROR, $detailedMessage);
+        self::$collected_message .= $formatted . "\n";
+    }
+
+    /**
+     * Log an error message, halt execution immediately (Fail-fast),
+     * and throw an exception if none is provided.
+     *
+     * @param string         $message   Custom error message
+     * @param \Throwable|null $exception Optional exception object
+     * @return string log message to be collected
+     * @throws \Throwable
+     */
+    public static function error(
+        string $message,
+        ?\Throwable $exception = null
+    ): string {
+        $exception ??= new \RuntimeException($message);
+        $detailedMessage = self::formatErrorDetails($message, $exception);
+        self::log(self::ERROR, $detailedMessage . "\n");
+        throw $exception;
+    }
+
+    /**
+     * Save log to target app and print log message in Terminal immediately.
+     *
+     * @param string $level   Log level (use constants from Logger::SUCCESS, etc.)
+     * @param string $message Message to be logged
+     * * [ 2026-10-03 05:27:04 ] [ ✅ SUCCESS ] [ M_Sync::syncAll ] [ 🆗 FINISH  ] [message]
+     */
+    public static function log(string $level, string $message): void
+    {
+        $location = self::getCaller();
+
+        $formattedMessage = self::formatMessage($level, $message);
+
+        // 1. Print to Terminal immediately
+        if (php_sapi_name() === 'cli') { // condition prevent to print on browser(= ouput only for api data)
+            echo $formattedMessage . "\n";
+        }
+        // 2. Define path file log
+        $logDir = dirname(__DIR__, 3) . '/m-project_logs/';
+
+        DataHelper::ensureDir($logDir);
+
+        // log file name = app name
+        $appName = TargetManager::peek_activeTarget() ?: 'm-project';
+        $logFile = $logDir . '/' . $appName . '.log';
+
+
+        self::checkAndRotateLog($logFile);
+
+        // 3. Write to file (append with exclusive lock)
+        $result = file_put_contents($logFile, $formattedMessage . PHP_EOL, FILE_APPEND | LOCK_EX);
+        if ($result === false) {
+            echo "======================================================================\n\n";
+            echo "\n\n" . self::ERROR . " Logger could not save messages to : $logFile\n\n";
+            echo "======================================================================\n\n";
+        }
+    }
+
+
     /**
      * Find the actual external Class and Method that called the Logger.
      */
@@ -30,7 +122,7 @@ class Logger
         foreach ($trace as $step) {
             $stepClass = $step['class'] ?? '';
 
-            // skip lines that called inside Logger 
+            // skip lines that called inside Logger
             if ($stepClass === self::class) {
                 continue;
             }
@@ -44,48 +136,6 @@ class Logger
         }
 
         return "[ {$class}::{$method} ]";
-    }
-
-    /**
-     * Save log to target app and print log message in Terminal immediately.
-     *
-     * @param string $level   Log level (use constants from Logger::SUCCESS, etc.)
-     * @param string $message Message to be logged
-     * @return void
-     */
-    public static function log(string $level, string $message): void
-    {
-        $timestamp = date('Y-m-d H:i:s');
-
-        $location = self::getCaller();
-
-        $formattedMessage = "[ {$timestamp} ] {$level}{$location} {$message}";
-
-        // 1. Print to Terminal immediately
-        if (php_sapi_name() === 'cli') { // condition prevent to print on browser(= ouput only for api data)
-            echo $formattedMessage . "\n";
-        }
-        // 2. Define path file log
-        $logDir = dirname(__DIR__, 3) . '/m-project_logs/';
-
-        if (!is_dir($logDir)) {
-            mkdir($logDir, 0777, true);
-        }
-
-        // log file name = app name
-        $appName = TargetManager::peek_activeTarget() ?: 'm-project';
-        $logFile = $logDir . '/' . $appName . '.log';
-
-
-        self::checkAndRotateLog($logFile);
-
-        // 3. Write to file (append with exclusive lock)
-        $result = file_put_contents($logFile, $formattedMessage . PHP_EOL, FILE_APPEND | LOCK_EX);
-        if ($result === false) {
-            echo "======================================================================\n\n";
-            echo "\n\n" . self::ERROR . " Logger could not save messages to : $logFile\n\n";
-            echo "======================================================================\n\n";
-        }
     }
 
     /**
@@ -148,30 +198,5 @@ class Logger
     public static function warning(string $message): void
     {
         self::log(self::WARNING, $message . "\n");
-    }
-
-    /**
-     * Log an error message, halt execution immediately (Fail-fast), 
-     * and throw an exception if none is provided.
-     *
-     * @param string         $message   Custom error message
-     * @param Throwable|null $exception Optional exception object
-     * @return void
-     * @throws Throwable
-     */
-    public static function error(string $message, ?Throwable $exception = null): void
-    {
-        $exception ??= new \RuntimeException($message);
-
-        $detailedMessage = $message . " | Exception: " . get_class($exception)
-            . " | Message: " . $exception->getMessage()
-            . " | File: " . $exception->getFile()
-            . " | Line: " . $exception->getLine();
-
-        // save in Log and output to Terminal
-        self::log(self::ERROR, $detailedMessage . "\n");
-
-        // Stop script
-        throw $exception;
     }
 }

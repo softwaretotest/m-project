@@ -8,6 +8,8 @@
 
 # C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\app\Constant\3_M_Sync_Service_EXE_Worker.php"
 
+# C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\app\Constant\3_Logger.php"
+
 param (
     [string]$Path = "resources/js/Components",
     [string]$OutputFile = "SingleSourceCode.txt"
