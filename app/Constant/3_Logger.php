@@ -16,7 +16,7 @@ class Logger
     {
         $timestamp = date('Y-m-d H:i:s');
         $location ??= self::getCaller();
-        return "[ {$timestamp} ] [ {$level} ] [ {$location} ] {$message}";
+        return "[ {$timestamp} ] {$level}{$location} {$message}";
     }
 
     public static string $collected_message = '';
@@ -76,8 +76,6 @@ class Logger
      */
     public static function log(string $level, string $message): void
     {
-        $location = self::getCaller();
-
         $formattedMessage = self::formatMessage($level, $message);
 
         // 1. Print to Terminal immediately

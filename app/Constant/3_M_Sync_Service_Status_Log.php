@@ -22,44 +22,6 @@ class M_Sync_Service_Status_Log
     private const STATUS_FAILED = 'failed';
 
     /**
-     * Update one script's status in the persisted run record.
-     *
-     * @param  string  $target_Name  Configured target name.
-     * @param  string  $script_ID  Allowlisted script identifier.
-     * @param  string  $script_Status  Current script state.
-     */
-    public static function update_Script_Status(
-        string $target_Name,
-        string $script_ID,
-        string $script_Status
-    ): void {
-        self::update_Run($target_Name, function (array $run_Record) use ($script_ID, $script_Status): array {
-            $run_Record['script_statuses'][$script_ID] = $script_Status;
-            $run_Record['updated_at'] = date(DATE_ATOM);
-            return $run_Record;
-        });
-    }
-
-    /**
-     * Mark a run failed and persist the failure reason for the UI and developer.
-     *
-     * @param  string  $target_Name  Configured target name.
-     * @param  string  $message  Failure details.
-     */
-    public static function fail_Run(string $target_Name, string $message): void
-    {
-        self::update_Run($target_Name, function (array $run_Record) use ($message): array {
-            $run_Record['status'] = self::STATUS_FAILED;
-            $run_Record['pid'] = null;
-            $run_Record['child_pid'] = null;
-            $run_Record['message'] = $message;
-            $run_Record['finished_at'] = date(DATE_ATOM);
-            $run_Record['updated_at'] = date(DATE_ATOM);
-            return $run_Record;
-        });
-    }
-
-    /**
      * Read a chunk of the shared run log starting from the given cursor position.
      *
      * @param  int  $cursor  Byte offset in the log file to start reading from.
@@ -95,7 +57,6 @@ class M_Sync_Service_Status_Log
      */
     public static function reset_Log(): int
     {
-        $target_Name = TargetManager::get_activeTarget();
         $log_Path    = self::get_Log_File_Path();
 
         // clean remaining file of worker
@@ -110,16 +71,17 @@ class M_Sync_Service_Status_Log
         fclose($fp);
 
         // IMPORTAINT : reset old cursor , otherwise polling will fseek wrong far positon than End of File
-        $status_Data = self::read_Status_Data();
-        if (isset($status_Data[$target_Name])) {
-            $status_Data[$target_Name]['log_cursor'] = 0;
-            self::write_Status_Data($status_Data);
+        $run_Record = self::read_run_Record();
+        if (isset($run_Record)) {
+            $run_Record['log_cursor'] = 0;
+            self::write_M_Sync_Status_json($run_Record);
         }
         return 0;
     }
 
     /**
      * * read 3_M_Sync_Status.json¨
+     * * create if file if not exist
      * @return array<string, array<string, mixed>>  e.g.
      * *{
      * *  "ecommerce": {
@@ -141,10 +103,12 @@ class M_Sync_Service_Status_Log
      * *  }
      * *}
      */
-    public static function read_Status_Data(): array
+    public static function read_run_Record(): array
     {
         $status_Path = base_path(self::STATUS_FILE);
         if (!file_exists($status_Path)) {
+            Logger::collect_error('File was not exists , created one empty : ' . $status_Path);
+            DataHelper::ensureDir($status_Path);
             return [];
         }
         return json_decode((string) file_get_contents($status_Path), true) ?? [];
@@ -152,27 +116,25 @@ class M_Sync_Service_Status_Log
 
     /**
      * Persist the target-name keyed status map as formatted JSON.
-     * @param  array<string, array<string, mixed>>  $status_Data  Persisted runs keyed by target name.
+     * @param  array<string, array<string, mixed>>  $run_Record  Persisted runs keyed by target name.
      */
-    public static function write_Status_Data(array $status_Data): void
+    public static function write_M_Sync_Status_json(array $run_Record): void
     {
         DataHelper::ensureDir(base_path(self::STATUS_FILE));
         file_put_contents(
             base_path(self::STATUS_FILE),
-            json_encode($status_Data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+            json_encode($run_Record, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
         );
     }
 
     /**
      * Update a run record while holding the status file lock.
-     * @param  string  $target_Name  Configured target name.
-     * @param  callable(array<string, mixed>): array<string, mixed>  $update_Run_Record  Run record transformation.
+     * @param  callable(array<string, mixed>): array<string, mixed>  $update_run_Record  Run record transformation.
      */
-    public static function update_Run(string $target_Name, callable $update_Run_Record): void
+    public static function update_Run(callable $update_run_Record): void
     {
-        // 1. read all actuell status_Data to run_Record
-        $status_Data = self::read_Status_Data();
-        $run_Record = $status_Data[$target_Name] ?? null;
+        // 1. read all actuell run_Record to run_Record
+        $run_Record = self::read_run_Record();
 
         // 2. validate
         if (!is_array($run_Record)) {
@@ -180,8 +142,25 @@ class M_Sync_Service_Status_Log
         }
 
         // 3. send $run_Record to get new change , and write status
-        $status_Data[$target_Name] = $update_Run_Record($run_Record);
-        self::write_Status_Data($status_Data);
+        $run_Record = $update_run_Record($run_Record);
+        self::write_M_Sync_Status_json($run_Record);
+    }
+
+    /**
+     * Mark a run failed and persist the failure reason for the UI and developer.
+     * @param  string  $message  Failure details.
+     */
+    public static function fail_Run(string $message): void
+    {
+        self::update_Run(function (array $run_Record) use ($message): array {
+            $run_Record['status'] = self::STATUS_FAILED;
+            $run_Record['pid'] = null;
+            $run_Record['child_pid'] = null;
+            $run_Record['message'] = $message;
+            $run_Record['finished_at'] = date(DATE_ATOM);
+            $run_Record['updated_at'] = date(DATE_ATOM);
+            return $run_Record;
+        });
     }
 
     public static function write_Log(string $content, bool $append = true): void

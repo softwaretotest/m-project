@@ -78,8 +78,8 @@ class TargetManager_Config_Controller extends Controller
     /**
      * 1. Scan a parent directory for Laravel projects, then merge saved targets from config.
      * 2. Save the merged list back to config
-     * @param  \Illuminate\Http\Request  $request  Optional input "base", e.g. "C:/Users/o/.vscode/react"
-     * @return \Illuminate\Http\JsonResponse  e.g.
+     * @param  Request  $request  Optional input "base", e.g. "C:/Users/o/.vscode/react"
+     * @return JsonResponse  e.g.
      * * {
      * *    "success":true,
      * *    "base":"C:/Users/o/.vscode/react",

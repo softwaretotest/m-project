@@ -32,14 +32,6 @@ class M_Sync_Service
     {
         M_Sync_Service_Status_Log::reset_Log();
 
-        $target_Name = TargetManager::get_activeTarget();
-        if ($target_Name === '') {
-            return [
-                'success' => false,
-                'message' => 'Active target not found.',
-            ];
-        }
-
         $allowed_Scripts = [
             'json_to_php',
             'php_to_json',
@@ -65,16 +57,16 @@ class M_Sync_Service
             $script_Statuses[$script_ID] = in_array($script_ID, $validated_Scripts, true) ? 'pending' : 'skipped';
         }
 
-        $status_Data = M_Sync_Service_Status_Log::read_Status_Data();
-        $status_Data[$target_Name] = [
-            'target' => $target_Name,
+        $run_Record = M_Sync_Service_Status_Log::read_run_Record();
+        $run_Record = [
+            'target' => TargetManager::get_activeTarget(),
             'status' => 'running',
             'selected_scripts' => $validated_Scripts,
             'script_statuses' => $script_Statuses,
             'message' => null,
         ];
 
-        M_Sync_Service_Status_Log::write_Status_Data($status_Data);
+        M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
 
         M_Sync_Service_Status_Log::write_Log("---------- START SYNCHRONIZATION RUN ----------" . PHP_EOL);
 
@@ -84,7 +76,7 @@ class M_Sync_Service
 
         return [
             'success' => true,
-            'target' => $target_Name,
+            'target' => TargetManager::get_activeTarget(),
             'status' => 'running',
         ];
     }
@@ -150,8 +142,7 @@ class M_Sync_Service
      */
     public function continueRun(): array
     {
-        $target_Name = TargetManager::get_activeTarget();
-        $run_Record = $this->reserve_Continuation($target_Name);
+        $run_Record = $this->reserve_Continuation();
 
         if (!$run_Record['accepted']) {
             return $run_Record;
@@ -159,23 +150,23 @@ class M_Sync_Service
 
         $process_ID = $this->launch_Worker_Process(self::PHASE_CONTINUE);
 
-        M_Sync_Service_Status_Log::update_Run($target_Name, function (array $current_Run) use ($process_ID): array {
+        M_Sync_Service_Status_Log::update_Run(function (array $run_Record) use ($process_ID): array {
             // $process_ID is only for Linux to sync current_Run
             if (
                 $process_ID !== null
-                && in_array($current_Run['status'], [self::STATUS_STARTING, self::STATUS_RUNNING], true)
+                && in_array($run_Record['status'], [self::STATUS_STARTING, self::STATUS_RUNNING], true)
             ) {
-                $current_Run['pid'] = $process_ID;
+                $run_Record['pid'] = $process_ID;
             }
 
-            $current_Run['updated_at'] = date(DATE_ATOM);
+            $run_Record['updated_at'] = date(DATE_ATOM);
 
-            return $current_Run;
+            return $run_Record;
         });
 
         return [
             'accepted' => true,
-            'run' => $this->get_Target_Run($target_Name),
+            'run' => M_Sync_Service_Status_Log::read_run_Record()
         ];
     }
 
@@ -185,10 +176,8 @@ class M_Sync_Service
      */
     public function resetFailedRun(): array
     {
-        $target_Name = TargetManager::get_activeTarget();
-
-        $status_Data = M_Sync_Service_Status_Log::read_Status_Data();
-        $run_Record = $status_Data[$target_Name] ?? null;
+        $run_Record = M_Sync_Service_Status_Log::read_run_Record();
+        $run_Record = $run_Record ?? null;
 
         if (!is_array($run_Record)) {
             return ['reset' => false, 'run' => null];
@@ -196,13 +185,12 @@ class M_Sync_Service
 
         // $run_Record = $this->reconcile_Dead_Process($run_Record);
         if ($this->is_Run_Active($run_Record) || $run_Record['status'] !== self::STATUS_FAILED) {
-            $status_Data[$target_Name] = $run_Record;
-            M_Sync_Service_Status_Log::write_Status_Data($status_Data);
+            M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
 
             return ['reset' => false, 'run' => $run_Record];
         }
 
-        M_Sync_Service_Status_Log::write_Status_Data($status_Data);
+        M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
 
         return ['reset' => true, 'run' => null];
     }
@@ -235,15 +223,14 @@ class M_Sync_Service
         $cursor = $cursor ?? 0;
 
         $target_Name = TargetManager::get_activeTarget();
-        $status_Data = M_Sync_Service_Status_Log::read_Status_Data();
-        $run_Record = $status_Data[$target_Name] ?? null;
+        $run_Record = M_Sync_Service_Status_Log::read_run_Record();
+        $run_Record = $run_Record ?? null;
 
         if (!is_array($run_Record)) {
             $run_Record = null;
         }
 
-        $status_Data[$target_Name] = $run_Record;
-        M_Sync_Service_Status_Log::write_Status_Data($status_Data);
+        M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
 
         if ($run_Record === null) {
             return [
@@ -270,9 +257,8 @@ class M_Sync_Service
 
     public function reportWorkerFailure(string $message): void
     {
-        $target_Name = TargetManager::get_activeTarget();
-        $status_Data = M_Sync_Service_Status_Log::read_Status_Data();
-        $run_Record = $status_Data[$target_Name] ?? null;
+        $run_Record = M_Sync_Service_Status_Log::read_run_Record();
+        $run_Record = $run_Record ?? null;
 
         if (!is_array($run_Record)) {
             return;
@@ -280,23 +266,20 @@ class M_Sync_Service
 
         $run_Record['status'] = 'failed';
         $run_Record['message'] = $message;
-        $status_Data[$target_Name] = $run_Record;
 
-        M_Sync_Service_Status_Log::write_Status_Data($status_Data);
+        M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
 
-        \Illuminate\Support\Facades\Log::error("[🚫] SYNC WORKER FAILED: " . $message);
+        Logger::collect_error("SYNC WORKER FAILED : " . $message);
     }
 
     /**
      * Reserve the generation phase only when the run is waiting for user review.
      *
-     * @param string $target_Name Configured active target name.
      * @return array{accepted: bool, run: array<string, mixed>}
      */
-    private function reserve_Continuation(string $target_Name): array
+    private function reserve_Continuation(): array
     {
-        $status_Data = M_Sync_Service_Status_Log::read_Status_Data();
-        $run_Record = $status_Data[$target_Name] ?? null;
+        $run_Record = M_Sync_Service_Status_Log::read_run_Record();
 
         if (!is_array($run_Record)) {
             return [
@@ -306,9 +289,6 @@ class M_Sync_Service
         }
 
         if ($run_Record['status'] !== self::STATUS_AWAITING_REVIEW) {
-            \Illuminate\Support\Facades\Log::info("run_Record = ". is_array($run_Record) ? 'true' : 'false');
-            \Illuminate\Support\Facades\Log::info("run_Record['status'] = ". $run_Record['status']);
-            \Illuminate\Support\Facades\Log::info("run_Record = ". print_r($run_Record, true));
             return ['accepted' => false, 'run' => $run_Record];
         }
 
@@ -316,22 +296,9 @@ class M_Sync_Service
         $run_Record['pid'] = null;
         $run_Record['message'] = null;
         $run_Record['updated_at'] = date(DATE_ATOM);
-        $status_Data[$target_Name] = $run_Record;
-        M_Sync_Service_Status_Log::write_Status_Data($status_Data);
+        M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
 
         return ['accepted' => true, 'run' => $run_Record];
-    }
-
-    /**
-     * Read one target's current run record from persisted status.
-     *
-     * @param string $target_Name Configured target name.
-     * @return array<string, mixed> Current run record, or an empty array when none exists.
-     */
-    private function get_Target_Run(string $target_Name): array
-    {
-        $run_Record = M_Sync_Service_Status_Log::read_Status_Data()[$target_Name] ?? [];
-        return is_array($run_Record) ? $run_Record : [];
     }
 
     /**

@@ -2,7 +2,6 @@
 
 namespace App\Constant;
 
-use RuntimeException;
 use Symfony\Component\Process\Process;
 
 class M_Sync_Service_EXE_Script
@@ -78,7 +77,7 @@ class M_Sync_Service_EXE_Script
         clearstatcache(true, $log_Path);
         $log_Content = file_get_contents($log_Path);
         if ($log_Content === false) {
-            throw new RuntimeException("Could not read Sync log for target {$target_Name}");
+            Logger::collect_error("Could not read Sync log for target {$target_Name}");
         }
 
         $script_Output = substr($log_Content, $log_Start_Offset);

@@ -44,14 +44,6 @@ class M_Sync_Controller extends Controller
             'selected_scripts.*' => 'string',
         ]);
 
-        $target_Name = TargetManager::get_activeTarget();
-        if ($target_Name === '') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Select an active target before starting a Sync run.',
-            ], 422);
-        }
-
         $validated = $validated['selected_scripts'] ?? [];
 
         $result = $this->sync_Service->startRun($validated);
@@ -152,14 +144,6 @@ class M_Sync_Controller extends Controller
      */
     public function continueRun(): JsonResponse
     {
-        $target_Name = TargetManager::get_activeTarget();
-        if ($target_Name === '') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Select an active target before continuing Sync.',
-            ], 422);
-        }
-
         $result = $this->sync_Service->continueRun();
 
         if (!($result['success'] ?? false)) {

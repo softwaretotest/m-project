@@ -4,19 +4,14 @@ namespace App\Constant;
 
 class M_Sync_Service_EXE_Worker
 {
-    private string $target_Name;
-    public function __construct()
-    {
-        $this->target_Name = TargetManager::get_activeTarget();
-    }
-
     public function execute_Worker(string $phase): int
     {
         $is_continue = ($phase === M_Sync_Service::PHASE_CONTINUE);
 
         $EXE_Script = new M_Sync_Service_EXE_Script();
 
-        $run_Record = $this->find_Run();
+        $run_Record = M_Sync_Service_Status_Log::read_run_Record();
+
         if (!is_array($run_Record)) {
             $this->fail_Run("Active run record not found.");
             return 1;
@@ -66,30 +61,19 @@ class M_Sync_Service_EXE_Worker
     }
 
     /**
-    * Loads the persisted run record for the active target.
-    *
-    * @return array<string, mixed>|null The run record array or null if not found.
-    */
-    private function find_Run(): ?array
-    {
-        $status_Data = M_Sync_Service_Status_Log::read_Status_Data();
-        return $status_Data[$this->target_Name] ?? null;
-    }
-
-    /**
      * Updates the status of a specific script for the active target.
      *
      * @param string $script_ID Script identifier.
-     * @param string $status_Data New status value.
+     * @param string $script_Status New status value.
      * @return void
      */
-    private function update_Script_Status(string $script_ID, string $status_Data): void
+    private function update_Script_Status(string $script_ID, string $script_Status): void
     {
-        $status_Data_All = M_Sync_Service_Status_Log::read_Status_Data();
+        $run_Record = M_Sync_Service_Status_Log::read_run_Record();
 
-        if (isset($status_Data_All[$this->target_Name]['script_statuses'])) {
-            $status_Data_All[$this->target_Name]['script_statuses'][$script_ID] = $status_Data;
-            M_Sync_Service_Status_Log::write_Status_Data($status_Data_All);
+        if (isset($run_Record['script_statuses'])) {
+            $run_Record['script_statuses'][$script_ID] = $script_Status;
+            M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
         }
     }
 
@@ -101,11 +85,11 @@ class M_Sync_Service_EXE_Worker
      */
     private function fail_Run(string $message): void
     {
-        $status_Data = M_Sync_Service_Status_Log::read_Status_Data();
-        if (isset($status_Data[$this->target_Name])) {
-            $status_Data[$this->target_Name]['status'] = 'failed';
-            $status_Data[$this->target_Name]['message'] = $message;
-            M_Sync_Service_Status_Log::write_Status_Data($status_Data);
+        $run_Record = M_Sync_Service_Status_Log::read_run_Record();
+        if (isset($run_Record)) {
+            $run_Record['status'] = 'failed';
+            $run_Record['message'] = $message;
+            M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
         }
         Logger::collect_error('Error-Text : '.$message . PHP_EOL);
     }
@@ -118,12 +102,11 @@ class M_Sync_Service_EXE_Worker
     */
     private function update_Run(string $status): void
     {
-        $status_Data = M_Sync_Service_Status_Log::read_Status_Data();
-        $run_Record = $status_Data[$this->target_Name] ?? null;
+        $run_Record = M_Sync_Service_Status_Log::read_run_Record();
+        $run_Record = $run_Record ?? null;
         if ($run_Record) {
             $run_Record['status'] = $status;
-            $status_Data[$this->target_Name]['status'] = $status;
-            M_Sync_Service_Status_Log::write_Status_Data($status_Data);
+            M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
         }
     }
 }
