@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Constant;
+
 //0_MakeMigration.php
 
 class MakeMigration
@@ -32,14 +33,14 @@ class MakeMigration
 
 
         /**
-         * * * SPECIAL CASE users table in Laravel : 
+         * * * SPECIAL CASE users table in Laravel :
          * * we must remove old *_create_{$tableName}_table.php  , before continue
          * * update existing file *_create_{$tableName}_table.php
          * * take to much effort and lead to bugs
          */
         if (!empty($files) && is_string($files[0])) {
             // delete *_create_{$tableName}_table.php
-            @unlink($files[0]); // delete file from system like rm of CMD 
+            @unlink($files[0]); // delete file from system like rm of CMD
             echo "--- Maker: Removed old migration [" . basename($files[0]) . "] ---\n\n";
         }
 
@@ -52,6 +53,8 @@ class MakeMigration
      */
     public static function replaceExisting(string $filePath, string $tableName): void
     {
+        M_Historizer::move_old_file_to_history($filePath);
+
         $content = file_get_contents($filePath);
         $newContent = self::updateMigration($content, $tableName);
 

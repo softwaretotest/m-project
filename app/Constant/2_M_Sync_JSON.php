@@ -4,8 +4,6 @@ namespace App\Constant;
 
 require __DIR__ . '/../../vendor/autoload.php';
 
-use PhpParser\ParserFactory;
-use PhpParser\NodeTraverser;
 
 /**
  * sync JSON to PHP
@@ -18,9 +16,7 @@ class M_Sync_JSON
     public static function syncAll(): void
     {
         self::$target_Constant_Path = __DIR__ . '/../../../' . TargetManager::get_activeTarget() . '/app/Constant';
-
         self::$target_JSON_Path = self::$target_Constant_Path . "/M_JSON";
-
         DataHelper::ensureDir(self::$target_JSON_Path);
 
         M_Historizer::move_old_file_to_history(self::$target_Constant_Path . '/0_Constant_M.php');

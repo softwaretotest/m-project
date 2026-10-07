@@ -18,7 +18,6 @@ class M_Sync_Service_Status_Log
      * * 'app/tmp/sf_proc_00.out';
      * * Synfony truncate its files after run each script
      */
-
     public const STATUS_FAILED = 'failed';
 
     public static function reset_Status(): void

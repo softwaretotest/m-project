@@ -14,9 +14,8 @@ class M_Sync_Controller extends Controller
      */
     public function __construct(private M_Sync_Service $sync_Service)
     {
+        $sync_Service = new M_Sync_Service();
     }
-
-
 
     /**
      * Return the active target's current run and appended log text.

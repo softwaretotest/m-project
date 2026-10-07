@@ -44,7 +44,7 @@ class M_Sync_Artisan extends Command
                 ' ERROR = '. $error_text
             );
             M_Sync_Service_Status_Log::write_Log(Logger::$collected_message);
-            $sync_Service->reportWorkerFailure($error_text);
+            M_Sync_Service_EXE_Worker::fail_Run($error_text);
 
             parent::error($error_text);
 

@@ -13,7 +13,7 @@ class M_Sync_Service_EXE_Worker
         $run_Record = M_Sync_Service_Status_Log::read_run_Record();
 
         if (!is_array($run_Record)) {
-            $this->fail_Run("Active run record not found.");
+            self::fail_Run("Active run record not found.");
             return 1;
         }
 
@@ -43,7 +43,7 @@ class M_Sync_Service_EXE_Worker
             // 3. check Error
             if (!($result['success'] ?? false) && ($result['exit_code'] ?? 0) !== 0) {
                 $this->update_Script_Status($script_ID, M_Sync_Service::STATUS_FAILED);
-                $this->fail_Run("Script {$script_ID} execution failed.");
+                self::fail_Run("Script {$script_ID} execution failed.");
                 return 1;
             }
 
@@ -88,7 +88,7 @@ class M_Sync_Service_EXE_Worker
      * @param string $message Error message describing the failure.
      * @return void
      */
-    private function fail_Run(string $message): void
+    public static function fail_Run(string $message): void
     {
         M_Sync_Service_Status_Log::update_Run([
             'status' =>  M_Sync_Service_Status_Log::STATUS_FAILED,

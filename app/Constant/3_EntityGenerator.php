@@ -24,10 +24,10 @@ class EntityGenerator
             Logger::error("GENERS FAILED : NO app/Constant/*Contstant.php found at : $app_Constant_Dir");
         }
 
-        $target_APP_DIR = __DIR__ . '/../../../' . TargetManager::get_activeTarget();
-
-        M_Historizer::move_old_file_to_history($target_APP_DIR . '/app/Http/Controllers/BaseController.php');
-        M_Historizer::move_old_file_to_history($target_APP_DIR . '/app/DTOs/BaseDTO.php');
+        $source_APP_DIR = __DIR__ . '/../../../' . TargetManager::get_activeTarget();
+        DataHelper::ensureDir($source_APP_DIR);
+        M_Historizer::move_old_file_to_history($source_APP_DIR . '/app/Http/Controllers/BaseController.php');
+        M_Historizer::move_old_file_to_history($source_APP_DIR . '/app/DTOs/BaseDTO.php');
 
         foreach ($files as $file) {
             $className = basename($file, '.php');
@@ -42,7 +42,7 @@ class EntityGenerator
             $fullClassName = "App\\Constant\\" . $className;
             $entityName = str_replace('Constant', '', $className);
 
-            self::historize_entity_files($entityName, $target_APP_DIR);
+            self::historize_entity_files($entityName, $source_APP_DIR);
 
             if (class_exists($fullClassName) && method_exists($fullClassName, 'fields')) {
                 $tableName  = $fullClassName::TABLE_NAME;
