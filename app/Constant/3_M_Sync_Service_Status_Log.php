@@ -10,7 +10,7 @@ class M_Sync_Service_Status_Log
      * We use our own log for frontend polling full content of all script
      * @var string
      */
-    public const LOG_FILE = 'app/Constant/3_M_Sync.log';
+    public const LOG_FILE = 'logs/3_M_Sync.log';
 
     /**
      * * Symfony Process(sf_proc_*.out) will create a temporary log file
@@ -19,7 +19,19 @@ class M_Sync_Service_Status_Log
      * * Synfony truncate its files after run each script
      */
 
-    private const STATUS_FAILED = 'failed';
+    public const STATUS_FAILED = 'failed';
+
+    public static function reset_Status(): void
+    {
+        DataHelper::ensureDir(base_path(self::STATUS_FILE));
+        $run_Record = self::read_run_Record();
+        $run_Record['status'] = M_Sync_Service::PHASE_INITIAL;
+
+        foreach ($run_Record['script_statuses'] as $script_id) {
+            $run_Record['script_statuses'][$script_id] = M_Sync_Service::STATUS_PENDING;
+        }
+        self::write_M_Sync_Status_json($run_Record);
+    }
 
     /**
      * Read a chunk of the shared run log starting from the given cursor position.
@@ -128,39 +140,19 @@ class M_Sync_Service_Status_Log
     }
 
     /**
-     * Update a run record while holding the status file lock.
-     * @param  callable(array<string, mixed>): array<string, mixed>  $update_run_Record  Run record transformation.
+     * Update a run record by merging new attributes.
+     * @param array<string, mixed> $new_Data Key-value pairs to update or add.
      */
-    public static function update_Run(callable $update_run_Record): void
+    public static function update_Run(array $new_Data): void
     {
-        // 1. read all actuell run_Record to run_Record
         $run_Record = self::read_run_Record();
 
-        // 2. validate
-        if (!is_array($run_Record)) {
-            Logger::collect_error("Sync run changed before update");
+        // this loop find if same key exists = update , else add new item-key
+        foreach ($new_Data as $key => $value) {
+            $run_Record[$key] = $value;
         }
 
-        // 3. send $run_Record to get new change , and write status
-        $run_Record = $update_run_Record($run_Record);
         self::write_M_Sync_Status_json($run_Record);
-    }
-
-    /**
-     * Mark a run failed and persist the failure reason for the UI and developer.
-     * @param  string  $message  Failure details.
-     */
-    public static function fail_Run(string $message): void
-    {
-        self::update_Run(function (array $run_Record) use ($message): array {
-            $run_Record['status'] = self::STATUS_FAILED;
-            $run_Record['pid'] = null;
-            $run_Record['child_pid'] = null;
-            $run_Record['message'] = $message;
-            $run_Record['finished_at'] = date(DATE_ATOM);
-            $run_Record['updated_at'] = date(DATE_ATOM);
-            return $run_Record;
-        });
     }
 
     public static function write_Log(string $content, bool $append = true): void
@@ -179,21 +171,18 @@ class M_Sync_Service_Status_Log
     }
 
     /**
-     * Log file path , that managed by Synfony
+     * * Log file path 'app/tmp/sf_proc_00.out' is managed by Synfony Process
+     * * so, this is a copy of Synfony-log to m-project logs
+     * * it must be /storage
+     * * otherwise scirpt will not copy log from sf_proc_00.out
+     * * and frontend Polling will not work
      * @return string
      */
     public static function get_Log_File_Path(): string
     {
         $log_Path = storage_path(self::LOG_FILE);
         $dir      = dirname($log_Path);
-
-        if (!is_dir($dir)) {
-            mkdir($dir, 0775, true);
-        }
-        if (!file_exists($log_Path)) {
-            file_put_contents($log_Path, '');
-        }
-
+        DataHelper::ensureDir($dir);
         return $log_Path;
     }
 }

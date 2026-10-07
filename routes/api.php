@@ -34,5 +34,4 @@ Route::prefix('m-sync')->group(function () {
     Route::post('/start', [M_Sync_Controller::class, 'start']);
     Route::get('/status', [M_Sync_Controller::class, 'status']);
     Route::post('/continue', [M_Sync_Controller::class, 'continueRun']);
-    Route::post('/reset', [M_Sync_Controller::class, 'resetRun']);
 });

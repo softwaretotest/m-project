@@ -16,40 +16,7 @@ class M_Sync_Controller extends Controller
     {
     }
 
-    /**
-     * Validate selected script identifiers and start a run when the target is available.
-     *
-     * @param Request $request Selected script IDs from the Sync UI.
-     * @return JsonResponse e.g.
-     * * {
-     * * * "success": true,
-     * * * "run": {
-     * * * * "target": "ecommerce",
-     * * * * "status": "starting",
-     * * * * "scripts":
-     * * * * [
-     * * * * * "json_to_php"
-     * * * * ],
-     * * * * "script_statuses":
-     * * * * {
-     * * * * * "json_to_php": "pending"
-     * * * * }
-     * * * }
-     * * }
-     */
-    public function start(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'selected_scripts' => 'nullable|array',
-            'selected_scripts.*' => 'string',
-        ]);
 
-        $validated = $validated['selected_scripts'] ?? [];
-
-        $result = $this->sync_Service->startRun($validated);
-
-        return response()->json($result);
-    }
 
     /**
      * Return the active target's current run and appended log text.
@@ -97,38 +64,6 @@ class M_Sync_Controller extends Controller
     }
 
     /**
-     * Clear a failed target run so Sync can start again.
-     *
-     * @return JsonResponse Reset confirmation or the run state that prevented reset.
-     */
-    public function resetFailedRun(): JsonResponse
-    {
-        if (TargetManager::get_activeTarget() === '') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Select an active target before resetting Sync status.',
-            ], 422);
-        }
-
-        $result = $this->sync_Service->resetFailedRun();
-        if (!$result['reset']) {
-            return response()->json([
-                'success' => false,
-                'message' => $result['run'] === null
-                    ? 'There is no failed Sync run to reset.'
-                    : 'Only a failed run can be reset. Active or review-pending runs are preserved.',
-                'run' => $result['run'],
-            ], $result['run'] === null ? 404 : 409);
-        }
-
-        return response()->json([
-            'success' => true,
-            'status' => 'idle',
-            'run' => null,
-        ]);
-    }
-
-    /**
      * Start the selected generation scripts after the user confirms the Entities.json review.
      * @return JsonResponse e.g.
      * * {
@@ -142,9 +77,10 @@ class M_Sync_Controller extends Controller
      * * * }
      * * }
      */
-    public function continueRun(): JsonResponse
+    public function continueRun(Request $request): JsonResponse
     {
-        $result = $this->sync_Service->continueRun();
+        $validated = self::get_validated_request($request);
+        $result = $this->sync_Service->continueRun($validated);
 
         if (!($result['success'] ?? false)) {
             return response()->json([
@@ -160,5 +96,45 @@ class M_Sync_Controller extends Controller
             'message' => 'Sync run continued successfully.',
             'run' => $current_Status['run'] ?? null,
         ], 200);
+    }
+
+    /**
+     * Validate selected script identifiers and start a run when the target is available.
+     *
+     * @param Request $request Selected script IDs from the Sync UI.
+     * @return JsonResponse e.g.
+     * * {
+     * * * "success": true,
+     * * * "run": {
+     * * * * "target": "ecommerce",
+     * * * * "status": "starting",
+     * * * * "scripts":
+     * * * * [
+     * * * * * "json_to_php"
+     * * * * ],
+     * * * * "script_statuses":
+     * * * * {
+     * * * * * "json_to_php": "pending"
+     * * * * }
+     * * * }
+     * * }
+     */
+    public function start(Request $request): JsonResponse
+    {
+        $validated = self::get_validated_request($request);
+        $result = $this->sync_Service->startRun($validated);
+
+        return response()->json($result);
+    }
+
+    private function get_validated_request(Request $request): array
+    {
+        $validated = $request->validate([
+            'selected_scripts' => 'nullable|array',
+            'selected_scripts.*' => 'string',
+        ]);
+
+        $validated = $validated['selected_scripts'] ?? [];
+        return $validated;
     }
 }

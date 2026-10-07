@@ -243,7 +243,10 @@ export default function M_Sync({ is_Sync_Modal_Open, set_is_Sync_Modal_Open }) {
             set_run_Logs(""); // ล้างคอนโซลบนจอ
             const response = await fetch(`${sync_Api_Path}/start`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
                 body: JSON.stringify({ selected_scripts: selected_Scripts }),
             });
             const response_Data = await response.json();
@@ -296,6 +299,7 @@ export default function M_Sync({ is_Sync_Modal_Open, set_is_Sync_Modal_Open }) {
                     "Content-Type": "application/json",
                     Accept: "application/json",
                 },
+                body: JSON.stringify({ selected_scripts: selected_Scripts }),
             });
 
             const response_Data = await response.json();

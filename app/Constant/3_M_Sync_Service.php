@@ -11,16 +11,15 @@ class M_Sync_Service
     public const STATUS_AWAITING_REVIEW = 'awaiting_review';
     public const STATUS_COMPLETED = 'completed';
     public const STATUS_FAILED = 'failed';
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_WARNING = 'warning';
     public const PHASE_INITIAL = 'initial';
     public const PHASE_CONTINUE = 'continue';
     public const SCRIPT_JSON_TO_PHP = 'json_to_php';
     public const SCRIPT_PHP_TO_JSON = 'php_to_json';
     public const SCRIPT_MIGRATION = 'migration';
     public const SCRIPT_GENERATORS = 'generators';
-    public const SCRIPT_STATUS_PENDING = 'pending';
-    public const SCRIPT_STATUS_WARNING = 'warning';
     public const MISSING_ENTITIES_JSON_WARNING = 'JSON file not found: Entities.json';
-
     public const SCRIPT_IDS = [
         self::SCRIPT_JSON_TO_PHP,
         self::SCRIPT_PHP_TO_JSON,
@@ -28,10 +27,57 @@ class M_Sync_Service
         self::SCRIPT_GENERATORS,
     ];
 
-    public function startRun(array $selected_Scripts): array
+    /**
+     * * Continue a run after its selected sync scripts finish and the user reviews Entities.json.
+     * * simple call startRun to rerun all scripts to test if no any problems
+     * @return array{accepted: bool, run: array<string, mixed>} $run_Record
+     */
+    public function continueRun(array $selected_Scripts): array
     {
-        M_Sync_Service_Status_Log::reset_Log();
+        return self::startRun($selected_Scripts);
+    }
 
+    // public static function get_init_run_Record(array $selected_Scripts): array
+    // {
+    //     $allowed_Scripts = [
+    //         'json_to_php',
+    //         'php_to_json',
+    //         'migration',
+    //         'generators',
+    //     ];
+
+    //     $validated_Scripts = [];
+
+    //     foreach ($selected_Scripts as $script_ID) {
+    //         $normalized_ID = strtolower(trim($script_ID));
+    //         if (!in_array($normalized_ID, $allowed_Scripts, true)) {
+    //             return [
+    //                 'success' => false,
+    //                 'message' => 'The selected script list contains an unsupported script.',
+    //             ];
+    //         }
+    //         $validated_Scripts[] = $normalized_ID;
+    //     }
+
+    //     $script_Statuses = [];
+    //     foreach ($allowed_Scripts as $script_ID) {
+    //         $script_Statuses[$script_ID] = in_array($script_ID, $validated_Scripts, true) ? 'pending' : 'skipped';
+    //     }
+
+    //     $run_Record = [
+    //         'target' => TargetManager::get_activeTarget(),
+    //         'status' => 'running',
+    //         'selected_scripts' => $validated_Scripts,
+    //         'script_statuses' => $script_Statuses,
+    //         'message' => null,
+    //     ];
+    //     return $run_Record;
+    // }
+
+
+
+    public static function get_init_run_Record(array $selected_Scripts): array
+    {
         $allowed_Scripts = [
             'json_to_php',
             'php_to_json',
@@ -39,8 +85,8 @@ class M_Sync_Service
             'generators',
         ];
 
-        $validated_Scripts = [];
-
+        // 1. ตรวจสอบความถูกต้องและแปลงเป็นชุดข้อมูลสำหรับเช็ก (Lookup Set)
+        $selected_Lookup = [];
         foreach ($selected_Scripts as $script_ID) {
             $normalized_ID = strtolower(trim($script_ID));
             if (!in_array($normalized_ID, $allowed_Scripts, true)) {
@@ -49,15 +95,22 @@ class M_Sync_Service
                     'message' => 'The selected script list contains an unsupported script.',
                 ];
             }
-            $validated_Scripts[] = $normalized_ID;
+            $selected_Lookup[$normalized_ID] = true;
+        }
+
+        // 2. จัดเรียงลำดับ $validated_Scripts ตามลำดับมาตรฐานของ $allowed_Scripts เสมอ
+        $validated_Scripts = [];
+        foreach ($allowed_Scripts as $script_ID) {
+            if (isset($selected_Lookup[$script_ID])) {
+                $validated_Scripts[] = $script_ID;
+            }
         }
 
         $script_Statuses = [];
         foreach ($allowed_Scripts as $script_ID) {
-            $script_Statuses[$script_ID] = in_array($script_ID, $validated_Scripts, true) ? 'pending' : 'skipped';
+            $script_Statuses[$script_ID] = isset($selected_Lookup[$script_ID]) ? 'pending' : 'skipped';
         }
 
-        $run_Record = M_Sync_Service_Status_Log::read_run_Record();
         $run_Record = [
             'target' => TargetManager::get_activeTarget(),
             'status' => 'running',
@@ -65,6 +118,15 @@ class M_Sync_Service
             'script_statuses' => $script_Statuses,
             'message' => null,
         ];
+
+        return $run_Record;
+    }
+
+    public function startRun(array $selected_Scripts): array
+    {
+        M_Sync_Service_Status_Log::reset_Log();
+
+        $run_Record = self::get_init_run_Record($selected_Scripts);
 
         M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
 
@@ -134,40 +196,6 @@ class M_Sync_Service
         }
 
         return $process_ID;
-    }
-
-    /**
-     * Continue a run after its selected sync scripts finish and the user reviews Entities.json.
-     * @return array{accepted: bool, run: array<string, mixed>}
-     */
-    public function continueRun(): array
-    {
-        $run_Record = $this->reserve_Continuation();
-
-        if (!$run_Record['accepted']) {
-            return $run_Record;
-        }
-
-        $process_ID = $this->launch_Worker_Process(self::PHASE_CONTINUE);
-
-        M_Sync_Service_Status_Log::update_Run(function (array $run_Record) use ($process_ID): array {
-            // $process_ID is only for Linux to sync current_Run
-            if (
-                $process_ID !== null
-                && in_array($run_Record['status'], [self::STATUS_STARTING, self::STATUS_RUNNING], true)
-            ) {
-                $run_Record['pid'] = $process_ID;
-            }
-
-            $run_Record['updated_at'] = date(DATE_ATOM);
-
-            return $run_Record;
-        });
-
-        return [
-            'accepted' => true,
-            'run' => M_Sync_Service_Status_Log::read_run_Record()
-        ];
     }
 
     /**
@@ -270,35 +298,6 @@ class M_Sync_Service
         M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
 
         Logger::collect_error("SYNC WORKER FAILED : " . $message);
-    }
-
-    /**
-     * Reserve the generation phase only when the run is waiting for user review.
-     *
-     * @return array{accepted: bool, run: array<string, mixed>}
-     */
-    private function reserve_Continuation(): array
-    {
-        $run_Record = M_Sync_Service_Status_Log::read_run_Record();
-
-        if (!is_array($run_Record)) {
-            return [
-                'accepted' => false,
-                'run' => ['status' => 'not_found'],
-            ];
-        }
-
-        if ($run_Record['status'] !== self::STATUS_AWAITING_REVIEW) {
-            return ['accepted' => false, 'run' => $run_Record];
-        }
-
-        $run_Record['status'] = self::STATUS_STARTING;
-        $run_Record['pid'] = null;
-        $run_Record['message'] = null;
-        $run_Record['updated_at'] = date(DATE_ATOM);
-        M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
-
-        return ['accepted' => true, 'run' => $run_Record];
     }
 
     /**

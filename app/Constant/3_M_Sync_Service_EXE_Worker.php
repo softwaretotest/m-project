@@ -19,10 +19,11 @@ class M_Sync_Service_EXE_Worker
 
         $script_IDs = $run_Record['selected_scripts'] ?? [];
 
-        $this->update_Run(M_Sync_Service::STATUS_RUNNING);
+        M_Sync_Service_Status_Log::update_Run([
+            'status' => M_Sync_Service::STATUS_RUNNING
+        ]);
 
         foreach ($script_IDs as $script_ID) {
-
             // 1. for PHASE_CONTINUE: skip if this script is finished
             if ($is_continue) {
                 $current_status = $run_Record['script_statuses'][$script_ID] ?? 'pending';
@@ -32,7 +33,7 @@ class M_Sync_Service_EXE_Worker
             }
 
             // 2. run script + write Log
-            $this->update_Script_Status($script_ID, M_Sync_Service::SCRIPT_STATUS_WARNING);
+            $this->update_Script_Status($script_ID, M_Sync_Service::STATUS_PENDING);
             M_Sync_Service_Status_Log::write_Log(
                 "---------- START script: {$script_ID} ----------" . PHP_EOL
             );
@@ -49,14 +50,18 @@ class M_Sync_Service_EXE_Worker
             // 4. for PHASE_INITIAL: stop for review Entities.json , if not exist
             if (false === $is_continue && !empty($result['has_missing_entities_json'])) {
                 $this->update_Script_Status($script_ID, M_Sync_Service::STATUS_COMPLETED);
-                $this->update_Run(M_Sync_Service::STATUS_AWAITING_REVIEW);
+                M_Sync_Service_Status_Log::update_Run([
+                    'status' => M_Sync_Service::STATUS_AWAITING_REVIEW
+                ]);
                 return 0;
             }
 
             $this->update_Script_Status($script_ID, M_Sync_Service::STATUS_COMPLETED);
         }
 
-        $this->update_Run(M_Sync_Service::STATUS_COMPLETED);
+        M_Sync_Service_Status_Log::update_Run([
+            'status' => M_Sync_Service::STATUS_COMPLETED
+            ]);
         return 0;
     }
 
@@ -85,28 +90,10 @@ class M_Sync_Service_EXE_Worker
      */
     private function fail_Run(string $message): void
     {
-        $run_Record = M_Sync_Service_Status_Log::read_run_Record();
-        if (isset($run_Record)) {
-            $run_Record['status'] = 'failed';
-            $run_Record['message'] = $message;
-            M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
-        }
+        M_Sync_Service_Status_Log::update_Run([
+            'status' =>  M_Sync_Service_Status_Log::STATUS_FAILED,
+            'message' => $message,
+        ]);
         Logger::collect_error('Error-Text : '.$message . PHP_EOL);
-    }
-
-    /**
-    * Updates a persisted run record using a callback function.
-    *
-    * @param callable $status Function to modify the run record.
-    * @return void
-    */
-    private function update_Run(string $status): void
-    {
-        $run_Record = M_Sync_Service_Status_Log::read_run_Record();
-        $run_Record = $run_Record ?? null;
-        if ($run_Record) {
-            $run_Record['status'] = $status;
-            M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
-        }
     }
 }
