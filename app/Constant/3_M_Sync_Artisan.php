@@ -11,17 +11,32 @@ use Throwable;
  */
 class M_Sync_Artisan extends Command
 {
+    /**
+     * @var string
+     * @used-by \Illuminate\Console\Command
+     */
     protected $signature = 'sync:run {phase}';
 
+    /**
+     * @var string
+     * @used-by \Illuminate\Console\Command
+     */
     protected $description = 'Run a detached Sync worker phase using static log and status.';
 
+    /**
+     * @var string
+     * @used-by \Illuminate\Console\Command
+     * @return 0 or Command::FAILURE to Synfony Process
+     * * this try-catch is not necessary for m-project
+     * *, but for Process in Cmd or Bash running M_Sync-Script
+     */
     public function handle(M_Sync_Service $sync_Service): int
     {
         $phase = (string) $this->argument('phase');
-
         try {
             $EXE_Worker = new M_Sync_Service_EXE_Worker();
             return $EXE_Worker->execute_Worker($phase);
+
         } catch (Throwable $exception) {
             $error_text = $exception->getMessage();
             Logger::collect_error(

@@ -1,21 +1,17 @@
 {
-    "ecommerce": {
-        "target": "ecommerce",
-        "status": "completed",
-        "selected_scripts": [
-            "json_to_php",
-            "php_to_json",
-            "migration",
-            "generators"
-        ],
-        "script_statuses": {
-            "json_to_php": "completed",
-            "php_to_json": "completed",
-            "migration": "completed",
-            "generators": "completed"
-        },
-        "message": null,
-        "pid": null,
-        "updated_at": "2026-10-06T20:05:38+00:00"
-    }
+    "target": "ecommerce",
+    "status": "failed",
+    "selected_scripts": [
+        "json_to_php",
+        "php_to_json",
+        "migration",
+        "generators"
+    ],
+    "script_statuses": {
+        "json_to_php": "completed",
+        "php_to_json": "completed",
+        "migration": "failed",
+        "generators": "pending"
+    },
+    "message": "Script migration execution failed."
 }

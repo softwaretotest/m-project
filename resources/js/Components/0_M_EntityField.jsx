@@ -32,12 +32,12 @@ export default function EntityField({ f_s_Class_Array, TABLENAME }) {
     /**
      * State to open / close Backdrop (lock UI during editig)
      */
-    const set_is_Editing = use_M_Store().getState().set_is_Editing;
+    const set_is_Editing = use_M_Store.getState().set_is_Editing;
 
     const selected_F_S = use_M_Store((state) => state.selected_F_S);
 
     // const [TABLENAME_State, set_TABLENAME_State] = useState(TABLENAME);
-    const set_FIELDNAME_to_update = use_M_Store().getState().set_FIELDNAME_to_update;
+    const set_FIELDNAME_to_update = use_M_Store.getState().set_FIELDNAME_to_update;
     const tablename = TABLENAME.toLowerCase();
 
     /**

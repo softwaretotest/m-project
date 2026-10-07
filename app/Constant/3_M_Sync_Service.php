@@ -3,7 +3,6 @@
 namespace App\Constant;
 
 use Symfony\Component\Process\Process;
-use Throwable;
 
 class M_Sync_Service
 {
@@ -124,6 +123,11 @@ class M_Sync_Service
 
         $launcher = Process::fromShellCommandline($command, base_path());
         $launcher->setTimeout(15);
+
+        /**
+         * * tell M_Sync_Artisan to run $core_Command
+         * * call Artisan CLI
+         */
         $launcher->mustRun();
 
         if (PHP_OS_FAMILY === 'Windows') {
@@ -153,19 +157,7 @@ class M_Sync_Service
             return $run_Record;
         }
 
-        try {
-            $process_ID = $this->launch_Worker_Process(self::PHASE_CONTINUE);
-        } catch (Throwable $exception) {
-            M_Sync_Service_Status_Log::fail_Run(
-                $target_Name,
-                $exception->getMessage()
-            );
-
-            return [
-                'accepted' => false,
-                'run' => $this->get_Target_Run($target_Name),
-            ];
-        }
+        $process_ID = $this->launch_Worker_Process(self::PHASE_CONTINUE);
 
         M_Sync_Service_Status_Log::update_Run($target_Name, function (array $current_Run) use ($process_ID): array {
             // $process_ID is only for Linux to sync current_Run
@@ -314,6 +306,9 @@ class M_Sync_Service
         }
 
         if ($run_Record['status'] !== self::STATUS_AWAITING_REVIEW) {
+            \Illuminate\Support\Facades\Log::info("run_Record = ". is_array($run_Record) ? 'true' : 'false');
+            \Illuminate\Support\Facades\Log::info("run_Record['status'] = ". $run_Record['status']);
+            \Illuminate\Support\Facades\Log::info("run_Record = ". print_r($run_Record, true));
             return ['accepted' => false, 'run' => $run_Record];
         }
 

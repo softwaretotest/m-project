@@ -2,8 +2,6 @@
 
 namespace App\Constant;
 
-use RuntimeException;
-
 class M_Sync_Service_Status_Log
 {
     public const STATUS_FILE = 'app/Constant/3_M_Sync_Status.json';
@@ -22,24 +20,6 @@ class M_Sync_Service_Status_Log
      */
 
     private const STATUS_FAILED = 'failed';
-
-    /**
-     * Update a run record while holding the status file lock.
-     * @param  string  $target_Name  Configured target name.
-     * @param  callable(array<string, mixed>): array<string, mixed>  $update_Callback  Run record transformation.
-     */
-    public static function update_Run(string $target_Name, callable $update_Callback): void
-    {
-        $status_Data = self::read_Status_Data();
-        $run_Record = $status_Data[$target_Name] ?? null;
-
-        if (!is_array($run_Record)) {
-            throw new RuntimeException("Sync run changed before update");
-        }
-
-        $status_Data[$target_Name] = $update_Callback($run_Record);
-        self::write_Status_Data($status_Data);
-    }
 
     /**
      * Update one script's status in the persisted run record.
@@ -181,6 +161,27 @@ class M_Sync_Service_Status_Log
             base_path(self::STATUS_FILE),
             json_encode($status_Data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
         );
+    }
+
+    /**
+     * Update a run record while holding the status file lock.
+     * @param  string  $target_Name  Configured target name.
+     * @param  callable(array<string, mixed>): array<string, mixed>  $update_Run_Record  Run record transformation.
+     */
+    public static function update_Run(string $target_Name, callable $update_Run_Record): void
+    {
+        // 1. read all actuell status_Data to run_Record
+        $status_Data = self::read_Status_Data();
+        $run_Record = $status_Data[$target_Name] ?? null;
+
+        // 2. validate
+        if (!is_array($run_Record)) {
+            Logger::collect_error("Sync run changed before update");
+        }
+
+        // 3. send $run_Record to get new change , and write status
+        $status_Data[$target_Name] = $update_Run_Record($run_Record);
+        self::write_Status_Data($status_Data);
     }
 
     public static function write_Log(string $content, bool $append = true): void
