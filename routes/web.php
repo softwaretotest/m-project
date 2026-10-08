@@ -11,10 +11,11 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     $activeTarget = TargetManager::get_activeTarget();
     $hasTarget = false === empty($activeTarget);
-    if ($hasTarget)
+    if ($hasTarget) {
         return Inertia::render('0_M_Dashboard', [
             'activeTarget' => $activeTarget
         ]);
-    else
+    } else {
         return Inertia::render('3_M_TargetSelector');
+    }
 });

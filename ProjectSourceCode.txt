@@ -4192,48 +4192,6 @@ class TargetManager
 
 
 
---- FOLDER: app/DTOs ---
-
-
---- FOLDER: app/Models ---
-
-
---- FOLDER: app/Services ---
-
-
-[FILE: C:\Users\o\.vscode\react\m-project\app\Services\TestService.php]
-
-<?php
-
-namespace App\Services;
-
-use App\Http\Controllers\ProductController;
-use Illuminate\Http\Request;
-
-class TestService
-{
-    public static function runProductTest()
-    {
-        // 1. เรียก ProductController
-        $controller = new ProductController();
-
-        // 2. ทดสอบ Index (ดึงข้อมูลสินค้าทั้งหมด)
-        // ส่ง Request เปล่าไปเพราะ ProductController ของคุณใช้ดึงข้อมูลพื้นฐาน
-        $response = $controller->index(new Request());
-
-        $result = json_decode($response->getContent(), true);
-
-        return [
-            'status' => 'success',
-            'message' => 'ทดสอบ ProductController สำเร็จ',
-            'data_count' => isset($result['data']) ? count($result['data']) : 0,
-            'data' => $result['data'] ?? []
-        ];
-    }
-}
-
-
-
 --- FOLDER: app/Http/Controllers ---
 
 
@@ -4888,6 +4846,39 @@ class TargetManager_Config_Controller extends Controller
 
 
 
+[FILE: C:\Users\o\.vscode\react\m-project\app\Http\Controllers\UF_JS_Controller.php]
+
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
+
+class UF_JS_Controller extends Controller
+{
+    public function save(Request $request)
+    {
+        $validated = $request->validate([
+            'uf_name' => ['required', 'string', 'regex:/^[A-Za-z0-9_]+$/'],
+            'code'    => ['present', 'nullable', 'string'],
+        ]);
+
+        $dir  = app_path('Constant/JS');
+        $path = $dir . DIRECTORY_SEPARATOR . $validated['uf_name'] . '.js';
+
+        File::ensureDirectoryExists($dir);
+        File::put($path, $validated['code'] ?? '');
+
+        return response()->json([
+            'ok'   => true,
+            'path' => 'app/Constant/JS/' . $validated['uf_name'] . '.js',
+        ]);
+    }
+}
+
+
+
 --- FOLDER: resources ---
 
 
@@ -5031,10 +5022,10 @@ export function find_uf_item(field_data) {
     const uf_item = field_data.find((item) => {
         return typeof item === "string" && item.startsWith("uf::");
     });
-    console.log(
-        "fjdksajfkdlsöfjdsklaö --- Data_Helper - find_uf_item = ",
-        uf_item,
-    );
+    // console.log(
+    //     "fjdksajfkdlsöfjdsklaö --- Data_Helper - find_uf_item = ",
+    //     uf_item,
+    // );
     return uf_item;
 }
 
@@ -6947,6 +6938,7 @@ import { renderDropdown_UF } from "@/Components/0_M_Dropdown_UF";
 import { renderCheckboxList } from "@/Components/0_M_CheckBox";
 import { Render_fieldname_input } from "@/Components/0_M_Input_Group.jsx";
 import { Input_Group_JS } from "@/Components/0_M_Input_Group_JS";
+import { get_UF_NAME } from "@/Components/0_M_Data_Helper";
 
 export default function Field({ field_data }) {
     const fieldname = field_data[0];
@@ -7032,8 +7024,6 @@ export default function Field({ field_data }) {
 
     return (
         <>
-            {show_Input_Group_JS ?? Input_Group_JS}
-
             <div className="field-header-container">
                 <Render_fieldname_input
                     fieldname={fieldname}
@@ -7058,6 +7048,50 @@ export default function Field({ field_data }) {
                 </button>
             </div>
             {CHECKBOX_and_DROPDOWN}
+            {show_Input_Group_JS && (
+                <div className="Input_Grup_JS-container">
+                    <Input_Group_JS
+                        uf_name={get_UF_NAME(field_data)}
+                        initial_code="// Loading..."
+                        onClose={() => set_show_Input_Group_JS(false)}
+                        onSave={async (ufName, code) => {
+                            const xsrf = decodeURIComponent(
+                                document.cookie
+                                    .split("; ")
+                                    .find((c) => c.startsWith("XSRF-TOKEN="))
+                                    ?.split("=")[1] || "",
+                            );
+                            try {
+                                const res = await fetch("/api/uf-js/save", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                        Accept: "application/json",
+                                        "X-XSRF-TOKEN": xsrf,
+                                    },
+                                    body: JSON.stringify({
+                                        uf_name: ufName,
+                                        code,
+                                    }),
+                                });
+                                if (!res.ok) {
+                                    const err = await res
+                                        .json()
+                                        .catch(() => ({}));
+                                    alert(
+                                        `Save failed (${res.status}): ${err.message || "unknown error"}`,
+                                    );
+                                    return false;
+                                }
+                                return true;
+                            } catch (e) {
+                                alert(`Save failed: ${e.message}`);
+                                return false;
+                            }
+                        }}
+                    />
+                </div>
+            )}
         </>
     );
 }
@@ -7208,16 +7242,9 @@ export function Render_fieldname_input({ fieldname, className }) {
 
 [FILE: C:\Users\o\.vscode\react\m-project\resources\js\Components\0_M_Input_Group_JS.jsx]
 
-import { useState, useEffect } from "react";
+import React, { useState } from "react";
+import Editor from "@monaco-editor/react";
 
-/**
- * Render JavaScript Code Editor Modal for UF Formatters (e.g., CURRENCY.js)
- * Supports multi-line textarea, isDirty protection, and safe saving.
- * @param {string} uf_name - The name of the UF constant (e.g., "CURRENCY")
- * @param {string} initial_code - Initial JavaScript code loaded from backend
- * @param {function} onClose - Callback to close the modal
- * @param {function} onSave - Callback to save the JavaScript code
- */
 export function Input_Group_JS({
     uf_name,
     initial_code = "",
@@ -7226,85 +7253,75 @@ export function Input_Group_JS({
 }) {
     const [code, setCode] = useState(initial_code);
     const [initialCode] = useState(initial_code);
-
-    // เช็กว่าโค้ดมีการเปลี่ยนแปลงไปจากเดิมหรือไม่
     const isDirty = code !== initialCode;
+
+    const handleEditorChange = (value) => {
+        setCode(value || "");
+    };
 
     const handleSave = async () => {
         if (!uf_name) return;
-        try {
-            if (typeof onSave === "function") {
-                await onSave(uf_name, code);
-            }
-            if (typeof onClose === "function") {
-                onClose();
-            }
-        } catch (error) {
-            console.error("Failed to save JS formatter:", error);
-        }
-    };
-
-    const handleCancel = () => {
-        if (isDirty) {
-            const confirmLeave = window.confirm(
-                "You have unsaved changes. Do you want to close without saving?",
-            );
-            if (!confirmLeave) return;
+        if (typeof onSave === "function") {
+            const ok = await onSave(uf_name, code);
+            if (ok === false) return;
         }
         if (typeof onClose === "function") {
             onClose();
         }
     };
 
-    // ดักจับปุ่ม ESC เพื่อป้องกันข้อมูลหายจากการเผลอกด
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.key === "Escape") {
-                handleCancel();
-            }
-        };
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isDirty, code]);
+    const handleCancel = () => {
+        if (typeof onClose === "function") {
+            onClose();
+        }
+    };
 
     if (!uf_name) return null;
 
     return (
-        <div className="Input_Group_JS-backdrop" onClick={handleCancel}>
-            <div
-                className="Input_Group_JS-container"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <div className="Input_Group_JS-header">
-                    <span className="js-title">JS Formatter: {uf_name}.js</span>
-                    <button className="close-btn" onClick={handleCancel}>
-                        ✕
-                    </button>
-                </div>
+        <div className="Input_Group_JS-container">
+            <div className="Input_Group_JS-header">
+                <span className="Input_Group_JS-label">JS Formatter :</span>
+                <span className="Input_Group_JS-filename">{uf_name}.js</span>
+                <button
+                    className="Input_Group_JS-close-btn"
+                    onClick={handleCancel}
+                >
+                    ❌
+                </button>
+            </div>
 
-                <textarea
-                    className="js-textarea"
+            <div
+                className="Input_Group_JS-editor-wrapper"
+                style={{
+                    height: "250px",
+                    marginTop: "8px",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "4px",
+                    overflow: "hidden",
+                }}
+            >
+                <Editor
+                    height="100%"
+                    defaultLanguage="javascript"
+                    theme="vs-light"
                     value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    rows={16}
-                    placeholder="// Write your JavaScript formatter logic here..."
-                    style={{
-                        fontFamily: "monospace",
-                        width: "100%",
-                        resize: "vertical",
-                        padding: "10px",
-                        boxSizing: "border-box",
+                    onChange={handleEditorChange}
+                    options={{
+                        minimap: { enabled: false },
+                        fontSize: 13,
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
                     }}
                 />
-
-                <div className="Input_Group_JS-footer">
-                    <button className="save-button" onClick={handleSave}>
-                        💾 Save
-                    </button>
-                    <button className="cancel-button" onClick={handleCancel}>
-                        ↩️ Cancel
-                    </button>
-                </div>
+            </div>
+            <div className="Input_Group_JS-footer">
+                <button className="save-button" onClick={handleSave}>
+                    Save
+                </button>
+                <button className="cancel-button" onClick={handleCancel}>
+                    Cancel
+                </button>
             </div>
         </div>
     );
@@ -7448,6 +7465,124 @@ export function Render_JS_input_old({ fieldname, className }) {
                     </button>
                 </>
             )}
+        </div>
+    );
+}
+
+
+
+[FILE: C:\Users\o\.vscode\react\m-project\resources\js\Components\0_M_Input_Group_JS_old1.jsx]
+
+import { useState, useEffect } from "react";
+import Editor from "@monaco-editor/react";
+
+export function Input_Group_JS_old1({
+    uf_name,
+    initial_code = "",
+    onClose,
+    onSave,
+}) {
+    const [code, setCode] = useState(initial_code);
+    const [initialCode] = useState(initial_code);
+
+    const isDirty = code !== initialCode;
+
+    const handleSave = async () => {
+        if (!uf_name) return;
+        try {
+            if (typeof onSave === "function") {
+                await onSave(uf_name, code);
+            }
+            if (typeof onClose === "function") {
+                onClose();
+            }
+        } catch (error) {
+            console.error("Failed to save JS formatter:", error);
+        }
+    };
+
+    const handleCancel = () => {
+        if (isDirty) {
+            const confirmLeave = window.confirm(
+                "You have unsaved changes. Do you want to close without saving?",
+            );
+            if (!confirmLeave) return;
+        }
+        if (typeof onClose === "function") {
+            onClose();
+        }
+    };
+
+    const handleEditorChange = (value) => {
+        setCode(value || "");
+    };
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === "Escape") {
+                handleCancel();
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isDirty, code]);
+
+    if (!uf_name) return null;
+
+    return (
+        <div className="Input_Grup_JS-container">
+            <div className="Input_Group_JS-header">
+                <label className="Input_Group_JS-label">JS Formatter :</label>
+                <label className="Input_Group_JS-filename">{uf_name}.js</label>
+                <button
+                    className="Input_Group_JS-close-btn"
+                    onClick={handleCancel}
+                >
+                    ❌
+                </button>
+            </div>
+
+            {/* <textarea
+                className="Input_Grup_JS-textarea"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                rows={25}
+                placeholder="// Write your JavaScript code here..."
+            /> */}
+
+            <div
+                className="Input_Group_JS-editor-wrapper"
+                style={{
+                    height: "250px",
+                    marginTop: "8px",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "4px",
+                    overflow: "hidden",
+                }}
+            >
+                <Editor
+                    height="100%"
+                    defaultLanguage="javascript"
+                    theme="vs-light"
+                    value={code}
+                    onChange={handleEditorChange}
+                    options={{
+                        minimap: { enabled: false },
+                        fontSize: 13,
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
+                    }}
+                />
+            </div>
+
+            <div className="Input_Group_JS-footer">
+                <button className="save-button" onClick={handleSave}>
+                    💾 Save
+                </button>
+                <button className="cancel-button" onClick={handleCancel}>
+                    ↩️ Cancel
+                </button>
+            </div>
         </div>
     );
 }

@@ -125,11 +125,42 @@ export default function Field({ field_data }) {
                 <div className="Input_Grup_JS-container">
                     <Input_Group_JS
                         uf_name={get_UF_NAME(field_data)}
-                        initial_code="// Loading..."
+                        initial_code=""
                         onClose={() => set_show_Input_Group_JS(false)}
                         onSave={async (ufName, code) => {
-                            console.log("Saving JS for:", ufName, code);
-                            // TODO: ยิง API ไปบันทึกไฟล์ที่ Backend
+                            const xsrf = decodeURIComponent(
+                                document.cookie
+                                    .split("; ")
+                                    .find((c) => c.startsWith("XSRF-TOKEN="))
+                                    ?.split("=")[1] || "",
+                            );
+                            try {
+                                const res = await fetch("/api/uf-js/save", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                        Accept: "application/json",
+                                        "X-XSRF-TOKEN": xsrf,
+                                    },
+                                    body: JSON.stringify({
+                                        uf_name: ufName,
+                                        code,
+                                    }),
+                                });
+                                if (!res.ok) {
+                                    const err = await res
+                                        .json()
+                                        .catch(() => ({}));
+                                    alert(
+                                        `Save failed (${res.status}): ${err.message || "unknown error"}`,
+                                    );
+                                    return false;
+                                }
+                                return true;
+                            } catch (e) {
+                                alert(`Save failed: ${e.message}`);
+                                return false;
+                            }
                         }}
                     />
                 </div>

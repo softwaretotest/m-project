@@ -1,4 +1,5 @@
-$folders = @("app/Constant", "/database/migrations", "app/DTOs", "app/Models", "app/Services", "app/Http/Controllers", "app/Geners", "app/Geners/Stub", "resources")
+$folders = @("app/Constant", "app/Http/Controllers", "resources")
+# $folders = @("resources")
 $outputFile = "ProjectSourceCode.txt"
 
 # ล้างไฟล์เดิมถ้ามี

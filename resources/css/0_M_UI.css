@@ -248,6 +248,13 @@ h1.dashboard-header {
     text-align: center;
     width: 100%;
 }
+.field-column .btn-setting {
+    border-style: inset;
+    border-radius: 5px;
+    border-width: 3px;
+    background-color: #ded38c;
+}
+
 .field-label {
     font-weight: bold;
     margin-bottom: 5px;
@@ -898,18 +905,21 @@ body.overflow-hidden {
 }
 
 .Input_Group_JS-label {
-    width: auto; /* เอา width: 100% ออก เพื่อให้ใช้พื้นที่เท่ากับตัวอักษรจริงเป๊ะๆ */
+    font-family: Arial, Helvetica, sans-serif;
+    width: auto;
     flex: 0 0 auto;
     white-space: nowrap;
 }
 
 .Input_Group_JS-filename {
+    font-family: Arial, Helvetica, sans-serif;
     width: auto;
     flex: 1 1 auto;
     height: 100%;
     text-align: center;
     background-color: #b5e5a7;
-    padding: 0 4px;
+    padding: 0px;
+    margin: 0;
 }
 
 .Input_Group_JS-close-btn {
@@ -932,4 +942,74 @@ body.overflow-hidden {
     border-radius: 4px;
     background: #000;
     color: white;
+}
+.Input_Group_JS-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.Input_Group_JS-backdrop > div {
+    width: min(900px, 90vw);
+    max-height: 90vh;
+    overflow: auto;
+}
+
+.Input_Group_JS-editor-wrapper {
+    height: 70vh; /* 70% of screen */
+    max-height: 650px;
+    min-height: 300px;
+    margin-top: 8px;
+    border: 1px solid #374151;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.Input_Group_JS-editor {
+    position: absolute;
+    top: 10px;
+    left: 58px;
+    color: #6b7280;
+    pointer-events: none;
+    font-family: monospace;
+    font-size: 14px;
+    z-index: 10;
+}
+
+.Input_Group_JS-footer {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 20px;
+    background-color: #bbb;
+    padding: 5px;
+}
+
+.Input_Group_JS-footer button {
+    border-style: inset;
+    border-radius: 5px;
+    border-width: 5px;
+    font-size: 20px;
+    padding: 5px;
+}
+
+.Input_Group_JS-footer .save-button {
+    background-color: rgb(206, 246, 165);
+}
+
+.Input_Group_JS-footer .cancel-button {
+    background-color: rgb(251, 177, 98);
+}
+.Input_Group_JS-modal-box {
+    width: 850px;
+    max-width: 95vw;
+    background: #1e1e1e;
+    border-radius: 8px;
+    padding: 16px;
+    box-sizing: border-box;
 }

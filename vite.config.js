@@ -14,5 +14,9 @@ export default defineConfig({
         alias: {
             "@": "/resources/js",
         },
+        dedupe: ["react", "react-dom"],
+    },
+    optimizeDeps: {
+        include: ["@monaco-editor/react"],
     },
 });

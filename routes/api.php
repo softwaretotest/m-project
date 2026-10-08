@@ -1,10 +1,10 @@
 <?php
 
 // route/api.php
-use App\Http\Controllers\Api\ProductApiController;
 use App\Http\Controllers\M_Controller;
 use App\Http\Controllers\M_Sync_Controller;
 use App\Http\Controllers\TargetManager_Config_Controller;
+use App\Http\Controllers\UF_JS_Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -34,4 +34,9 @@ Route::prefix('m-sync')->group(function () {
     Route::post('/start', [M_Sync_Controller::class, 'start']);
     Route::get('/status', [M_Sync_Controller::class, 'status']);
     Route::post('/continue', [M_Sync_Controller::class, 'continueRun']);
+});
+
+Route::prefix('uf-js')->group(function () {
+    Route::post('/save', [UF_JS_Controller::class, 'save']);
+    Route::get('/{uf_name}', [UF_JS_Controller::class, 'load']);
 });
