@@ -19,7 +19,7 @@ class M_Historizer
      * 4. move $sourceFile to folder ./history
      * @param $sourceFile = e.g. M-Data.json
      */
-    public static function move_old_file_to_history($sourceFile)
+    public static function move_old_file_to_history(string $sourceFile)
     {
         echo "----------------------------------------------------------------------\n";
         echo " ------------ [1] START move_old_file_to_history FOR : " . $sourceFile . " ------------ \n";

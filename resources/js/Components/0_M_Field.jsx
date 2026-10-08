@@ -1,5 +1,5 @@
 // resources/js/Components/0_M_Field.jsx
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { use_M_Store } from "@/Stores/0_M_Store";
 
@@ -10,12 +10,15 @@ import { renderDropdown_U } from "@/Components/0_M_Dropdown_U";
 import { renderDropdown_UF } from "@/Components/0_M_Dropdown_UF";
 import { renderCheckboxList } from "@/Components/0_M_CheckBox";
 import { Render_fieldname_input } from "@/Components/0_M_Input_Group.jsx";
+import { Input_Group_JS } from "@/Components/0_M_Input_Group_JS";
+import { get_UF_NAME } from "@/Components/0_M_Data_Helper";
 
 export default function Field({ field_data }) {
     const fieldname = field_data[0];
     const is_CURRENCY = field_data[0].toLowerCase() === "currency";
 
     const { FIELDNAME_to_update, set_FIELDNAME_to_update } = use_M_Store();
+    const [show_Input_Group_JS, set_show_Input_Group_JS] = useState(false);
 
     /**
      * useEffect to set input.M_value_KEY in APP DATA
@@ -51,7 +54,12 @@ export default function Field({ field_data }) {
         return (
             <div className="field-column">
                 <div className="field-label">{label}</div>
-                {renderDropdown_UF(names, field_data)}
+                {renderDropdown_UF(
+                    label,
+                    names,
+                    field_data,
+                    set_show_Input_Group_JS,
+                )}
             </div>
         );
     }
@@ -113,6 +121,19 @@ export default function Field({ field_data }) {
                 </button>
             </div>
             {CHECKBOX_and_DROPDOWN}
+            {show_Input_Group_JS && (
+                <div className="Input_Grup_JS-container">
+                    <Input_Group_JS
+                        uf_name={get_UF_NAME(field_data)}
+                        initial_code="// Loading..."
+                        onClose={() => set_show_Input_Group_JS(false)}
+                        onSave={async (ufName, code) => {
+                            console.log("Saving JS for:", ufName, code);
+                            // TODO: ยิง API ไปบันทึกไฟล์ที่ Backend
+                        }}
+                    />
+                </div>
+            )}
         </>
     );
 }

@@ -1,0 +1,142 @@
+
+--- FILE: C:\Users\o\.vscode\react\m-project\resources\js\Components\0_M_Input_Group_JS.jsx ---
+
+// \resources\js\Components\0_M_Input_Group.jsx
+
+import { use_M_Store } from "@/Stores/0_M_Store";
+import { useError } from "@/Hooks/useError";
+import { use_Enter_Esc_Key } from "@/Hooks/use_Enter_Esc_Key";
+import { rename_M_value_KEY_and_fieldname } from "@/Services/0_M_value_Service";
+
+/**
+ * * render an input + save - cancel - buttons
+ * * CALLED by EntityField.jsx or Field.jsx
+ * * to edit and update fieldname or tablename
+ * @param {*} fieldname for app_data = e.g. name , email , price  || for entities = tablename
+ * @param {*} className
+ * * M_value_KEY (for UPDATE)    in APP DATA and ENTITIES
+ * * new_field_name : (for ADD)  in APP DATA and ENTITIES
+ * * fieldname ( to show , not editable) in APP DATA
+ * @returns
+ */
+export function Render_JS_input({ fieldname, className }) {
+    /**
+     * Guard clause for Hooks (first refresh) to prevent error,
+     * when fieldname is null or undefined
+     **/
+    const safeFieldname = fieldname ? fieldname.toLowerCase() : "";
+
+    const activeField = use_M_Store((state) => state.activeField);
+
+    const setActiveField = use_M_Store.getState().setActiveField;
+    const set_Error_FIELDNAME = use_M_Store.getState().set_Error_FIELDNAME;
+
+    const { FIELDNAME_to_update, set_FIELDNAME_to_update } = use_M_Store();
+    const { FIELDNAME_to_add, set_FIELDNAME_to_add } = use_M_Store();
+
+    const { handle_Fieldname_Change } = useError();
+
+    const handleSave = async () => {
+        // fix bug , prevent to put old value in the input
+        const current_value_in_store =
+            use_M_Store.getState().FIELDNAME_to_update[fieldname];
+        const value_to_save = current_value_in_store ?? FIELDNAME;
+
+        await rename_M_value_KEY_and_fieldname(value_to_save);
+
+        setActiveField((value_to_save ?? "").toLowerCase());
+        set_is_Editing(false);
+    };
+
+    const handleCancel = () => {
+        set_FIELDNAME_to_update(
+            fieldname,
+            (activeField ?? fieldname).toUpperCase(),
+        );
+        set_is_Editing(false);
+        setActiveField(null);
+    };
+
+    use_Enter_Esc_Key(safeFieldname === activeField, handleSave, handleCancel);
+
+    /**
+     * GUARD CLAUSE must be called after Hook,
+     * because Hook must be called in the same order
+     */
+    if (!fieldname) return null;
+
+    /**
+     * State to open / close Backdrop (lock UI during editig)
+     */
+    const set_is_Editing = use_M_Store.getState().set_is_Editing;
+
+    const is_ADD = className === "new_field_name";
+    const is_fieldname = className === "fieldname";
+
+    const FIELDNAME = is_ADD
+        ? FIELDNAME_to_add
+        : (FIELDNAME_to_update[fieldname] ?? fieldname);
+
+    const show_CRUD_BTN =
+        className === "M_value_KEY" && fieldname.toLowerCase() === activeField;
+
+    const className_activeField =
+        fieldname.toLowerCase() === activeField ? " activeField" : "";
+    return (
+        <div
+            className={"field-group-" + className + " " + className_activeField}
+        >
+            <a className="label">{className}</a>
+
+            <input
+                type="text"
+                key={fieldname}
+                value={
+                    is_fieldname
+                        ? (FIELDNAME ?? "").toLowerCase()
+                        : (FIELDNAME ?? "").toUpperCase()
+                }
+                className={className}
+                disabled={className !== "M_value_KEY"}
+                onFocus={() => {
+                    set_FIELDNAME_to_add("");
+                    set_Error_FIELDNAME(""); // clear error at beginning
+                    if (
+                        !activeField ||
+                        activeField !== fieldname.toLowerCase()
+                    ) {
+                        setActiveField(fieldname.toLowerCase());
+                    }
+
+                    set_is_Editing(true);
+                }}
+                onChange={async (event) => await handle_Fieldname_Change(event)}
+            />
+
+            {show_CRUD_BTN && (
+                <>
+                    <button
+                        className={"save-button"}
+                        //no continue, if no data , or data invalide
+                        disabled={!FIELDNAME}
+                        onClick={async () => {
+                            handleSave();
+                        }}
+                    >
+                        💾
+                    </button>
+                    <button
+                        className={"cancel-button"}
+                        onClick={() => {
+                            handleCancel();
+                        }}
+                    >
+                        ↩️
+                    </button>
+                </>
+            )}
+        </div>
+    );
+}
+
+

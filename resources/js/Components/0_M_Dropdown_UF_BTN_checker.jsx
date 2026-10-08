@@ -1,8 +1,7 @@
 // resources/js/Components/0_M_Dropdown_U.jsx
 
-import { M_Option } from "@/Components/0_M_Option";
 import { prepare_new_M_value_for_Update_UF } from "@/Components/0_M_value_Updater_UF";
-import { find_u_item, find_uf_item } from "@/Components/0_M_Data_Helper";
+import { find_uf_item } from "@/Components/0_M_Data_Helper";
 
 import { use_M_Store } from "@/Stores/0_M_Store";
 import { M_value_Service } from "@/Services/0_M_value_Service";
@@ -20,12 +19,7 @@ import { M_value_Service } from "@/Services/0_M_value_Service";
  * * Params:
  * * selected_UF_of_field_data = fieldname , e.g. NUMBER , FILE , TEXT
  */
-export function renderDropdown_UF(
-    label,
-    M_Class_Name_List,
-    field_data,
-    set_show_Input_Group_JS,
-) {
+export function render_Button_UF_checker(label, name, field_data) {
     const { M_value } = use_M_Store();
 
     const fieldname = field_data[0];
@@ -89,42 +83,40 @@ export function renderDropdown_UF(
             new_selected_UF,
             M_value,
         );
+
         await M_value_Service.update(new_M_value);
     }
 
-    const has_U = Boolean(find_u_item(field_data));
     const has_UF = Boolean(find_uf_item(field_data));
     const is_Foreign = use_M_Store
         .getState()
         .checked_CD[fieldname]?.includes("FOREIGN");
+    //     return (
+    //                {has_UF && !is_Foreign && (
+    //        <>
+    //            <div className="field-label">{label} Checker</div>
+    //            <button
+    //                className="btn-setting"
+    //                value={selected_UF_to_show}
+    //                disabled={is_Foreign || !has_UF}
+    //            >
+    //                SYNC
+    //            </button>
+    //        </>
+    //    )}
+    //     );
+
     return (
         <>
-            <select
-                className="U_Dropdown"
-                value={selected_UF_to_show}
-                disabled={is_Foreign || !has_U}
-                onChange={(event) => {
-                    set_UF_Actions(event);
-                }}
-            >
-                <option value="">--</option>
-                <M_Option
-                    M_Class_Name_List={M_Class_Name_List}
-                    field_data={field_data}
-                />
-            </select>
             {has_UF && !is_Foreign && (
                 <>
-                    <div className="field-label">{label} logic</div>
+                    <div className="field-label">{label} Checker</div>
                     <button
                         className="btn-setting"
                         value={selected_UF_to_show}
                         disabled={is_Foreign || !has_UF}
-                        onClick={() => {
-                            set_show_Input_Group_JS(true);
-                        }}
                     >
-                        JS
+                        SYNC
                     </button>
                 </>
             )}

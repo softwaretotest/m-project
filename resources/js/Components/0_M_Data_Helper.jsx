@@ -38,6 +38,10 @@ export function find_uf_item(field_data) {
     const uf_item = field_data.find((item) => {
         return typeof item === "string" && item.startsWith("uf::");
     });
+    // console.log(
+    //     "fjdksajfkdlsöfjdsklaö --- Data_Helper - find_uf_item = ",
+    //     uf_item,
+    // );
     return uf_item;
 }
 

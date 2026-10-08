@@ -402,7 +402,7 @@ h1.dashboard-header {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding: 2px;
+    padding: 7px;
     background-color: #3498db;
 }
 
@@ -879,9 +879,57 @@ body.overflow-hidden {
     font-size: 13px;
     color: #b45309;
     background-color: #fef3c7;
-    padding: 10px;
+    padding: 0px;
     border-radius: 4px;
     margin-bottom: 15px;
     border: 1px solid #f59e0b;
     line-height: 1.4;
+}
+
+/* --- Input_Grup_JS --- */
+.Input_Group_JS-header {
+    display: flex;
+    align-items: center;
+    gap: 6px; /* ใช้ gap คุมระยะห่างแทน space-between เพื่อให้อยู่ชิดกันพอดี */
+    margin: 0px;
+    padding: 3px;
+    background: #def761;
+    border-radius: 4px;
+}
+
+.Input_Group_JS-label {
+    width: auto; /* เอา width: 100% ออก เพื่อให้ใช้พื้นที่เท่ากับตัวอักษรจริงเป๊ะๆ */
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.Input_Group_JS-filename {
+    width: auto;
+    flex: 1 1 auto;
+    height: 100%;
+    text-align: center;
+    background-color: #b5e5a7;
+    padding: 0 4px;
+}
+
+.Input_Group_JS-close-btn {
+    flex: 0 0 auto;
+    aspect-ratio: 1 / 1;
+    background-color: #e5e7eb;
+    color: #374151;
+}
+
+.Input_Grup_JS-textarea {
+    font-family: monospace;
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    overflow-y: auto;
+    resize: vertical;
+    padding: 10px;
+    box-sizing: border-box;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: #000;
+    color: white;
 }
