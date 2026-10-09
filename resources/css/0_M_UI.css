@@ -157,6 +157,27 @@ h1.dashboard-header {
     background-color: #333;
 }
 
+/* ตัวเลขจำนวน item บนแท็บ */
+.nav-button .tab-count {
+    margin-left: 6px;
+    padding: 0 7px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.35);
+    font-size: 0.85em;
+}
+
+/* แท็บที่ยังว่าง (0) ต้องไป Import */
+.nav-button.tab-empty {
+    background-color: #8b0000;
+    color: #fff;
+    animation: tab-empty-blink 1s ease-in-out infinite;
+}
+
+@keyframes tab-empty-blink {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.45; }
+}
+
 .input-engine-container {
     display: flex;
     flex-direction: column;
@@ -1013,3 +1034,4 @@ body.overflow-hidden {
     padding: 16px;
     box-sizing: border-box;
 }
+

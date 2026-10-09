@@ -1,6 +1,6 @@
 {
     "target": "ecommerce",
-    "status": "completed",
+    "status": "failed",
     "selected_scripts": [
         "json_to_php",
         "php_to_json",
@@ -8,10 +8,10 @@
         "generators"
     ],
     "script_statuses": {
-        "json_to_php": "completed",
-        "php_to_json": "completed",
-        "migration": "completed",
-        "generators": "completed"
+        "json_to_php": "failed",
+        "php_to_json": "pending",
+        "migration": "pending",
+        "generators": "pending"
     },
-    "message": null
+    "message": "Script json_to_php execution failed."
 }

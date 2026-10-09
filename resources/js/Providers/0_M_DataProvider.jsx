@@ -20,7 +20,7 @@ export const M_DataProvider = ({ children }) => {
     useEffect(() => {
         const fetchMetadata = async () => {
             try {
-                const res = await fetch('/api/m-value');
+                const res = await fetch("/api/m-value");
                 if (!res.ok)
                     throw new Error("HTTP error! status: " + res.status);
                 const data = await res.json();

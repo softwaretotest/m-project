@@ -1,5 +1,5 @@
 {
-    "_comment": "\/M_JSON\/M-Data.json",
+    "_comment": "M-Data.json",
     "d": {
         "BOOLEAN": "boolean",
         "INTEGER": "integer",
@@ -13,6 +13,9 @@
         "SELECT": "select",
         "FILE": "file",
         "TEL": "tel"
+    },
+    "uf": {
+        "CURRENCY": "currency"
     },
     "cd": {
         "NULLABLE": "nullable",
@@ -34,10 +37,6 @@
             "d::STRING",
             "u::TEXT",
             "cd::UNIQUE"
-        ],
-        "CURRENCY": [
-            "currency",
-            "u::TEL"
         ]
     }
 }

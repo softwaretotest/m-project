@@ -53,13 +53,19 @@ export function Input_Group_JS({
         }
     };
 
+    const handleEditorMount = (editor, monaco) => {
+        editor.focus();
+    };
+
     if (!uf_name) return null;
 
     return createPortal(
+        //make React Modal backdrop
         <div className="Input_Group_JS-backdrop" onClick={handleCancel}>
             <div
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
+                // stopPropagation = do not let event goes to parent element
+                onClick={(e) => e.stopPropagation()} // get click event on backdrop (to close Modal)
+                onKeyDown={(e) => e.stopPropagation()} // fix push Enter in JS Editor
             >
                 <div className="Input_Group_JS-container">
                     <div className="Input_Group_JS-header">
@@ -89,6 +95,7 @@ export function Input_Group_JS({
                             theme="vs-dark"
                             value={code}
                             onChange={handleEditorChange}
+                            onMount={handleEditorMount}
                             options={{
                                 minimap: { enabled: true }, // left map colum of small codes like in vscode
                                 fontSize: 14,

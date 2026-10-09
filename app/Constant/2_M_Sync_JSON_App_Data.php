@@ -6,7 +6,14 @@ class M_Sync_JSON_App_Data
 {
     public static function generate(): void
     {
-        $json = json_decode(file_get_contents(__DIR__ . '/M_JSON/App-Data.json'), true);
+        //get JSON Content from target app
+        $filePath = dirname(__DIR__, 3) . TargetManager::get_activeTarget() . '/M_JSON/App-Data.json';
+        DataHelper::ensureDir($filePath);
+        $json = json_decode(
+            file_get_contents($filePath),
+            true
+        );
+        Logger::error('EMPTY ARRAY : '. print_r($json, true));
 
         $code = "<?php\n\nnamespace App\Constant;\n\nclass f\n{\n";
         foreach ($json['f'] as $k => $v) {
@@ -21,16 +28,17 @@ class M_Sync_JSON_App_Data
         $code .= "}\n";
 
         $result = file_put_contents(M_Sync_JSON::$target_Constant_Path . '/0_Constant_APP.php', $code);
-        if ($result)
+        if ($result) {
             Logger::success("0_Constant_APP.php generated successfully.");
-        else
+        } else {
             Logger::error("Could not generate 0_Constant_APP.php.");
+        }
     }
 
-    private static function formatArray($arr): string
+    private static function formatArray(array|string $arr): string
     {
         if (!is_array($arr)) {
-            // if constant e.g. 'd::STRING', 'u::FILE' remove ' 
+            // if constant e.g. 'd::STRING', 'u::FILE' remove '
             if (is_string($arr) && preg_match('/^[a-z]+::[A-Z_]+$/', $arr)) {
                 return $arr;
             }

@@ -6,9 +6,15 @@ class M_Sync_JSON_M_Data
 {
     public static function generate(): void
     {
-        $json = json_decode(file_get_contents(__DIR__ . '/M_JSON/M-Data.json'), true);
-        $code = "<?php\n\nnamespace App\Constant;\n\n";
+        //get JSON Content from target app
+        $filePath = dirname(__DIR__, 3) . TargetManager::get_activeTarget() . '/M_JSON/M-Data.json';
+        $json = json_decode(
+            file_get_contents($filePath),
+            true
+        );
+        Logger::error('EMPTY ARRAY : '. print_r($json, true));
 
+        $code = "<?php\n\nnamespace App\Constant;\n\n";
         foreach ($json as $section => $values) {
             // script KEY e.g. "_comment": "\/M_JSON\/*.json",
             if (str_starts_with($section, '_')) {
@@ -24,10 +30,11 @@ class M_Sync_JSON_M_Data
         }
 
         $result = file_put_contents(M_Sync_JSON::$target_Constant_Path . '/0_Constant_M.php', $code);
-        if ($result)
+        if ($result) {
             Logger::success("0_Constant_M.php generated successfully.");
-        else
+        } else {
             Logger::error("Could not generate 0_Constant_M.php.");
+        }
     }
 
     private static function formatArray($arr): string

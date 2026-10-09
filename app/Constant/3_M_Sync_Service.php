@@ -31,6 +31,32 @@ class M_Sync_Service
         return self::startRun($selected_Scripts);
     }
 
+    public function startRun(array $selected_Scripts): array
+    {
+        M_Sync_Service_Status_Log::reset_Log();
+
+        $run_Record = self::get_init_run_Record($selected_Scripts);
+
+        M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
+
+        M_Sync_Service_Status_Log::write_Log("---------- START SYNCHRONIZATION RUN ----------" . PHP_EOL);
+
+        $this->launch_Worker_Process(self::PHASE_INITIAL);
+
+
+        if (Logger::$collected_message != '') {
+            M_Sync_Service_Status_Log::write_Log(Logger::$collected_message);
+            Logger::error('😩 M_Sync_Servie has collected ⚠️ error messages. Please, read above Error-info 👆 ');
+        }
+
+        return [
+            'success' => true,
+            'target' => TargetManager::get_activeTarget(),
+            'status' => 'running',
+        ];
+    }
+
+
     /**
      * 1. validate scripts
      * 2. order $validated_Scripts like $allowed_Scripts
@@ -93,27 +119,6 @@ class M_Sync_Service
         ];
 
         return $run_Record;
-    }
-
-    public function startRun(array $selected_Scripts): array
-    {
-        M_Sync_Service_Status_Log::reset_Log();
-
-        $run_Record = self::get_init_run_Record($selected_Scripts);
-
-        M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
-
-        M_Sync_Service_Status_Log::write_Log("---------- START SYNCHRONIZATION RUN ----------" . PHP_EOL);
-
-        $this->launch_Worker_Process(self::PHASE_INITIAL);
-
-        M_Sync_Service_Status_Log::write_Log(Logger::$collected_message);
-
-        return [
-            'success' => true,
-            'target' => TargetManager::get_activeTarget(),
-            'status' => 'running',
-        ];
     }
 
     /**
