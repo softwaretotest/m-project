@@ -1,0 +1,92 @@
+
+--- FILE: C:\Users\o\.vscode\react\m-project\resources\js\Components\3_M_value_Validator.js ---
+
+import { GLOBAL_METADATA } from "@/Providers/0_M_DataProvider";
+
+/**
+ * Validate imported JSON data for duplicate keys and strict convention matching.
+ *
+ * @param {Object} imported_json_data
+ * @return {Object}
+ */
+export function validate_imported_json(imported_json_data) {
+    const seen_key_set = new Set();
+    const duplicate_key_list = [];
+    const invalid_value_list = [];
+    const comment_string = imported_json_data?._comment || "";
+
+    if (comment_string.includes("App-Data.json") || imported_json_data.f) {
+        const existing_f =
+            GLOBAL_METADATA?.app_data?.f || GLOBAL_METADATA?.f || {};
+        Object.keys(existing_f).forEach((M_value_KEY) =>
+            seen_key_set.add(M_value_KEY),
+        );
+
+        const existing_s =
+            GLOBAL_METADATA?.m_data?.s || GLOBAL_METADATA?.s || {};
+        Object.keys(existing_s).forEach((M_value_KEY) =>
+            seen_key_set.add(M_value_KEY),
+        );
+
+        const category_list = ["f", "s"];
+        category_list.forEach((category_key) => {
+            if (imported_json_data?.[category_key]) {
+                Object.entries(imported_json_data[category_key]).forEach(
+                    ([M_value_KEY, field_value]) => {
+                        if (seen_key_set.has(M_value_KEY)) {
+                            duplicate_key_list.push(M_value_KEY);
+                        } else {
+                            seen_key_set.add(M_value_KEY);
+                        }
+
+                        const fieldname = field_value[0];
+                        if (fieldname !== M_value_KEY.toLowerCase()) {
+                            invalid_value_list.push(
+                                `INVALID fieldname convention ===> '${M_value_KEY}' : '${fieldname}'`,
+                            );
+                        }
+                    },
+                );
+            }
+        });
+    } else if (
+        comment_string.includes("Entities.json") ||
+        imported_json_data.entities
+    ) {
+        const existing_entities = GLOBAL_METADATA?.entities || {};
+        Object.keys(existing_entities).forEach((table_name) =>
+            seen_key_set.add(table_name),
+        );
+
+        const entity_map = imported_json_data.entities || {};
+        Object.entries(entity_map).forEach(([table_name, field_array]) => {
+            if (seen_key_set.has(table_name)) {
+                duplicate_key_list.push(`Table: ${table_name}`);
+            } else {
+                seen_key_set.add(table_name);
+            }
+
+            const field_seen_set = new Set();
+            field_array.forEach((field_item) => {
+                const fieldname = field_item[0];
+                if (field_seen_set.has(fieldname)) {
+                    duplicate_key_list.push(fieldname);
+                } else {
+                    field_seen_set.add(fieldname);
+                }
+            });
+        });
+    }
+
+    const total_errors = [...duplicate_key_list, ...invalid_value_list];
+
+    return {
+        has_error: total_errors.length > 0,
+        duplicate_list: duplicate_key_list,
+        invalid_value_list: invalid_value_list,
+        error_message:
+            total_errors.length > 0 ? total_errors.join("<br />") : null,
+    };
+}
+
+

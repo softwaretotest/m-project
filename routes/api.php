@@ -42,4 +42,5 @@ Route::prefix('uf-js')->group(function () {
 });
 
 Route::post('/m-copy-json', [M_Controller::class, 'copyJSON']);
-// Route::get('/m-get-example-json', [M_Controller::class, 'get_Example_JSON']);
+Route::get('/m-get-example-json', [M_Controller::class, 'get_Example_JSON']);
+Route::post('/m-merge-json', [M_Controller::class, 'mergeAndSaveJSON']);

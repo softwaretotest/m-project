@@ -13,7 +13,7 @@ import M_Sync from "@/Components/3_M_Sync.jsx";
 
 import { save_Target_App } from "@/Pages/3_M_TargetSelector";
 
-import { check_duplicate } from "@/Components/3_M_value_Validator";
+import { validate_imported_json } from "@/Components/3_M_value_Validator";
 
 const TABS = [
     { id: "m_data", label: "M_DATA" },
@@ -107,52 +107,53 @@ export default function M_Dashboard({ activeTarget }) {
      * @return {Promise<void>}
      */
     async function handleCopyData(Tab) {
-        try {
-            const fetch_response = await fetch(
-                `/api/m-get-example-json?type=${Tab}`,
-            );
-            if (!fetch_response.ok) {
-                show_error_Dashboard("Failed to fetch example JSON data");
-            }
-
-            const imported_json_data = await fetch_response.json();
-            const validation_result = check_duplicate(imported_json_data);
-
-            if (validation_result.has_error) {
-                show_error_Dashboard(validation_result.error_message);
-                return;
-            }
-
-            set_error_Dashboard("");
-
-            const copy_response = await fetch("/api/m-copy-json", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ type: Tab }),
-            });
-
-            if (!copy_response.ok) {
-                show_error_Dashboard("Copy execution failed");
-            }
-
-            use_M_Store.getState().set_has_M_value_Change(true);
-
-            const subTab = Tab === "app_data" ? "f" : "entities";
-            use_M_Store.getState().setActiveTab(Tab);
-            use_M_Store.getState().setActiveSubTab(subTab);
-            use_M_Store.getState().setActiveField(null);
-        } catch (error_object) {
+        const fetch_response = await fetch(
+            `/api/m-get-example-json?type=${Tab}`,
+        );
+        if (!fetch_response.ok) {
             show_error_Dashboard(
-                "Error during copy and validation process:",
-                error_object,
+                "Failed to fetch example JSON data ! Maybe wrong Route-Config ?",
             );
         }
+
+        const imported_json_data = await fetch_response.json();
+        const validation_result = validate_imported_json(imported_json_data);
+
+        if (validation_result.has_error) {
+            show_error_Dashboard(
+                `VALIDATION ERROR ON COPY - '${Tab}' <br />` +
+                    validation_result.error_message,
+            );
+            return;
+        }
+
+        set_error_Dashboard("");
+
+        const copy_response = await fetch("/api/m-merge-json", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: Tab }),
+        });
+
+        if (!copy_response.ok) {
+            show_error_Dashboard("Copy execution failed");
+        }
+
+        use_M_Store.getState().set_has_M_value_Change(true);
+
+        const subTab = Tab === "app_data" ? "f" : "entities";
+        use_M_Store.getState().setActiveTab(Tab);
+        use_M_Store.getState().setActiveSubTab(subTab);
+        use_M_Store.getState().setActiveField(null);
     }
 
     return (
         <>
             {error_Dashboard && (
-                <div className="error-text">{error_Dashboard}</div>
+                <div
+                    className="error-text"
+                    dangerouslySetInnerHTML={{ __html: error_Dashboard }} // <br /> to show newline
+                />
             )}
 
             {is_Sync_Modal_Open && (

@@ -16,6 +16,8 @@
 
 # C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\resources\js\Pages\0_M_Dashboard.jsx"
 
+# C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\resources\js\Components\3_M_value_Validator.js"
+
 param (
     [string]$Path = "resources/js/Components",
     [string]$OutputFile = "SingleSourceCode.txt"

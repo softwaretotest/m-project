@@ -18,7 +18,7 @@ class M_Controller extends Controller
      */
     private function getPath(string $key): string
     {
-        $files = $this->getAll_JSON_FilePath();
+        $files = $this->get_Target_JSON_FilePath();
         return $files[$key] ?? '';
     }
 
@@ -82,7 +82,7 @@ class M_Controller extends Controller
      * * C:\Users\o\.vscode\react\ecommerce\app\Constant\M_JSON\App-Data.json
      * * C:\Users\o\.vscode\react\ecommerce\app\Constant\M_JSON\M-Data.json
      */
-    private function getAll_JSON_FilePath(): array
+    private function get_Target_JSON_FilePath(): array
     {
         return [
             'app_data' => TargetManager::gen_path('Constant/M_JSON/App-Data.json', 'app'),
@@ -102,7 +102,7 @@ class M_Controller extends Controller
         $combinedMetadata = [];
 
         try {
-            foreach ($this->getAll_JSON_FilePath() as $key => $targetPath) {
+            foreach ($this->get_Target_JSON_FilePath() as $key => $targetPath) {
                 $this->ensureTargetFile($key, $targetPath);
                 $combinedMetadata[$key] = $this->readJsonFile($targetPath);
             }
@@ -153,7 +153,7 @@ class M_Controller extends Controller
     public function copyJSON(Request $request): JsonResponse
     {
         $type = $request->input('type'); // get 'app_data' or 'entities'
-        $targetPaths = $this->getAll_JSON_FilePath();
+        $targetPaths = $this->get_Target_JSON_FilePath();
 
         if (!isset($targetPaths[$type])) {
             return response()->json(['error' => 'Invalid type : '.$type], 400);
@@ -179,7 +179,7 @@ class M_Controller extends Controller
      * Retrieve example JSON content for frontend validation prior to copying.
      *
      * @param Request $request
-     * @return JsonResponse
+     * @return JsonResponse e.g.
      *   {
      *     _comment: String,
      *     f: Array,
@@ -190,7 +190,7 @@ class M_Controller extends Controller
     public function get_Example_JSON(Request $request): JsonResponse
     {
         $request_type = $request->input('type');
-        $target_path_map = $this->getAll_JSON_FilePath();
+        $target_path_map = $this->get_Target_JSON_FilePath();
 
         if (!isset($target_path_map[$request_type])) {
             return response()->json(['error' => 'Invalid type specified: ' . $request_type], 400);
@@ -204,13 +204,63 @@ class M_Controller extends Controller
         }
 
         $raw_file_content = file_get_contents($source_file_path);
-        $parsed_json_payload = json_decode($raw_file_content, true);
+        $parsed_json_payload = json_decode($raw_file_content, true);    // remove same key , keep the latest duplicated - item[key]
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             return response()->json(['error' => 'Invalid JSON structure in example file'], 500);
         }
-
+        // Log::info("get_Example_JSON - return : ".print_r($parsed_json_payload, true));
         return response()->json($parsed_json_payload);
+    }
+
+    /**
+     * Safely merge example JSON data into the existing target JSON file without overwriting.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function mergeAndSaveJSON(Request $request): JsonResponse
+    {
+        $type = $request->input('type');
+        $targetPaths = $this->get_Target_JSON_FilePath();
+
+        if (!isset($targetPaths[$type])) {
+            return response()->json(['error' => 'Invalid type specified'], 400);
+        }
+
+        $targetPath = $targetPaths[$type];
+        $exampleFileName = $type === 'app_data' ? 'Example_App-Data.json' : 'Example_Entities.json';
+        $sourcePath = base_path("app/Constant/M_JSON_Example/{$exampleFileName}");
+
+        if (!file_exists($sourcePath)) {
+            return response()->json(['error' => 'Example file not found'], 404);
+        }
+
+        $existingData = [];
+        if (file_exists($targetPath)) {
+            $existingData = json_decode(file_get_contents($targetPath), true) ?? [];
+        }
+
+        $sourceData = json_decode(file_get_contents($sourcePath), true) ?? [];
+
+        if ($type === 'app_data') {
+            $existingData['f'] = array_merge($existingData['f'] ?? [], $sourceData['f'] ?? []);
+            $existingData['s'] = array_merge($existingData['s'] ?? [], $sourceData['s'] ?? []);
+        } else {
+            foreach ($sourceData['entities'] ?? [] as $tableName => $fields) {
+                if (!isset($existingData['entities'][$tableName])) {
+                    $existingData['entities'][$tableName] = [];
+                }
+                $existingData['entities'][$tableName] = array_values(array_unique(
+                    array_merge($existingData['entities'][$tableName], $fields)
+                ));
+            }
+        }
+
+        DataHelper::ensureDir($targetPath);
+        file_put_contents($targetPath, json_encode($existingData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+        return response()->json(['success' => true]);
     }
 
 }
