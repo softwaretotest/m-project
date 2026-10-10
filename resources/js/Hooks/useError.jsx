@@ -1,10 +1,10 @@
 // \resources\js\Hooks\useError.js
-import { useState } from "react";
-
 import { use_M_Store } from "@/Stores/0_M_Store";
 
-import { rename_M_value_KEY_and_fieldname } from "@/Services/0_M_value_Service";
-
+/**
+ * this component is for showing error of Fieldname to add or update
+ * @returns
+ */
 export function useError() {
     const { Error_FIELDNAME, set_Error_FIELDNAME } = use_M_Store();
     const set_error = use_M_Store.getState().set_error;
@@ -59,11 +59,6 @@ export function useError() {
             return;
         }
 
-        // code for useError_v2.js
-        // if (typeof set_fieldname === "function" && options.ADD) {
-        // set_fieldname(FIELDNAME);
-        // }
-
         const M_value = use_M_Store.getState().M_value;
         const activeField = use_M_Store.getState().activeField;
 
@@ -80,14 +75,6 @@ export function useError() {
             set_error("Fieldname cannot be empty.");
             return;
         }
-
-        // code for useError_v2.js
-        // if (typeof set_fieldname === "function" && options.UPDATE) {
-        //     set_fieldname(FIELDNAME);
-        //     const OLD_KEY = activeField.toUpperCase();
-        //     const NEW_KEY = FIELDNAME;
-        //     await rename_M_value_KEY_and_fieldname(M_value, OLD_KEY, NEW_KEY);
-        // }
 
         set_Error_FIELDNAME("");
 

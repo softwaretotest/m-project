@@ -102,7 +102,7 @@ export default function SubTab({ data }) {
          */
         set_can_render_TabContent(true);
         set_FIELDNAME_to_add("");
-    }, [activeSubTab]); // Reason for Dependency : user klicks tab , data changes
+    }, [activeSubTab, data]); // Reason for Dependency : user klicks tab , data changes
 
     /**
      * * call when user klicks change tab , to set default subTab

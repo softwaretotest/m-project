@@ -46,6 +46,8 @@ export const use_M_Store = create((set) => ({
 
     debug_Error_FIELDNAME: false,
 
+    debug_set_error: true,
+
     debug_D_Params_State: false,
 
     debug_is_auto_uncheck_FOREIGN_by_CU_CD: false,
@@ -172,6 +174,16 @@ export const use_M_Store = create((set) => ({
                 set({ Error_FIELDNAME: "" });
             }, clear_in_ms);
         }
+        set((state) => {
+            if (state.debug || state.debug_set_error) {
+                console.log(
+                    `[M_STORE_DEBUG] set_error - error_text :`,
+                    error_text,
+                );
+                console.log("------------------------------------");
+            }
+            return { has_M_value_Change: has_M_value_Change };
+        });
     },
 
     has_M_value_Change: false,

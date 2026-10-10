@@ -6,11 +6,15 @@
 
 # C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\resources\js\Components\3_M_Sync.jsx"
 
-    # C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\resources\js\Components\0_M_Input_Group_JS.jsx"
+# C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\resources\js\Components\0_M_Input_Group_JS.jsx"
 
 # C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\app\Constant\3_M_Sync_Service_EXE_Worker.php"
 
 # C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\app\Constant\3_Logger.php"
+
+# C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\Convention.md"
+
+# C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\resources\js\Pages\0_M_Dashboard.jsx"
 
 param (
     [string]$Path = "resources/js/Components",

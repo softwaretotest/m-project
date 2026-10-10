@@ -18,7 +18,7 @@ class M_Controller extends Controller
      */
     private function getPath(string $key): string
     {
-        $files = $this->getAll_JSON_FilesPath();
+        $files = $this->getAll_JSON_FilePath();
         return $files[$key] ?? '';
     }
 
@@ -82,7 +82,7 @@ class M_Controller extends Controller
      * * C:\Users\o\.vscode\react\ecommerce\app\Constant\M_JSON\App-Data.json
      * * C:\Users\o\.vscode\react\ecommerce\app\Constant\M_JSON\M-Data.json
      */
-    private function getAll_JSON_FilesPath(): array
+    private function getAll_JSON_FilePath(): array
     {
         return [
             'app_data' => TargetManager::gen_path('Constant/M_JSON/App-Data.json', 'app'),
@@ -102,7 +102,7 @@ class M_Controller extends Controller
         $combinedMetadata = [];
 
         try {
-            foreach ($this->getAll_JSON_FilesPath() as $key => $targetPath) {
+            foreach ($this->getAll_JSON_FilePath() as $key => $targetPath) {
                 $this->ensureTargetFile($key, $targetPath);
                 $combinedMetadata[$key] = $this->readJsonFile($targetPath);
             }
@@ -148,6 +148,69 @@ class M_Controller extends Controller
         }
 
         return $jsonData ?? [];
+    }
+
+    public function copyJSON(Request $request): JsonResponse
+    {
+        $type = $request->input('type'); // get 'app_data' or 'entities'
+        $targetPaths = $this->getAll_JSON_FilePath();
+
+        if (!isset($targetPaths[$type])) {
+            return response()->json(['error' => 'Invalid type : '.$type], 400);
+        }
+
+        $targetPath = $targetPaths[$type];
+
+        // define name of JSON
+        $exampleFileName = $type === 'app_data' ? 'Example_App-Data.json' : 'Example_Entities.json';
+        $sourcePath = base_path("app/Constant/M_JSON_Example/{$exampleFileName}");
+
+        if (!file_exists($sourcePath)) {
+            return response()->json(['error' => 'Example file not found : '.$sourcePath], 404);
+        }
+
+        DataHelper::ensureDir($targetPath);
+        copy($sourcePath, $targetPath);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Retrieve example JSON content for frontend validation prior to copying.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     *   {
+     *     _comment: String,
+     *     f: Array,
+     *     s: Array,
+     *     entities: Array
+     *   }
+     */
+    public function get_Example_JSON(Request $request): JsonResponse
+    {
+        $request_type = $request->input('type');
+        $target_path_map = $this->getAll_JSON_FilePath();
+
+        if (!isset($target_path_map[$request_type])) {
+            return response()->json(['error' => 'Invalid type specified: ' . $request_type], 400);
+        }
+
+        $example_file_name = $request_type === 'app_data' ? 'Example_App-Data.json' : 'Example_Entities.json';
+        $source_file_path = base_path("app/Constant/M_JSON_Example/{$example_file_name}");
+
+        if (!file_exists($source_file_path)) {
+            return response()->json(['error' => 'Example file not found: ' . $source_file_path], 404);
+        }
+
+        $raw_file_content = file_get_contents($source_file_path);
+        $parsed_json_payload = json_decode($raw_file_content, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return response()->json(['error' => 'Invalid JSON structure in example file'], 500);
+        }
+
+        return response()->json($parsed_json_payload);
     }
 
 }

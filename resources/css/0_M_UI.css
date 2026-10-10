@@ -174,8 +174,13 @@ h1.dashboard-header {
 }
 
 @keyframes tab-empty-blink {
-    0%, 100% { opacity: 1; }
-    50%      { opacity: 0.45; }
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.45;
+    }
 }
 
 .input-engine-container {
@@ -455,9 +460,11 @@ h1.dashboard-header {
 
     /* make to square */
     aspect-ratio: 1 / 1;
+    width: 55px;
 
     font-weight: bold;
     border-radius: 3px;
+    border-width: 3px;
     background-color: rgb(45, 202, 45);
 
     align-items: center;
@@ -918,7 +925,7 @@ body.overflow-hidden {
 .Input_Group_JS-header {
     display: flex;
     align-items: center;
-    gap: 6px; /* ใช้ gap คุมระยะห่างแทน space-between เพื่อให้อยู่ชิดกันพอดี */
+    gap: 6px;
     margin: 0px;
     padding: 3px;
     background: #def761;
@@ -1035,3 +1042,14 @@ body.overflow-hidden {
     box-sizing: border-box;
 }
 
+/* --- btn-copy-* --- */
+.btn-copy-app span,
+.btn-copy-entities span {
+    font-size: 9px;
+}
+.btn-copy-app {
+    background-color: #6dfefb;
+}
+.btn-copy-entities {
+    background-color: #fea7ff;
+}

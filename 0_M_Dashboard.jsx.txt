@@ -1,3 +1,6 @@
+
+--- FILE: C:\Users\o\.vscode\react\m-project\resources\js\Pages\0_M_Dashboard.jsx ---
+
 //resources/js/Pages/0_M_Dashboard.jsx
 
 import { useState, useEffect } from "react";
@@ -14,6 +17,7 @@ import M_Sync from "@/Components/3_M_Sync.jsx";
 import { save_Target_App } from "@/Pages/3_M_TargetSelector";
 
 import { check_duplicate } from "@/Components/3_M_value_Validator";
+import { useError } from "@/Hooks/useError";
 
 const TABS = [
     { id: "m_data", label: "M_DATA" },
@@ -49,7 +53,6 @@ export default function M_Dashboard({ activeTarget }) {
 
     // ---- all Hooks must be always early return ----
     const [error_Dashboard, set_error_Dashboard] = useState("");
-
     const [is_Sync_Modal_Open, set_is_Sync_Modal_Open] = useState(false);
 
     const active_Target_App = use_M_Store((state) => state.active_Target_App);
@@ -78,74 +81,26 @@ export default function M_Dashboard({ activeTarget }) {
         store.set_FIELDNAME_to_add("");
     }
 
-    /**
-     * * we need to reset before show error
-     * * to show the blink effect
-     * * Timeout : reset 50 and show 100 ,
-     * * because React re-render immediatly
-     * * so we need delay to show error again
-     * @param {*} error_text
-     */
-    function show_error_Dashboard(error_text) {
-        setTimeout(() => {
-            set_error_Dashboard("");
-        }, 50);
-        setTimeout(() => {
-            set_error_Dashboard(error_text);
-        }, 100);
-        throw new Error(error_text);
-    }
-
-    /**
-     * * DESCRIPTON : Handle example data copying workflow with frontend duplication validation.
-     * * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-     * * get example json from backend for validate
-     * * tell backend to copy json , but validate duplication first
-     * * tell DataProvider to reload JSON
-     * * force SubTab to restart to re-render Component immediatly
-     * @param {String} Tab - The target type identifier ('app_data' or 'entities').
-     * @return {Promise<void>}
-     */
-    async function handleCopyData(Tab) {
+    async function handleCopyData(type) {
         try {
-            const fetch_response = await fetch(
-                `/api/m-get-example-json?type=${Tab}`,
-            );
-            if (!fetch_response.ok) {
-                show_error_Dashboard("Failed to fetch example JSON data");
-            }
-
-            const imported_json_data = await fetch_response.json();
-            const validation_result = check_duplicate(imported_json_data);
-
-            if (validation_result.has_error) {
-                show_error_Dashboard(validation_result.error_message);
-                return;
-            }
-
-            set_error_Dashboard("");
-
-            const copy_response = await fetch("/api/m-copy-json", {
+            const res = await fetch("/api/m-copy-json", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ type: Tab }),
+                body: JSON.stringify({ type }),
             });
 
-            if (!copy_response.ok) {
-                show_error_Dashboard("Copy execution failed");
-            }
+            if (!res.ok) throw new Error("Copy failed");
 
+            // 1. tell DataProvider to reload JSON
             use_M_Store.getState().set_has_M_value_Change(true);
 
-            const subTab = Tab === "app_data" ? "f" : "entities";
-            use_M_Store.getState().setActiveTab(Tab);
-            use_M_Store.getState().setActiveSubTab(subTab);
+            // 2. force SubTab to restart to re-render Component immediatly
+            const defaultSubTab = type === "app_data" ? "f" : "entities";
+            use_M_Store.getState().setActiveTab(type);
+            use_M_Store.getState().setActiveSubTab(defaultSubTab);
             use_M_Store.getState().setActiveField(null);
-        } catch (error_object) {
-            show_error_Dashboard(
-                "Error during copy and validation process:",
-                error_object,
-            );
+        } catch (err) {
+            console.error("Error copying example data:", err);
         }
     }
 
@@ -241,3 +196,5 @@ export default function M_Dashboard({ activeTarget }) {
         </>
     );
 }
+
+
