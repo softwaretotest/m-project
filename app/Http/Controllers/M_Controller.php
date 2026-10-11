@@ -213,12 +213,62 @@ class M_Controller extends Controller
         return response()->json($parsed_json_payload);
     }
 
+    // /**
+    //  * Safely merge example JSON data into the existing target JSON file without overwriting.
+    //  *
+    //  * @param Request $request
+    //  * @return JsonResponse
+    //  */
+    // public function mergeAndSaveJSON(Request $request): JsonResponse
+    // {
+    //     $type = $request->input('type');
+    //     $targetPaths = $this->get_Target_JSON_FilePath();
+
+    //     if (!isset($targetPaths[$type])) {
+    //         return response()->json(['error' => 'Invalid type specified'], 400);
+    //     }
+
+    //     $targetPath = $targetPaths[$type];
+    //     $exampleFileName = $type === 'app_data' ? 'Example_App-Data.json' : 'Example_Entities.json';
+    //     $sourcePath = base_path("app/Constant/M_JSON_Example/{$exampleFileName}");
+
+    //     if (!file_exists($sourcePath)) {
+    //         return response()->json(['error' => 'Example file not found'], 404);
+    //     }
+
+    //     $existingData = [];
+    //     if (file_exists($targetPath)) {
+    //         $existingData = json_decode(file_get_contents($targetPath), true) ?? [];
+    //     }
+
+    //     $sourceData = json_decode(file_get_contents($sourcePath), true) ?? [];
+
+    //     if ($type === 'app_data') {
+    //         $existingData['f'] = array_merge($existingData['f'] ?? [], $sourceData['f'] ?? []);
+    //         $existingData['s'] = array_merge($existingData['s'] ?? [], $sourceData['s'] ?? []);
+    //     } else {
+    //         foreach ($sourceData['entities'] ?? [] as $tableName => $fields) {
+    //             if (!isset($existingData['entities'][$tableName])) {
+    //                 $existingData['entities'][$tableName] = [];
+    //             }
+    //             $existingData['entities'][$tableName] = array_values(array_unique(
+    //                 array_merge($existingData['entities'][$tableName], $fields)
+    //             ));
+    //         }
+    //     }
+
+    //     DataHelper::ensureDir($targetPath);
+    //     file_put_contents($targetPath, json_encode($existingData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+    //     return response()->json(['success' => true]);
+    // }
+
     /**
-     * Safely merge example JSON data into the existing target JSON file without overwriting.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
+ * Safely merge example JSON data into the existing target JSON file without overwriting.
+ *
+ * @param Request $request
+ * @return JsonResponse
+ */
     public function mergeAndSaveJSON(Request $request): JsonResponse
     {
         $type = $request->input('type');
@@ -244,8 +294,19 @@ class M_Controller extends Controller
         $sourceData = json_decode(file_get_contents($sourcePath), true) ?? [];
 
         if ($type === 'app_data') {
-            $existingData['f'] = array_merge($existingData['f'] ?? [], $sourceData['f'] ?? []);
-            $existingData['s'] = array_merge($existingData['s'] ?? [], $sourceData['s'] ?? []);
+            // Handle only 'f' and 't' for App-Data, never touch 's'
+            $existingData['f'] = array_merge(
+                is_array($existingData['f'] ?? null) ? $existingData['f'] : [],
+                is_array($sourceData['f'] ?? null) ? $sourceData['f'] : []
+            );
+
+            $existingData['t'] = array_merge(
+                is_array($existingData['t'] ?? null) ? $existingData['t'] : [],
+                is_array($sourceData['t'] ?? null) ? $sourceData['t'] : []
+            );
+
+            // Remove 's' key if it accidentally exists
+            unset($existingData['s']);
         } else {
             foreach ($sourceData['entities'] ?? [] as $tableName => $fields) {
                 if (!isset($existingData['entities'][$tableName])) {

@@ -33,7 +33,7 @@ class M_Sync_JSON
         Logger::finish();
     }
 
-    private static function run_JSON_to_PHP($sourceFile, $jsonFile): void
+    private static function run_JSON_to_PHP(string $sourceFile, string $jsonFile): void
     {
         echo "\n----------------------------------------------------------------------\n";
         echo "[4] Processing JSON to PHP generation for {$sourceFile} using {$jsonFile}\n";
@@ -42,7 +42,7 @@ class M_Sync_JSON
         M_Sync_JSON_M_Data::generate();
     }
 
-    private static function run_JSON_to_Entities($jsonFile): void
+    private static function run_JSON_to_Entities(string $jsonFile): void
     {
         echo "\n----------------------------------------------------------------------\n";
         echo "[5] Processing Entities JSON to PHP generation using {$jsonFile}\n";

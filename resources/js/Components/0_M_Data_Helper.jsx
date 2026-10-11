@@ -5,6 +5,18 @@ import { find_NEW_D_Params_in_M_MAP } from "@/Components/0_M_D_Params_Service";
 import { GLOBAL_METADATA } from "@/Providers/0_M_DataProvider";
 
 /**
+ * check if M_value_KEY a KEY of an item in GLOBAL_METADATA.m_data.s{}
+ * @param {*} M_value_KEY
+ * @returns
+ */
+export function check_SpecialField(M_value_KEY) {
+    // Check if the given M_value_KEY exists as a key in GLOBAL_METADATA.m_data.s
+    const m_data_s = GLOBAL_METADATA.m_data.s;
+    const is_SpecialFiel = Object.keys(m_data_s).includes(M_value_KEY);
+    return is_SpecialFiel;
+}
+
+/**
  * @param {*} field_data = e.g.
  * * ['image', 'u::FILE', 'd::INTEGER',  ['cd::DEFAULT', 0] ]
  * * ['price', 'u::NUMBER', ['d::DECIMAL',10,2] ,  ['cd::DEFAULT', 0] ]

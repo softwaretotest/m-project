@@ -31,8 +31,8 @@ export const use_M_Store = create((set) => ({
 
     debug_active_Target_App: true,
     debug_activeField: false,
-    debug_activeTab: false,
-    debug_activeSubTab: false,
+    debug_activeTab: true,
+    debug_activeSubTab: true,
 
     debug_is_new_field_added: false,
 
@@ -728,6 +728,7 @@ export const use_M_Store = create((set) => ({
                 );
                 console.log("------------------------------------");
             }
+
             return { M_value: corrected_M_value };
         });
         return corrected_M_value;

@@ -1,4 +1,5 @@
 import { GLOBAL_METADATA } from "@/Providers/0_M_DataProvider";
+import { check_SpecialField } from "@/Components/0_M_Data_Helper";
 
 /**
  * Main validation function for imported JSON payload against global metadata.
@@ -9,6 +10,7 @@ import { GLOBAL_METADATA } from "@/Providers/0_M_DataProvider";
 export function validate_imported_json(imported_json_data) {
     const seen_key_set = new Set();
     const duplicate_key_list = [];
+    const duplicate_key_list_error = [];
     const invalid_value_list = [];
 
     const comment_string = imported_json_data?._comment || "";
@@ -32,6 +34,7 @@ export function validate_imported_json(imported_json_data) {
             imported_json_data,
             seen_key_set,
             duplicate_key_list,
+            duplicate_key_list_error,
             invalid_value_list,
         );
     } else if (is_entities) {
@@ -43,11 +46,11 @@ export function validate_imported_json(imported_json_data) {
         validateEntities(imported_json_data, seen_key_set, duplicate_key_list);
     }
 
-    const total_errors = [...duplicate_key_list, ...invalid_value_list];
+    const total_errors = [...duplicate_key_list_error, ...invalid_value_list];
 
     return {
         has_error: total_errors.length > 0,
-        duplicate_list: duplicate_key_list,
+        duplicate_list_error: duplicate_key_list_error,
         invalid_value_list: invalid_value_list,
         error_message:
             // add newline to show in dangerouslySetInnerHTML={{ __html: error_Dashboard }}
@@ -63,7 +66,13 @@ export function validate_imported_json(imported_json_data) {
  * @param {Array} dup_list
  * @param {Array} invalid_list
  */
-function validateAppData(imported_data, seen_set, dup_list, invalid_list) {
+function validateAppData(
+    imported_data,
+    seen_set,
+    dup_list,
+    dup_list_error,
+    invalid_list,
+) {
     const category_list = ["f", "s"];
 
     category_list.forEach((category_key) => {
@@ -73,6 +82,14 @@ function validateAppData(imported_data, seen_set, dup_list, invalid_list) {
         Object.entries(category_obj).forEach(([M_value_KEY, field_value]) => {
             if (seen_set.has(M_value_KEY)) {
                 dup_list.push(M_value_KEY);
+                const is_SpecialField = check_SpecialField(M_value_KEY);
+
+                const text_SpecialField = is_SpecialField
+                    ? "( = Special Field in M-Data )"
+                    : "";
+                dup_list_error.push(
+                    `Duplicate KEY : ${M_value_KEY} ${text_SpecialField}`,
+                );
             } else {
                 seen_set.add(M_value_KEY);
             }

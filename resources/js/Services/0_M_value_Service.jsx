@@ -29,7 +29,11 @@ import { findout_F_or_S } from "@/Providers/0_M_DataProvider";
  * * ENTITIES   ENTITIES
  */
 export const M_value_Service = {
-    update: async (new_M_value, cascade = null) => {
+    update: async (
+        new_M_value,
+        cascade = null,
+        // tab = null, subTab = null
+    ) => {
         const set_M_value = use_M_Store.getState().set_M_value;
         const set_has_M_value_Change =
             use_M_Store.getState().set_has_M_value_Change;
@@ -53,8 +57,11 @@ export const M_value_Service = {
              * * before set_has_M_value_Change (to tell JSON_Conten to get Backend data)
              * * we must get snapshot after set_M_value (corrected d:: to 2nd positon)
              */
-            const M_value = use_M_Store.getState().M_value;
-            await send_POST(corrected_M_value, cascade);
+            await send_POST(
+                corrected_M_value,
+                cascade,
+                //  tab, subTab
+            );
 
             // 2. notify use_M_Data to notify JSON_Content to update it self with Backend
             set_has_M_value_Change(true);
@@ -64,10 +71,19 @@ export const M_value_Service = {
     },
 };
 
-async function send_POST(corrected_M_value, cascade = null) {
+async function send_POST(
+    corrected_M_value,
+    cascade = null,
+    // tab = null,
+    // subTab = null,
+) {
+    // const activeTab = tab !== null ? tab : use_M_Store.getState().activeTab;
+    // const activeSubTab =
+    //     subTab !== null ? subTab : use_M_Store.getState().activeSubTab;
     const activeTab = use_M_Store.getState().activeTab;
     const activeSubTab = use_M_Store.getState().activeSubTab;
-    const response = await fetch('/api/m-value', {
+
+    const response = await fetch("/api/m-value", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -84,6 +100,42 @@ async function send_POST(corrected_M_value, cascade = null) {
 
     console.log(
         `[SERVICE] Saved ${activeTab}/${activeSubTab} successfully ✅!`,
+    );
+}
+
+/**
+ * Merge fields (f) from "copy APP_DATA" to existing f on Target App
+ * @param {} M_value_F
+ */
+export async function merge_M_value_F(
+    M_value_f_imported,
+    // tab = null,
+    // subTab = null,
+) {
+    // This now work , to be deleted
+    // // Set target tab and subTab synchronously in store
+    use_M_Store.getState().setActiveTab("app_data");
+    use_M_Store.getState().setActiveSubTab("f");
+
+    // Extract current M_value and merge with example f data directly without guards
+    const new_M_value_f = {
+        ...GLOBAL_METADATA.app_data.f,
+        ...M_value_f_imported,
+    };
+
+    // update GLOBAL_METADATA to prepare new app_data.f for
+    // M_value_Service functions :
+    //  * move_d_to_2nd_position()
+    //  * sanitize_field_data()
+    // to run find_D_Params_in_GLOBAL_METADATA without error field_data = undefined
+    GLOBAL_METADATA.app_data.f = new_M_value_f;
+
+    // Send updated M_value via service
+    await M_value_Service.update(
+        new_M_value_f,
+        // /* cascade */ null,
+        // tab,
+        // subTab,
     );
 }
 

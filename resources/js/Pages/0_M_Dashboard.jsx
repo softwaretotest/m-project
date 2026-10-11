@@ -5,7 +5,10 @@ import { useState, useEffect } from "react";
 import { use_M_Data } from "@/Providers/0_M_DataProvider";
 import { use_M_Store } from "@/Stores/0_M_Store.jsx";
 
-import { add_field_ENTITIES } from "@/Services/0_M_value_Service";
+import {
+    add_field_ENTITIES,
+    merge_M_value_F,
+} from "@/Services/0_M_value_Service";
 
 import SubTab from "@/Components/0_M_SubTab.jsx";
 
@@ -103,12 +106,12 @@ export default function M_Dashboard({ activeTarget }) {
      * * tell backend to copy json , but validate duplication first
      * * tell DataProvider to reload JSON
      * * force SubTab to restart to re-render Component immediatly
-     * @param {String} Tab - The target type identifier ('app_data' or 'entities').
+     * @param {String} tab - The target type identifier ('app_data' or 'entities').
      * @return {Promise<void>}
      */
-    async function handleCopyData(Tab) {
+    async function handleCopyData(tab) {
         const fetch_response = await fetch(
-            `/api/m-get-example-json?type=${Tab}`,
+            `/api/m-get-example-json?type=${tab}`,
         );
         if (!fetch_response.ok) {
             show_error_Dashboard(
@@ -121,7 +124,8 @@ export default function M_Dashboard({ activeTarget }) {
 
         if (validation_result.has_error) {
             show_error_Dashboard(
-                `VALIDATION ERROR ON COPY - '${Tab}' <br />` +
+                `VALIDATION ERROR ON COPY - '${tab}' <br />` +
+                    `duplicate field ___ or ___ M_value_KEY <> fielname_UPPERCASE <br />` +
                     validation_result.error_message,
             );
             return;
@@ -129,20 +133,41 @@ export default function M_Dashboard({ activeTarget }) {
 
         set_error_Dashboard("");
 
-        const copy_response = await fetch("/api/m-merge-json", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type: Tab }),
-        });
+        // console.log(
+        //     "fjdsaöjfdksjalö ==== imported_json_data = ",
+        //     imported_json_data,
+        // );
 
-        if (!copy_response.ok) {
-            show_error_Dashboard("Copy execution failed");
-        }
+        const M_value_f_imported = imported_json_data.f;
+
+        console.log(
+            "fjdsaöjfdksjalö ==== M_value_f_imported = ",
+            M_value_f_imported,
+        );
+
+        merge_M_value_F(
+            M_value_f_imported,
+            // /* tab */ "app_data",
+            // /* subTab */ "f",
+        );
+
+        /**
+         * this will be replaced M_value_Service -> by merge_M_value_f()
+         */
+        // const copy_response = await fetch("/api/m-merge-json", {
+        //     method: "POST",
+        //     headers: { "Content-Type": "application/json" },
+        //     body: JSON.stringify({ type: tab }),
+        // });
+
+        // if (!copy_response.ok) {
+        //     show_error_Dashboard("Copy execution failed");
+        // }
 
         use_M_Store.getState().set_has_M_value_Change(true);
 
-        const subTab = Tab === "app_data" ? "f" : "entities";
-        use_M_Store.getState().setActiveTab(Tab);
+        const subTab = tab === "app_data" ? "f" : "entities";
+        use_M_Store.getState().setActiveTab(tab);
         use_M_Store.getState().setActiveSubTab(subTab);
         use_M_Store.getState().setActiveField(null);
     }
