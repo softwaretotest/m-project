@@ -8,6 +8,7 @@ import { use_M_Store } from "@/Stores/0_M_Store.jsx";
 import {
     add_field_ENTITIES,
     merge_M_value_F,
+    merge_M_value_Entities,
 } from "@/Services/0_M_value_Service";
 
 import SubTab from "@/Components/0_M_SubTab.jsx";
@@ -133,39 +134,17 @@ export default function M_Dashboard({ activeTarget }) {
 
         set_error_Dashboard("");
 
-        // console.log(
-        //     "fjdsaöjfdksjalö ==== imported_json_data = ",
-        //     imported_json_data,
-        // );
+        if (imported_json_data.f) {
+            const M_value_f_imported = imported_json_data.f;
+            merge_M_value_F(M_value_f_imported);
+        }
 
-        const M_value_f_imported = imported_json_data.f;
+        if (imported_json_data.entities) {
+            const M_value_Entities_imported = imported_json_data.entities;
+            merge_M_value_Entities(M_value_Entities_imported);
+        }
 
-        console.log(
-            "fjdsaöjfdksjalö ==== M_value_f_imported = ",
-            M_value_f_imported,
-        );
-
-        merge_M_value_F(
-            M_value_f_imported,
-            // /* tab */ "app_data",
-            // /* subTab */ "f",
-        );
-
-        /**
-         * this will be replaced M_value_Service -> by merge_M_value_f()
-         */
-        // const copy_response = await fetch("/api/m-merge-json", {
-        //     method: "POST",
-        //     headers: { "Content-Type": "application/json" },
-        //     body: JSON.stringify({ type: tab }),
-        // });
-
-        // if (!copy_response.ok) {
-        //     show_error_Dashboard("Copy execution failed");
-        // }
-
-        use_M_Store.getState().set_has_M_value_Change(true);
-
+        // change tab and subTab after import success
         const subTab = tab === "app_data" ? "f" : "entities";
         use_M_Store.getState().setActiveTab(tab);
         use_M_Store.getState().setActiveSubTab(subTab);

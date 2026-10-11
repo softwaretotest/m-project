@@ -43,5 +43,10 @@
         "SHOP_ID": ["shop_id", "cd::FOREIGN"],
         "USER_ID": ["user_id", "cd::FOREIGN"]
     },
-    "t": {}
+    "t": {
+        "USERS": "users",
+        "SHOPS": "shops",
+        "PRODUCTS": "products",
+        "ORDERS": "orders"
+    }
 }

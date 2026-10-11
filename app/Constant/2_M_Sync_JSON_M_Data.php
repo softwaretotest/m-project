@@ -7,12 +7,18 @@ class M_Sync_JSON_M_Data
     public static function generate(): void
     {
         //get JSON Content from target app
-        $filePath = dirname(__DIR__, 3) . TargetManager::get_activeTarget() . '/M_JSON/M-Data.json';
-        $json = json_decode(
-            file_get_contents($filePath),
-            true
-        );
-        Logger::error('EMPTY ARRAY : '. print_r($json, true));
+        $filePath = dirname(__DIR__, 3) .'/'. TargetManager::get_activeTarget() . '/app/Constant/M_JSON/M-Data.json';
+        DataHelper::ensureDir($filePath);
+
+        $content = file_get_contents($filePath);
+        if (false === $content) {
+            Logger::error("Could not get content of file : ".$filePath);
+        }
+
+        $json = json_decode($content, true);
+        if (false === $json || null === $json) {
+            Logger::error('EMPTY ARRAY : '. print_r($json, true));
+        }
 
         $code = "<?php\n\nnamespace App\Constant;\n\n";
         foreach ($json as $section => $values) {

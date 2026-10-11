@@ -29,11 +29,7 @@ import { findout_F_or_S } from "@/Providers/0_M_DataProvider";
  * * ENTITIES   ENTITIES
  */
 export const M_value_Service = {
-    update: async (
-        new_M_value,
-        cascade = null,
-        // tab = null, subTab = null
-    ) => {
+    update: async (new_M_value, cascade = null, tab = null, subTab = null) => {
         const set_M_value = use_M_Store.getState().set_M_value;
         const set_has_M_value_Change =
             use_M_Store.getState().set_has_M_value_Change;
@@ -57,11 +53,7 @@ export const M_value_Service = {
              * * before set_has_M_value_Change (to tell JSON_Conten to get Backend data)
              * * we must get snapshot after set_M_value (corrected d:: to 2nd positon)
              */
-            await send_POST(
-                corrected_M_value,
-                cascade,
-                //  tab, subTab
-            );
+            await send_POST(corrected_M_value, cascade, tab, subTab);
 
             // 2. notify use_M_Data to notify JSON_Content to update it self with Backend
             set_has_M_value_Change(true);
@@ -74,14 +66,14 @@ export const M_value_Service = {
 async function send_POST(
     corrected_M_value,
     cascade = null,
-    // tab = null,
-    // subTab = null,
+    tab = null,
+    subTab = null,
 ) {
-    // const activeTab = tab !== null ? tab : use_M_Store.getState().activeTab;
-    // const activeSubTab =
-    //     subTab !== null ? subTab : use_M_Store.getState().activeSubTab;
-    const activeTab = use_M_Store.getState().activeTab;
-    const activeSubTab = use_M_Store.getState().activeSubTab;
+    const activeTab = tab !== null ? tab : use_M_Store.getState().activeTab;
+    const activeSubTab =
+        subTab !== null ? subTab : use_M_Store.getState().activeSubTab;
+    // const activeTab = use_M_Store.getState().activeTab;
+    // const activeSubTab = use_M_Store.getState().activeSubTab;
 
     const response = await fetch("/api/m-value", {
         method: "POST",
@@ -104,38 +96,86 @@ async function send_POST(
 }
 
 /**
- * Merge fields (f) from "copy APP_DATA" to existing f on Target App
- * @param {} M_value_F
+ * * Merge fields (f) from "copy APP_DATA" to existing f on Target App
+ * 1. Set target tab and subTab synchronously in store
+ * 2. prepare new_M_value_f
+ * 3. update GLOBAL_METADATA to prepare new app_data.f
+ * 4. Send updated M_value via service
+ * @param {} M_value_f_imported
  */
-export async function merge_M_value_F(
-    M_value_f_imported,
-    // tab = null,
-    // subTab = null,
-) {
-    // This now work , to be deleted
-    // // Set target tab and subTab synchronously in store
+export async function merge_M_value_F(M_value_f_imported) {
+    // 1. Set target tab and subTab synchronously in store
     use_M_Store.getState().setActiveTab("app_data");
     use_M_Store.getState().setActiveSubTab("f");
 
-    // Extract current M_value and merge with example f data directly without guards
+    // 2. prepare new_M_value_f
     const new_M_value_f = {
         ...GLOBAL_METADATA.app_data.f,
         ...M_value_f_imported,
     };
 
-    // update GLOBAL_METADATA to prepare new app_data.f for
-    // M_value_Service functions :
+    // 3. update GLOBAL_METADATA to prepare new app_data.f to show in TabContent ,
+    // using M_value_Service functions :
     //  * move_d_to_2nd_position()
     //  * sanitize_field_data()
     // to run find_D_Params_in_GLOBAL_METADATA without error field_data = undefined
     GLOBAL_METADATA.app_data.f = new_M_value_f;
 
-    // Send updated M_value via service
+    // 4. Send updated M_value via service
+    await M_value_Service.update(new_M_value_f);
+}
+
+/**
+ * * Merge entities from "copy Entities" to existing entities on Target App
+ * 1. Set target tab and subTab synchronously in store
+ * 2. prepare new_M_value_entities
+ * 3. update GLOBAL_METADATA to prepare new entities.entities to show in TabContent
+ * 4. Send updated M_value via service
+ * @param {} M_value_Entities_imported
+ */
+export async function merge_M_value_Entities(M_value_Entities_imported) {
+    // 1. Set target tab and subTab synchronously in store
+    use_M_Store.getState().setActiveTab("entities");
+    use_M_Store.getState().setActiveSubTab("entities");
+
+    // 2. prepare new_M_value_f
+    const new_M_value_entities = {
+        ...GLOBAL_METADATA.entities.entities,
+        ...M_value_Entities_imported,
+    };
+
+    // 3. update GLOBAL_METADATA to prepare new entities.entities to show in TabContent
+    GLOBAL_METADATA.entities.entities = M_value_Entities_imported;
+
+    // 4. Send updated M_value via service
+    await M_value_Service.update(new_M_value_entities);
+}
+/**
+ * * Merge entities T by pushing button "copy Entities"
+ * 1. prepare new_M_value_t
+ * 2. Send updated M_value via service
+ * @param {} M_value_Entities_imported
+ */
+export async function merge_M_value_App_Data_T(new_tablename_list) {
+    // 1. prepare new_M_value_t
+    const M_value_t_imported = new_tablename_list.reduce((acc, item) => {
+        acc[item.key] = item.value;
+        return acc;
+    }, {});
+
+    const new_M_value_t = {
+        ...GLOBAL_METADATA.app_data.t,
+        ...M_value_t_imported,
+    };
+
+    // 2. Send updated M_value via service / param tab and subTab = update without changing tab
+    // We have to drill params to send_Post() ,
+    // because some where during this function , tab and stubTab changed to entities
     await M_value_Service.update(
-        new_M_value_f,
-        // /* cascade */ null,
-        // tab,
-        // subTab,
+        new_M_value_t,
+        /* cascade */ null,
+        /* tab */ "app_data",
+        /* subTab */ "t",
     );
 }
 

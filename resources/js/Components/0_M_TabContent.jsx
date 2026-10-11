@@ -24,7 +24,6 @@ export default function TabContent() {
     const { FIELDNAME_to_add, set_FIELDNAME_to_add } = use_M_Store();
 
     const M_value = use_M_Store((state) => state.M_value);
-    // const M_value = use_M_Store.getState().M_value;
     const activeTab = use_M_Store((state) => state.activeTab);
     const activeSubTab = use_M_Store((state) => state.activeSubTab);
     const is_ENTITIES = activeTab === "entities" && activeSubTab === "entities";

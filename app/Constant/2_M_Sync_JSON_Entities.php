@@ -6,14 +6,16 @@ class M_Sync_JSON_Entities
 {
     public static function generate(): void
     {
-        $jsonFilePath = dirname(__DIR__, 3) . '/' . TargetManager::get_activeTarget() . '/app/Constant/M_JSON/Entities.json';
+        $jsonFilePath = dirname(__DIR__, 3) .'/'. TargetManager::get_activeTarget() . '/app/Constant/M_JSON/Entities.json';
 
         DataHelper::ensureDir($jsonFilePath);
         $Entities_json_Source = __DIR__ . '/Stub/Entities.json';
 
         if (!file_exists($jsonFilePath)) {
             $result = copy($Entities_json_Source, $jsonFilePath);
-            if ($result === false) Logger::error("Could not copy file : $jsonFilePath \n");
+            if ($result === false) {
+                Logger::error("Could not copy file : $jsonFilePath \n");
+            }
         }
 
         $json = json_decode(file_get_contents($jsonFilePath), true);
@@ -43,12 +45,13 @@ class M_Sync_JSON_Entities
             $code .= "    }\n";
             $code .= "}\n";
 
-            // save Entity 
+            // save Entity
             $result = file_put_contents(M_Sync_JSON::$target_Constant_Path . '/' . $fileName, $code);
-            if ($result)
+            if ($result) {
                 Logger::success("{$fileName} generated successfully.");
-            else
+            } else {
                 Logger::error("Could not generate : {$fileName}");
+            }
         }
     }
 }

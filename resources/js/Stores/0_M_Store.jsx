@@ -13,7 +13,7 @@ import { M_value_Service } from "@/Services/0_M_value_Service";
 
 export const use_M_Store = create((set) => ({
     debug: false,
-    debug_M_value: true,
+    debug_M_value: false,
 
     debug_selected_F_S: false,
 
@@ -29,10 +29,10 @@ export const use_M_Store = create((set) => ({
     debug_checked_CU: false,
     debug_checked_CD: false,
 
-    debug_active_Target_App: true,
+    debug_active_Target_App: false,
     debug_activeField: false,
-    debug_activeTab: true,
-    debug_activeSubTab: true,
+    debug_activeTab: false,
+    debug_activeSubTab: false,
 
     debug_is_new_field_added: false,
 
@@ -46,7 +46,7 @@ export const use_M_Store = create((set) => ({
 
     debug_Error_FIELDNAME: false,
 
-    debug_set_error: true,
+    debug_set_error: false,
 
     debug_D_Params_State: false,
 
