@@ -17,6 +17,11 @@ export function is_DATA_simple() {
     );
 }
 
+export function is_T_tablename() {
+    const { activeTab, activeSubTab } = use_M_Store.getState();
+    return activeTab === "app_data" && activeSubTab === "t";
+}
+
 /**
  * check if M_value_KEY a KEY of an item in GLOBAL_METADATA.m_data.s{}
  * @param {*} M_value_KEY

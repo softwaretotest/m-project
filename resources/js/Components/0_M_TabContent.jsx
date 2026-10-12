@@ -17,6 +17,7 @@ import EntityField from "@/Components/0_M_EntityField";
 import {
     set_selected_D_U_UF_FOREIGN,
     is_DATA_simple,
+    is_T_tablename,
 } from "@/Components/0_M_Data_Helper";
 import { Render_fieldname_input } from "@/Components/0_M_Input_Group.jsx";
 
@@ -65,66 +66,6 @@ export default function TabContent() {
             set_selected_F_S_by_M_value_T(M_value);
         }
     }, [activeSubTab]); // set only when user click SubTab = "entities"
-
-    function render_TabContent_DOM(fieldname, field_data) {
-        return (
-            <div
-                key={fieldname}
-                ref={(DOM_Node) => (scrollRefs.current[fieldname] = DOM_Node)}
-                className={`form-subtab-content-row ${activeField === fieldname ? "is-focused" : ""}`}
-                onClick={() => {
-                    // fieldname = null , when field deleted
-                    if (fieldname) setActiveField(fieldname);
-                }}
-                // for update fielname , user must select a field first
-                disabled={!activeField}
-            >
-                {["d", "u", "uf", "cd", "cu", "cud", "t"].includes(
-                    activeSubTab,
-                ) && (
-                    <div className="field-header-container">
-                        <Render_fieldname_input
-                            fieldname={fieldname}
-                            className="M_value_KEY"
-                        />
-
-                        <span className="field-separator-colon">:</span>
-
-                        <Render_fieldname_input
-                            fieldname={fieldname}
-                            className="fieldname"
-                        />
-
-                        <button
-                            className="delete-button"
-                            onClick={() => {
-                                delete_field(fieldname);
-                                set_is_Editing(false);
-                            }}
-                        >
-                            DELETE
-                        </button>
-                    </div>
-                )}
-
-                {activeSubTab === "s" && Array.isArray(field_data) && (
-                    <SpecialField field_data={field_data} />
-                )}
-                {activeSubTab === "f" && Array.isArray(field_data) && (
-                    <Field field_data={field_data} />
-                )}
-                {/* {activeSubTab === "t" && (
-                    <input type="text" className="fieldname" defaultValue={field_data} />
-                )} */}
-                {activeSubTab === "entities" && (
-                    <EntityField
-                        f_s_Class_Array={field_data}
-                        TABLENAME={fieldname.toUpperCase()}
-                    />
-                )}
-            </div>
-        );
-    }
 
     /**
      * * get new fieldname from UI
@@ -177,12 +118,10 @@ export default function TabContent() {
         const trimmed_name = raw_name.trim();
         if (!trimmed_name) return;
 
-        await set_NEW_added_fieldname(trimmed_name.toLowerCase());
+        set_NEW_added_fieldname(trimmed_name.toLowerCase());
 
-        // เปลี่ยนจาก Array Complex เป็น String ธรรมดา
         const new_field_data = trimmed_name.toLowerCase();
 
-        // Key ต้องเป็น UPPERCASE ตาม Convention ของคุณ
         const M_value_KEY = trimmed_name.toUpperCase();
 
         const new_M_value = {
@@ -199,11 +138,10 @@ export default function TabContent() {
         if (input_box_fieldname) input_box_fieldname.value = "";
         set_FIELDNAME_to_add("");
 
-        // ไม่ต้องเรียก set_selected_D_U_UF_FOREIGN เพราะ DATA_simple ไม่มีฟิลด์พวกนี้
+        // no need to call set_selected_D_U_UF_FOREIGN , cause DATA_simple has no such fields
     }
 
     function add_field() {
-        console.log("[2] ??????? --- TabContent - add_field -- CALLED !!! ");
         if (
             (activeTab === "app_data" && activeSubTab === "f") ||
             (activeTab === "m_data" && activeSubTab === "s")
@@ -213,7 +151,11 @@ export default function TabContent() {
         if (is_ENTITIES) {
             add_field_ENTITIES();
         }
+
         if (is_DATA_simple()) {
+            //guard for Class t (Tablename) , on subTab t prevent ADD
+            if (is_T_tablename()) return;
+
             add_field_DATA_simple();
         }
     }
@@ -228,36 +170,104 @@ export default function TabContent() {
         }
     }, [is_Editing]);
 
+    const TabContent_Header = (
+        <div className="tab-content-header">
+            <label className="tch-label">activeSubTab = {activeSubTab}</label>
+
+            {false === is_T_tablename() && (
+                <>
+                    <input
+                        type="text"
+                        className={`new_field_name ${FIELDNAME_to_add ? "justify-items-center" : ""}`}
+                        placeholder={
+                            is_ENTITIES ? "new table name" : "new field name"
+                        }
+                        value={FIELDNAME_to_add}
+                        onFocus={() => set_FIELDNAME_to_add("")}
+                        onChange={(event) => handle_Fieldname_Change(event)}
+                    />
+
+                    <button
+                        className="dashboard-header-button"
+                        onClick={() => {
+                            add_field();
+                        }}
+                        //no continue, if no data , or data invalide
+                        disabled={!FIELDNAME_to_add}
+                    >
+                        ADD FIELD
+                    </button>
+                </>
+            )}
+        </div>
+    );
+
+    function render_TabContent_DOM(fieldname, field_data) {
+        return (
+            <div
+                key={fieldname}
+                ref={(DOM_Node) => (scrollRefs.current[fieldname] = DOM_Node)}
+                className={`form-subtab-content-row ${activeField === fieldname ? "is-focused" : ""}`}
+                onClick={() => {
+                    // fieldname = null , when field deleted
+                    if (fieldname) setActiveField(fieldname);
+                }}
+                // for update fielname , user must select a field first
+                disabled={!activeField}
+            >
+                {["d", "u", "uf", "cd", "cu", "cud", "t"].includes(
+                    activeSubTab,
+                ) && (
+                    <div className="field-header-container">
+                        <Render_fieldname_input
+                            fieldname={fieldname}
+                            className="M_value_KEY"
+                        />
+
+                        <span className="field-separator-colon">:</span>
+
+                        <Render_fieldname_input
+                            fieldname={fieldname}
+                            className="fieldname"
+                        />
+
+                        <button
+                            className="delete-button"
+                            onClick={() => {
+                                //guard for Class t (Tablename) , on subTab t prevent ADD
+                                if (is_T_tablename()) return;
+
+                                delete_field(fieldname);
+                                set_is_Editing(false);
+                            }}
+                            disabled={is_T_tablename()}
+                        >
+                            DELETE
+                        </button>
+                    </div>
+                )}
+
+                {activeSubTab === "s" && Array.isArray(field_data) && (
+                    <SpecialField field_data={field_data} />
+                )}
+                {activeSubTab === "f" && Array.isArray(field_data) && (
+                    <Field field_data={field_data} />
+                )}
+                {activeSubTab === "entities" && (
+                    <EntityField
+                        f_s_Class_Array={field_data}
+                        TABLENAME={fieldname.toUpperCase()}
+                    />
+                )}
+            </div>
+        );
+    }
+
     return (
         <>
             {Error_FIELDNAME}
 
-            <div className="tab-content-header">
-                <label className="tch-label">
-                    activeSubTab = {activeSubTab}
-                </label>
-                <input
-                    type="text"
-                    className={`new_field_name ${FIELDNAME_to_add ? "justify-items-center" : ""}`}
-                    placeholder={
-                        is_ENTITIES ? "new table name" : "new field name"
-                    }
-                    value={FIELDNAME_to_add}
-                    onFocus={() => set_FIELDNAME_to_add("")}
-                    onChange={(event) => handle_Fieldname_Change(event)}
-                />
-
-                <button
-                    className="dashboard-header-button"
-                    onClick={() => {
-                        add_field();
-                    }}
-                    //no continue, if no data , or data invalide
-                    disabled={!FIELDNAME_to_add}
-                >
-                    ADD FIELD
-                </button>
-            </div>
+            {TabContent_Header}
 
             <div
                 className={`input-engine-container ${use_M_Store.getState().is_Editing ? "lock-scroll" : ""}`}

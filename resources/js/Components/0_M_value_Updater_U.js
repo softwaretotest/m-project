@@ -20,7 +20,7 @@ import { use_M_Store } from "@/Stores/0_M_Store";
  */
 export function prepare_new_M_value_for_Update_U(U_NAME, old_M_value) {
     const activeField = use_M_Store.getState().activeField;
-    const debug = true;
+    const debug = false;
     if (debug)
         console.log(
             " UUUU-Class  0. - prepare_new_M_value_for_Update_U - U_NAME = ",

@@ -4,6 +4,7 @@ import { use_M_Store } from "@/Stores/0_M_Store.jsx";
 import {
     change_fieldname_in_field_data,
     is_DATA_simple,
+    is_T_tablename,
 } from "@/Components/0_M_Data_Helper";
 import { GLOBAL_METADATA } from "@/Providers/0_M_DataProvider";
 import { findout_F_or_S } from "@/Providers/0_M_DataProvider";
@@ -32,7 +33,7 @@ import { findout_F_or_S } from "@/Providers/0_M_DataProvider";
  * * ENTITIES   ENTITIES
  */
 export const M_value_Service = {
-    update: async (new_M_value, cascade = null, tab = null, subTab = null) => {
+    update: async (new_M_value, cascade = null) => {
         const set_M_value = use_M_Store.getState().set_M_value;
         const set_has_M_value_Change =
             use_M_Store.getState().set_has_M_value_Change;
@@ -56,7 +57,7 @@ export const M_value_Service = {
              * * before set_has_M_value_Change (to tell JSON_Conten to get Backend data)
              * * we must get snapshot after set_M_value (corrected d:: to 2nd positon)
              */
-            await send_POST(corrected_M_value, cascade, tab, subTab);
+            await send_POST(corrected_M_value, cascade);
 
             // 2. notify use_M_Data to notify JSON_Content to update it self with Backend
             set_has_M_value_Change(true);
@@ -66,17 +67,9 @@ export const M_value_Service = {
     },
 };
 
-async function send_POST(
-    corrected_M_value,
-    cascade = null,
-    tab = null,
-    subTab = null,
-) {
-    const activeTab = tab !== null ? tab : use_M_Store.getState().activeTab;
-    const activeSubTab =
-        subTab !== null ? subTab : use_M_Store.getState().activeSubTab;
-    // const activeTab = use_M_Store.getState().activeTab;
-    // const activeSubTab = use_M_Store.getState().activeSubTab;
+async function send_POST(corrected_M_value, cascade = null) {
+    const activeTab = use_M_Store.getState().activeTab;
+    const activeSubTab = use_M_Store.getState().activeSubTab;
 
     const response = await fetch("/api/m-value", {
         method: "POST",
@@ -174,12 +167,11 @@ export async function merge_M_value_App_Data_T(new_tablename_list) {
     // 2. Send updated M_value via service / param tab and subTab = update without changing tab
     // We have to drill params to send_Post() ,
     // because some where during this function , tab and stubTab changed to entities
-    await M_value_Service.update(
-        new_M_value_t,
-        /* cascade */ null,
-        /* tab */ "app_data",
-        /* subTab */ "t",
-    );
+    const cascade = {
+        activeTab: "app_data",
+        activeSubTab: "t",
+    };
+    await M_value_Service.update(new_M_value_t, cascade);
 }
 
 /**
@@ -207,6 +199,9 @@ const getCookie = (name) => {
  * * and update JSON Backend
  */
 export async function delete_field(fieldname) {
+    //guard for Class t (Tablename) , on subTab t prevent DELETE
+    if (is_T_tablename()) return;
+
     const debug = false;
 
     const activeTab = use_M_Store.getState().activeTab;
@@ -474,6 +469,37 @@ export async function rename_M_value_KEY_and_fieldname(fieldname) {
     if (is_ENTITIES) {
         await update_cascade_tablename_in_app_data_t(OLD_KEY, NEW_KEY, debug);
     }
+
+    if (is_T_tablename()) {
+        await update_cascade_entities_KEY(OLD_KEY, NEW_KEY);
+    }
+}
+
+/**
+ * * CALLED after app_data.t TABLENAME changed
+ * * to update cascade table key in Entities (Entities.json)
+ */
+async function update_cascade_entities_KEY(OLD_KEY, NEW_KEY) {
+    const entities = GLOBAL_METADATA?.entities?.entities;
+    if (!entities) return;
+
+    const new_entities = {};
+
+    for (const tableKey of Object.keys(entities)) {
+        const fields = entities[tableKey];
+        if (tableKey === OLD_KEY) {
+            new_entities[NEW_KEY] = fields;
+        } else {
+            new_entities[tableKey] = fields;
+        }
+    }
+
+    const cascade = {
+        activeTab: "entities",
+        activeSubTab: "entities",
+    };
+
+    await M_value_Service.update(new_entities, cascade);
 }
 
 /**
@@ -615,18 +641,21 @@ async function update_cascade_fieldname_in_entities(OLD_KEY, NEW_KEY, debug) {
  * @param {*} TABLENAME e.g. ORDERS , PRODUCTS
  */
 export async function update_M_value_with_selected_F_S() {
+    const debug = false;
     const selected_F_S = use_M_Store.getState().selected_F_S;
     const M_value = use_M_Store.getState().M_value;
 
-    console.log(
-        "[1] !!!!!!!!!!! -- M_value_Service -- update_M_value_with_selected_F_S -- M_value = ",
-        M_value,
-    );
+    if (debug)
+        console.log(
+            "[1] !!!!!!!!!!! -- M_value_Service -- update_M_value_with_selected_F_S -- M_value = ",
+            M_value,
+        );
 
-    console.log(
-        `[2] !!!!!!!!!!! -- M_value_Service -- update_M_value_with_selected_F_S -- ALL selected_F_S = `,
-        selected_F_S,
-    );
+    if (debug)
+        console.log(
+            `[2] !!!!!!!!!!! -- M_value_Service -- update_M_value_with_selected_F_S -- ALL selected_F_S = `,
+            selected_F_S,
+        );
 
     /**
      * * Loop for updated M_value only ,
@@ -635,14 +664,16 @@ export async function update_M_value_with_selected_F_S() {
     const new_M_value = { ...M_value };
 
     for (const TABLENAME of Object.keys(selected_F_S)) {
-        console.log(
-            `[3][LOOP] !!!!!!!!!!! -- M_value_Service -- update_M_value_with_selected_F_S -- TABLENAME = `,
-            TABLENAME,
-        );
-        console.log(
-            `[4][LOOP] !!!!!!!!!!! -- M_value_Service -- update_M_value_with_selected_F_S -- Object.keys(selected_F_S) = `,
-            Object.keys(selected_F_S),
-        );
+        if (debug)
+            console.log(
+                `[3][LOOP] !!!!!!!!!!! -- M_value_Service -- update_M_value_with_selected_F_S -- TABLENAME = `,
+                TABLENAME,
+            );
+        if (debug)
+            console.log(
+                `[4][LOOP] !!!!!!!!!!! -- M_value_Service -- update_M_value_with_selected_F_S -- Object.keys(selected_F_S) = `,
+                Object.keys(selected_F_S),
+            );
 
         /**
          * update only , when TABLENAME exists in M_value
@@ -652,10 +683,11 @@ export async function update_M_value_with_selected_F_S() {
         }
     }
 
-    console.log(
-        "[5] !!!!!!!!!!! -- M_value_Service -- update_M_value_with_selected_F_S -- new_M_value = ",
-        new_M_value,
-    );
+    if (debug)
+        console.log(
+            "[5] !!!!!!!!!!! -- M_value_Service -- update_M_value_with_selected_F_S -- new_M_value = ",
+            new_M_value,
+        );
 
     await M_value_Service.update(new_M_value);
 }
@@ -754,8 +786,6 @@ export function make_M_value_by_selected_F_S() {
 export async function add_field_ENTITIES({ isUser = false } = {}) {
     const set_selected_F_S = use_M_Store.getState().set_selected_F_S;
     const setActiveField = use_M_Store.getState().setActiveField;
-    const set_NEW_added_fieldname =
-        use_M_Store.getState().set_NEW_added_fieldname;
     const set_FIELDNAME_to_add = use_M_Store.getState().set_FIELDNAME_to_add;
 
     // Case called by TabContent
@@ -792,8 +822,5 @@ export async function add_field_ENTITIES({ isUser = false } = {}) {
 
     await add_cascade_tablename_in_app_data_t(
         use_M_Store.getState().activeField,
-    );
-    console.log(
-        "[3] ??????? --- M_value_Service - add_field_ENTITIES -- CALLED !!! ",
     );
 }
