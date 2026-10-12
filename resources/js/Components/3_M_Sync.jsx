@@ -10,6 +10,7 @@ const script_Options = [
         label: "DTOs, Models, Controllers",
         log_Class: "generators",
     },
+    { id: "copy_js", label: "Formatter", log_Class: "copy-js" },
 ];
 const script_Log_Classes = Object.fromEntries(
     script_Options.map(({ id, log_Class }) => [id, log_Class]),
@@ -112,6 +113,7 @@ export default function M_Sync({ is_Sync_Modal_Open, set_is_Sync_Modal_Open }) {
         "php_to_json",
         "migration",
         "generators",
+        "copy_js",
     ]);
 
     const [run_Status, set_run_Status] = useState("idle");
@@ -250,6 +252,15 @@ export default function M_Sync({ is_Sync_Modal_Open, set_is_Sync_Modal_Open }) {
                 body: JSON.stringify({ selected_scripts: selected_Scripts }),
             });
             const response_Data = await response.json();
+
+            // catch Error message in UI
+            if (!response_Data.success) {
+                set_run_Logs(
+                    (prev) => prev + "\n[ 🚫 ERROR ] " + response_Data.message,
+                );
+                set_run_Status("failed");
+                return;
+            }
 
             if (response_Data.run) {
                 set_run_Status(response_Data.run.status);

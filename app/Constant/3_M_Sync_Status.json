@@ -5,13 +5,15 @@
         "json_to_php",
         "php_to_json",
         "migration",
-        "generators"
+        "generators",
+        "copy_js"
     ],
     "script_statuses": {
         "json_to_php": "completed",
         "php_to_json": "completed",
         "migration": "completed",
-        "generators": "completed"
+        "generators": "completed",
+        "copy_js": "completed"
     },
     "message": null
 }

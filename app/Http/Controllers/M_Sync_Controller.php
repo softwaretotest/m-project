@@ -6,6 +6,7 @@ use App\Constant\M_Sync_Service;
 use App\Constant\TargetManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class M_Sync_Controller extends Controller
 {
@@ -122,7 +123,7 @@ class M_Sync_Controller extends Controller
     {
         $validated = self::get_validated_request($request);
         $result = $this->sync_Service->startRun($validated);
-
+        Log::info(response()->json($result));
         return response()->json($result);
     }
 

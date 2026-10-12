@@ -11,6 +11,7 @@ class M_Sync_Service_EXE_Script
         M_Sync_Service::SCRIPT_PHP_TO_JSON => 'app/Constant/1_M_Sync.php',
         M_Sync_Service::SCRIPT_MIGRATION => 'app/Constant/0_Runner_run.php',
         M_Sync_Service::SCRIPT_GENERATORS => 'app/Constant/3_EntityGenerator.php',
+        M_Sync_Service::SCRIPT_COPY_JS => 'app/Constant/3_M_Sync_UI_Formater_JS.php',
     ];
 
     /**
@@ -33,9 +34,8 @@ class M_Sync_Service_EXE_Script
 
         // force change Temp Dir to storage to prevent Permission denied on C:\WINDOWS
         $temp_Dir = storage_path('app/tmp');
-        if (!is_dir($temp_Dir)) {
-            mkdir($temp_Dir, 0775, true);
-        }
+        DataHelper::ensureDir($temp_Dir);
+
         /**
          * * putenv = put (Environment Variables)
          * * determines the environment variables for the current process and its child processes.

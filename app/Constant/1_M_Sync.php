@@ -4,9 +4,9 @@ namespace App\Constant;
 
 require __DIR__ . '/../../vendor/autoload.php';
 
+use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitorAbstract;
 use PhpParser\ParserFactory;
-use PhpParser\NodeTraverser;
 
 /**
  * sync PHP to JSON
@@ -50,17 +50,17 @@ class M_Sync
 
     /**
      * AST Parsing & Traversing Mechanism (External Library: nikic/php-parser)
-     * 
-     * Concept: 
-     * We use an AST (Abstract Syntax Tree) parser to read PHP constant files as text data 
-     * without actually 'including' or executing them. 
-     * 
+     *
+     * Concept:
+     * We use an AST (Abstract Syntax Tree) parser to read PHP constant files as text data
+     * without actually 'including' or executing them.
+     *
      * How it works (Magic Flow):
      * 1. $parser->parse($code)  -> Converts PHP raw code into a tree structure (AST).
      * 2. new NodeTraverser()    -> Creates a tree-walker (the framework engine).
      * 3. addVisitor($visitor)   -> Attaches our custom node-processor class (whether you call it $visitor or $scanner).
-     * 4. traverse($ast)         -> Walks through every node in the tree. Whenever it hits 
-     *                              a target node, it automatically triggers enterNode($node) 
+     * 4. traverse($ast)         -> Walks through every node in the tree. Whenever it hits
+     *                              a target node, it automatically triggers enterNode($node)
      *                              inside our visitor class via Inversion of Control (IoC).
      * *xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
      * *$traverser->traverse($ast); // Automatically fires function enterNode($node) under the hood , if the funct. exist
@@ -99,17 +99,18 @@ class M_Sync
 
         $outputData = array_merge(["_comment" => $jsonFile], $visitor->data);
         $result = file_put_contents($jsonFile_full_path, json_encode($outputData, JSON_PRETTY_PRINT));
-        if ($result)
+        if ($result) {
             Logger::success("File has been created : {$jsonFile}");
-        else
+        } else {
             Logger::error("Could not create file : {$jsonFile}");
+        }
     }
 
     /**
-     * * Convert *Constant.php to Entities.json 
+     * * Convert *Constant.php to Entities.json
      * * using the Technic "JSON - Master Order"
      * * CASES:
-     * 1. CASE : all tables exists on PHP and JSON  
+     * 1. CASE : all tables exists on PHP and JSON
      * *    => ordered by Entities.json
      * 2. CASE : There is a new table in PHP , but not exists in JSON
      * *    => put the new table at the end of JSON
@@ -126,14 +127,14 @@ class M_Sync
      * * ------------------------------------------------
      * * JSON - Master Order :
      * * --------------------
-     * * add new order with more intelligent , 
-     * * to keep order from Entities.json if json file exists, 
+     * * add new order with more intelligent ,
+     * * to keep order from Entities.json if json file exists,
      * * and replace json table content by *Constant.php
      * * -------------------------------------------------
      * * FLOW :
      * 1. scan data from *Constant.php and keep in $php_entities
      * 2. check if old Entitites.json exist to use JSON - Master Order
-     * 3. save Entities.json , keeping Master Order done by UI 
+     * 3. save Entities.json , keeping Master Order done by UI
      */
     private static function run_Entities_to_JSON($jsonFile): void
     {
@@ -141,7 +142,9 @@ class M_Sync
 
         // 1. scan data from *Constant.php and keep in $php_entities
         foreach (glob(self::$target_Constant_Path . '/*Constant.php') as $file) {
-            if (str_contains($file, 'Entities_to_JSON')) continue;
+            if (str_contains($file, 'Entities_to_JSON')) {
+                continue;
+            }
             $code = file_get_contents($file);
             self::getData_from_M_APP_Entitiy_Constant_PHP_to_visitor($code, $visitor);
         }
@@ -162,9 +165,9 @@ class M_Sync
             foreach ($json_entities as $table_name => $fields) {
                 // Case 1 : table exists on PHP and JSON
                 if (isset($php_entities[$table_name])) {
-                    /** 
+                    /**
                      * * if table_name exists -> use JSON-order for table,
-                     * * but overwrite JSON 
+                     * * but overwrite JSON
                      * * with the table content (Fields) of *Constant.php
                      * */
                     $final_entities[$table_name] = $php_entities[$table_name];
@@ -186,21 +189,22 @@ class M_Sync
             }
         } else {
             /**
-             * * if there is no Entities.json, 
-             * * then order by app/Constant/Entities/*Constant.php  
+             * * if there is no Entities.json,
+             * * then order by app/Constant/Entities/*Constant.php
              * */
             $final_entities = $php_entities;
 
-            self::$Entities_json_not_exists = true; // for warning 
+            self::$Entities_json_not_exists = true; // for warning
         }
 
-        // 3. save Entities.json , keeping Master Order done by UI 
+        // 3. save Entities.json , keeping Master Order done by UI
         $outputData = ["_comment" => $jsonFile, "entities" => $final_entities];
         $result = file_put_contents($jsonFilePath, json_encode($outputData, JSON_PRETTY_PRINT));
-        if ($result)
+        if ($result) {
             Logger::success("File has been created : $jsonFilePath");
-        else
+        } else {
             Logger::error("Could not create file : $jsonFilePath");
+        }
     }
 }
 

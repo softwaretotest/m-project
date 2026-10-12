@@ -22,6 +22,8 @@
 
 # C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\resources\js\Services\0_M_value_Service.jsx"
 
+# C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\app\Constant\3_M_Sync_UI_Formater_JS.php"
+
 param (
     [string]$Path = "resources/js/Components",
     [string]$OutputFile = "SingleSourceCode.txt"

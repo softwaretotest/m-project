@@ -103,12 +103,14 @@ class M_Sync_Service_Status_Log
      * *           "php_to_json",
      * *           "migration",
      * *           "generators"
+     * *           "copy_js"
      * *       ],
      * *       "script_statuses": {
      * *          "json_to_php": "completed",
      * *          "php_to_json": "completed",
      * *          "migration": "completed",
      * *          "generators": "completed"
+     * *          "copy_js": "completed"
      * *      },
      * *      "message": null
      * *  }

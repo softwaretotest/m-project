@@ -15,11 +15,22 @@ class M_Sync_Service
     public const STATUS_WARNING = 'warning';
     public const PHASE_INITIAL = 'initial';
     public const PHASE_CONTINUE = 'continue';
+
     public const SCRIPT_JSON_TO_PHP = 'json_to_php';
     public const SCRIPT_PHP_TO_JSON = 'php_to_json';
     public const SCRIPT_MIGRATION = 'migration';
     public const SCRIPT_GENERATORS = 'generators';
+    public const SCRIPT_COPY_JS = 'copy_js';
+
     public const MISSING_ENTITIES_JSON_WARNING = 'JSON file not found: Entities.json';
+
+    public const ALLOWED_SCRIPTS = [
+        self::SCRIPT_JSON_TO_PHP,
+        self::SCRIPT_PHP_TO_JSON,
+        self::SCRIPT_MIGRATION,
+        self::SCRIPT_GENERATORS,
+        self::SCRIPT_COPY_JS,
+    ];
 
     /**
      * * Continue a run after its selected sync scripts finish and the user reviews Entities.json.
@@ -31,18 +42,45 @@ class M_Sync_Service
         return self::startRun($selected_Scripts);
     }
 
+    // public function startRun(array $selected_Scripts): array
+    // {
+    //     M_Sync_Service_Status_Log::reset_Log();
+
+    //     $run_Record = self::get_init_run_Record($selected_Scripts);
+
+    //     M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
+
+    //     M_Sync_Service_Status_Log::write_Log("---------- START SYNCHRONIZATION RUN ----------" . PHP_EOL);
+
+    //     $this->launch_Worker_Process(self::PHASE_INITIAL);
+
+
+    //     if (Logger::$collected_message != '') {
+    //         M_Sync_Service_Status_Log::write_Log(Logger::$collected_message);
+    //         Logger::error('😩 M_Sync_Servie has collected ⚠️ error messages. Please, read above Error-info 👆 ');
+    //     }
+
+    //     return [
+    //         'success' => true,
+    //         'target' => TargetManager::get_activeTarget(),
+    //         'status' => 'running',
+    //     ];
+    // }
+
     public function startRun(array $selected_Scripts): array
     {
-        M_Sync_Service_Status_Log::reset_Log();
-
         $run_Record = self::get_init_run_Record($selected_Scripts);
 
-        M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
+        if (($run_Record['success'] ?? true) === false) {
+            M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
+            return $run_Record;
+        }
 
+        M_Sync_Service_Status_Log::reset_Log();
+        M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
         M_Sync_Service_Status_Log::write_Log("---------- START SYNCHRONIZATION RUN ----------" . PHP_EOL);
 
         $this->launch_Worker_Process(self::PHASE_INITIAL);
-
 
         if (Logger::$collected_message != '') {
             M_Sync_Service_Status_Log::write_Log(Logger::$collected_message);
@@ -66,6 +104,7 @@ class M_Sync_Service
      * *     'generators',
      * *     'json_to_php',
      * *     'php_to_json',
+     * *     'copy_js',
      * * ]
      * @return array ordered scripts e.g.
      * * [
@@ -73,25 +112,20 @@ class M_Sync_Service
      * *     'php_to_json',
      * *     'migration',
      * *     'generators',
+     * *     'copy_js',
      * * ]
      */
     public static function get_init_run_Record(array $selected_Scripts): array
     {
-        $allowed_Scripts = [
-            'json_to_php',
-            'php_to_json',
-            'migration',
-            'generators',
-        ];
-
         // 1. validate scripts
         $selected_Lookup = [];
         foreach ($selected_Scripts as $script_ID) {
             $normalized_ID = strtolower(trim($script_ID));
-            if (!in_array($normalized_ID, $allowed_Scripts, true)) {
+            if (!in_array($normalized_ID, self::ALLOWED_SCRIPTS, true)) {
                 return [
                     'success' => false,
-                    'message' => 'The selected script list contains an unsupported script.',
+                    'status'  => self::STATUS_FAILED,
+                    'message' => 'The selected script list contains an unsupported script : '.$normalized_ID,
                 ];
             }
             $selected_Lookup[$normalized_ID] = true;
@@ -99,14 +133,14 @@ class M_Sync_Service
 
         // 2. order $validated_Scripts like $allowed_Scripts
         $validated_Scripts = [];
-        foreach ($allowed_Scripts as $script_ID) {
+        foreach (self::ALLOWED_SCRIPTS as $script_ID) {
             if (isset($selected_Lookup[$script_ID])) {
                 $validated_Scripts[] = $script_ID;
             }
         }
 
         $script_Statuses = [];
-        foreach ($allowed_Scripts as $script_ID) {
+        foreach (self::ALLOWED_SCRIPTS as $script_ID) {
             $script_Statuses[$script_ID] = isset($selected_Lookup[$script_ID]) ? 'pending' : 'skipped';
         }
 
@@ -199,21 +233,50 @@ class M_Sync_Service
      * * * "cursor" => 94
      * * ]
      */
+    // public function getCurrentStatus(?int $cursor = 0): array
+    // {
+    //     $cursor = $cursor ?? 0;
+
+    //     $target_Name = TargetManager::get_activeTarget();
+    //     $run_Record = M_Sync_Service_Status_Log::read_run_Record();
+    //     $run_Record = $run_Record ?? null;
+
+    //     if (!is_array($run_Record)) {
+    //         $run_Record = null;
+    //     }
+
+    //     M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
+
+    //     if ($run_Record === null) {
+    //         return [
+    //             'target' => $target_Name,
+    //             'status' => 'idle',
+    //             'run' => null,
+    //             'logs' => '',
+    //             'cursor' => 0,
+    //         ];
+    //     }
+
+    //     $log_Chunk = M_Sync_Service_Status_Log::read_Log_Chunk(
+    //         max(0, $cursor)
+    //     );
+
+    //     return [
+    //         'target' => $target_Name,
+    //         'status' => $run_Record['status'],
+    //         'run' => $run_Record,
+    //         'logs' => $log_Chunk['content'] ?? '',
+    //         'cursor' => $log_Chunk['cursor'] ?? $cursor,
+    //     ];
+    // }
+
     public function getCurrentStatus(?int $cursor = 0): array
     {
         $cursor = $cursor ?? 0;
-
         $target_Name = TargetManager::get_activeTarget();
         $run_Record = M_Sync_Service_Status_Log::read_run_Record();
-        $run_Record = $run_Record ?? null;
 
-        if (!is_array($run_Record)) {
-            $run_Record = null;
-        }
-
-        M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
-
-        if ($run_Record === null) {
+        if (!isset($run_Record['status'])) {
             return [
                 'target' => $target_Name,
                 'status' => 'idle',
@@ -223,9 +286,7 @@ class M_Sync_Service
             ];
         }
 
-        $log_Chunk = M_Sync_Service_Status_Log::read_Log_Chunk(
-            max(0, $cursor)
-        );
+        $log_Chunk = M_Sync_Service_Status_Log::read_Log_Chunk(max(0, $cursor));
 
         return [
             'target' => $target_Name,
