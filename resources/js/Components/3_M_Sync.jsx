@@ -2,16 +2,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./3_M_Sync.css";
 
 const script_Options = [
-    { id: "json_to_php", label: "JSON to PHP", log_Class: "json-to-php" },
-    { id: "php_to_json", label: "PHP to JSON", log_Class: "php-to-json" },
+    { id: "json_to_php", label: "JSON to PHP", log_Class: "json_to_php" },
+    { id: "php_to_json", label: "PHP to JSON", log_Class: "php_to_json" },
     { id: "migration", label: "Migration", log_Class: "migration" },
     {
         id: "generators",
         label: "DTOs, Models, Controllers",
         log_Class: "generators",
     },
-    { id: "copy_js", label: "Formatter", log_Class: "copy-js" },
+    { id: "copy_js", label: "Formatter", log_Class: "copy_js" },
 ];
+
+const SELECTED_SCRIPTS = script_Options.map((opt) => opt.id);
+
 const script_Log_Classes = Object.fromEntries(
     script_Options.map(({ id, log_Class }) => [id, log_Class]),
 );
@@ -108,13 +111,7 @@ function get_Run_Log_Segments(logs) {
  * @returns {JSX.Element|null} The modal markup or null while closed.
  */
 export default function M_Sync({ is_Sync_Modal_Open, set_is_Sync_Modal_Open }) {
-    const [selected_Scripts, set_selected_Scripts] = useState([
-        "json_to_php",
-        "php_to_json",
-        "migration",
-        "generators",
-        "copy_js",
-    ]);
+    const [selected_Scripts, set_selected_Scripts] = useState(SELECTED_SCRIPTS);
 
     const [run_Status, set_run_Status] = useState("idle");
     const [script_Statuses, set_script_Statuses] = useState({});
@@ -466,16 +463,8 @@ export default function M_Sync({ is_Sync_Modal_Open, set_is_Sync_Modal_Open }) {
         </div>
     );
 
-    const RIGHT_SECTION = (
-        <div className="m-sync-right-section">
-            <button
-                className="m-sync-close-btn"
-                onClick={close_Modal}
-                aria-label="Close Sync"
-            >
-                ❌
-            </button>
-            <h3 className="m-sync-sidebar-title">choose script</h3>
+    const SCRIPTS_CONTAINER = (
+        <div className="m-sync-script-item-container">
             {script_Options.map((script) => {
                 const script_Status = script_Statuses[script.id];
                 const status_Class = get_Script_Status_Class(script_Status);
@@ -507,6 +496,20 @@ export default function M_Sync({ is_Sync_Modal_Open, set_is_Sync_Modal_Open }) {
                     </label>
                 );
             })}
+        </div>
+    );
+
+    const RIGHT_SECTION = (
+        <div className="m-sync-right-section">
+            <button
+                className="m-sync-close-btn"
+                onClick={close_Modal}
+                aria-label="Close Sync"
+            >
+                ❌
+            </button>
+            <h3 className="m-sync-sidebar-title">choose script</h3>
+            {SCRIPTS_CONTAINER}
         </div>
     );
 

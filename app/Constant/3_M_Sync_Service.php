@@ -42,35 +42,13 @@ class M_Sync_Service
         return self::startRun($selected_Scripts);
     }
 
-    // public function startRun(array $selected_Scripts): array
-    // {
-    //     M_Sync_Service_Status_Log::reset_Log();
-
-    //     $run_Record = self::get_init_run_Record($selected_Scripts);
-
-    //     M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
-
-    //     M_Sync_Service_Status_Log::write_Log("---------- START SYNCHRONIZATION RUN ----------" . PHP_EOL);
-
-    //     $this->launch_Worker_Process(self::PHASE_INITIAL);
-
-
-    //     if (Logger::$collected_message != '') {
-    //         M_Sync_Service_Status_Log::write_Log(Logger::$collected_message);
-    //         Logger::error('😩 M_Sync_Servie has collected ⚠️ error messages. Please, read above Error-info 👆 ');
-    //     }
-
-    //     return [
-    //         'success' => true,
-    //         'target' => TargetManager::get_activeTarget(),
-    //         'status' => 'running',
-    //     ];
-    // }
-
     public function startRun(array $selected_Scripts): array
     {
         $run_Record = self::get_init_run_Record($selected_Scripts);
 
+        /**
+         * check error before run
+         */
         if (($run_Record['success'] ?? true) === false) {
             M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
             return $run_Record;
@@ -214,62 +192,36 @@ class M_Sync_Service
      * Return the current run state and complete log lines after the requested byte cursor.     *
      * @param int $cursor Byte offset already consumed by the UI.
      * @return array<string, mixed> e.g.
-     * * [
-     * * * "target" => "ecommerce",
-     * * * "status" => "running",
-     * * * "run" => [
-     * * * * "run_id" => "7a3f...",
-     * * * * "scripts" =>
-     * * * * [
-     * * * * * "json_to_php",
-     * * * * * "migration"
-     * * * * ],
-     * * * * "script_statuses" => [
-     * * * * * "json_to_php" => "completed",
-     * * * * * "migration" => "pending"
-     * * * * ]
-     * * * ],
-     * * * "logs" => "[ 2026-10-01 12:00:00 ] [ SUCCESS ] ...",
-     * * * "cursor" => 94
-     * * ]
+     * *Array
+     * *(
+     * *    [target] => ecommerce
+     * *    [status] => running
+     * *    [run] => Array
+     * *        (
+     * *            [target] => ecommerce
+     * *            [status] => running
+     * *            [selected_scripts] => Array
+     * *                (
+     * *                    [0] => json_to_php
+     * *                    [1] => php_to_json
+     * *                    [2] => migration
+     * *                    [3] => generators
+     * *                    [4] => copy_js
+     * *                )
+     * *            [script_statuses] => Array
+     * *                (
+     * *                    [json_to_php] => pending
+     * *                    [php_to_json] => pending
+     * *                    [migration] => pending
+     * *                    [generators] => pending
+     * *                    [copy_js] => pending
+     * *                )
+     * *            [message] =>
+     * *        )
+     * *    [logs] => ---------- START SYNCHRONIZATION RUN ----------
+     * *    [cursor] => 49
+     * *)
      */
-    // public function getCurrentStatus(?int $cursor = 0): array
-    // {
-    //     $cursor = $cursor ?? 0;
-
-    //     $target_Name = TargetManager::get_activeTarget();
-    //     $run_Record = M_Sync_Service_Status_Log::read_run_Record();
-    //     $run_Record = $run_Record ?? null;
-
-    //     if (!is_array($run_Record)) {
-    //         $run_Record = null;
-    //     }
-
-    //     M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
-
-    //     if ($run_Record === null) {
-    //         return [
-    //             'target' => $target_Name,
-    //             'status' => 'idle',
-    //             'run' => null,
-    //             'logs' => '',
-    //             'cursor' => 0,
-    //         ];
-    //     }
-
-    //     $log_Chunk = M_Sync_Service_Status_Log::read_Log_Chunk(
-    //         max(0, $cursor)
-    //     );
-
-    //     return [
-    //         'target' => $target_Name,
-    //         'status' => $run_Record['status'],
-    //         'run' => $run_Record,
-    //         'logs' => $log_Chunk['content'] ?? '',
-    //         'cursor' => $log_Chunk['cursor'] ?? $cursor,
-    //     ];
-    // }
-
     public function getCurrentStatus(?int $cursor = 0): array
     {
         $cursor = $cursor ?? 0;
@@ -287,7 +239,13 @@ class M_Sync_Service
         }
 
         $log_Chunk = M_Sync_Service_Status_Log::read_Log_Chunk(max(0, $cursor));
-
+        $out = [
+            'target' => $target_Name,
+            'status' => $run_Record['status'],
+            'run' => $run_Record,
+            'logs' => $log_Chunk['content'] ?? '',
+            'cursor' => $log_Chunk['cursor'] ?? $cursor,
+        ];
         return [
             'target' => $target_Name,
             'status' => $run_Record['status'],

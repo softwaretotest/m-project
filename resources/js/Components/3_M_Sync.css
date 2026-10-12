@@ -204,11 +204,11 @@
 }
 
 /* Font Colors of each script in left section in black UI-Console in the Modal  */
-.m-sync-log-json-to-php {
+.m-sync-log-json_to_php {
     color: #defbc6;
 }
 
-.m-sync-log-php-to-json {
+.m-sync-log-php_to_json {
     color: #7dd3fc;
 }
 
@@ -220,16 +220,16 @@
     color: #5eead4;
 }
 
-.m-sync-log-copy-js {
+.m-sync-log-copy_js {
     color: #ffa1ef;
 }
 
 /* BG-Colors of each script in right section in Script-List in the Modal  */
-.m-sync-script-label.m-sync-log-json-to-php {
+.m-sync-script-label.m-sync-log-json_to_php {
     background-color: #defbc6;
 }
 
-.m-sync-script-label.m-sync-log-php-to-json {
+.m-sync-script-label.m-sync-log-php_to_json {
     background-color: #7dd3fc;
 }
 
@@ -241,7 +241,7 @@
     background-color: #5eead4;
 }
 
-.m-sync-script-label.m-sync-log-copy-js {
+.m-sync-script-label.m-sync-log-copy_js {
     background-color: #ffa1ef;
 }
 
@@ -257,16 +257,45 @@
     box-sizing: border-box;
     position: relative;
 
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0px;
+    padding: 0px;
+}
+
+.m-sync-script-item-container {
+    flex: auto;
+    margin: 0px;
+    padding: 4px;
     display: grid;
-    grid-template-rows: 36px auto 1fr 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr 1fr 1fr;
     grid-template-areas:
-        "close"
-        "title"
         "item1"
         "item2"
         "item3"
-        "item4";
-    gap: 12px;
+        "item4"
+        "item5";
+    gap: 2px;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
+.m-sync-script-item-container:nth-of-type(1) {
+    grid-area: item1;
+}
+.m-sync-script-item-container:nth-of-type(2) {
+    grid-area: item2;
+}
+.m-sync-script-item-container:nth-of-type(3) {
+    grid-area: item3;
+}
+.m-sync-script-item-container:nth-of-type(4) {
+    grid-area: item4;
+}
+.m-sync-script-item-container:nth-of-type(5) {
+    grid-area: item5;
 }
 
 @media (max-width: 640px) {
@@ -282,17 +311,15 @@
 }
 
 .m-sync-sidebar-title {
-    grid-area: title;
     font-size: 20px;
     font-weight: 800;
     margin: 0 0 5px 0;
     color: #000000;
-    text-align: left;
+    text-align: center;
 }
 
 .m-sync-close-btn {
-    grid-area: close;
-    justify-self: end;
+    align-self: flex-end;
     width: 36px;
     height: 36px;
     background-color: #ecef33;
@@ -310,19 +337,6 @@
     transition:
         transform 0.15s ease,
         background-color 0.15s ease;
-}
-
-.m-sync-script-item:nth-of-type(1) {
-    grid-area: item1;
-}
-.m-sync-script-item:nth-of-type(2) {
-    grid-area: item2;
-}
-.m-sync-script-item:nth-of-type(3) {
-    grid-area: item3;
-}
-.m-sync-script-item:nth-of-type(4) {
-    grid-area: item4;
 }
 
 /* --------------------------------------------------------------------------

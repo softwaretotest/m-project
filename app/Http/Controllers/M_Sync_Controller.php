@@ -123,7 +123,7 @@ class M_Sync_Controller extends Controller
     {
         $validated = self::get_validated_request($request);
         $result = $this->sync_Service->startRun($validated);
-        Log::info(response()->json($result));
+        // Log::info(response()->json($result));
         return response()->json($result);
     }
 

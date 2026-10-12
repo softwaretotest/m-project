@@ -1,6 +1,6 @@
 {
     "target": "ecommerce",
-    "status": "completed",
+    "status": "failed",
     "selected_scripts": [
         "json_to_php",
         "php_to_json",
@@ -13,7 +13,7 @@
         "php_to_json": "completed",
         "migration": "completed",
         "generators": "completed",
-        "copy_js": "completed"
+        "copy_js": "failed"
     },
-    "message": null
+    "message": "Script copy_js execution failed."
 }
