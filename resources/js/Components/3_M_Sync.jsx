@@ -2,22 +2,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./3_M_Sync.css";
 
 const script_Options = [
-    { id: "json_to_php", label: "JSON to PHP", log_Class: "json_to_php" },
-    { id: "php_to_json", label: "PHP to JSON", log_Class: "php_to_json" },
-    { id: "migration", label: "Migration", log_Class: "migration" },
-    {
-        id: "generators",
-        label: "DTOs, Models, Controllers",
-        log_Class: "generators",
-    },
-    { id: "copy_js", label: "Formatter", log_Class: "copy_js" },
+    { id: "json_to_php", label: "JSON to PHP" },
+    { id: "php_to_json", label: "PHP to JSON" },
+    { id: "migration", label: "Migration" },
+    { id: "generators", label: "DTOs, Models, Controllers" },
+    { id: "copy_js", label: "Formatter" },
 ];
 
+/** select all scripts */
 const SELECTED_SCRIPTS = script_Options.map((opt) => opt.id);
 
-const script_Log_Classes = Object.fromEntries(
-    script_Options.map(({ id, log_Class }) => [id, log_Class]),
-);
+const VALID_SCRIPT_IDS = new Set(script_Options.map((opt) => opt.id));
 
 const sync_Api_Path = "/api/m-sync";
 
@@ -81,7 +76,7 @@ function get_Run_Log_Segments(logs) {
         }
 
         const [, boundary, script_ID] = marker_Match;
-        if (!script_Log_Classes[script_ID]) {
+        if (!VALID_SCRIPT_IDS.has(script_ID)) {
             segments.push({ script_ID: active_Script, text: marker_Match[0] });
         } else if (boundary === "START") {
             active_Script = script_ID;
@@ -450,7 +445,7 @@ export default function M_Sync({ is_Sync_Modal_Open, set_is_Sync_Modal_Open }) {
                                   key={`${segment.script_ID || "other"}-${index}`}
                                   className={
                                       segment.script_ID
-                                          ? `m-sync-log-${script_Log_Classes[segment.script_ID]}`
+                                          ? `m-sync-log-${segment.script_ID}`
                                           : undefined
                                   }
                               >
@@ -481,7 +476,7 @@ export default function M_Sync({ is_Sync_Modal_Open, set_is_Sync_Modal_Open }) {
                             disabled={are_Scripts_Disabled}
                         />
                         <span
-                            className={`m-sync-script-label m-sync-log-${script.log_Class}`}
+                            className={`m-sync-script-label m-sync-log-${script.id}`}
                         >
                             {script.label}
                         </span>
