@@ -54,7 +54,7 @@ export const use_M_Store = create((set) => ({
 
     debug_is_Editing: false,
 
-    debug_FIELDNAME_to_update: false,
+    debug_FIELDNAME_to_update: true,
 
     debug_FIELDNAME_to_add: false,
 
@@ -182,7 +182,15 @@ export const use_M_Store = create((set) => ({
                 );
                 console.log("------------------------------------");
             }
-            return { has_M_value_Change: has_M_value_Change };
+            // need to return at least empty object to useError,
+            // because useError return object
+            return {};
+            /**
+             * if no return or return; // null = will be Exception :
+             * 0_M_DataProvider.jsx:11 Uncaught TypeError:
+             * Cannot read properties of undefined (reading 'has_M_value_Change')
+             *  at 0_M_DataProvider.jsx:11:61
+             */
         });
     },
 
@@ -251,6 +259,25 @@ export const use_M_Store = create((set) => ({
             return {
                 FIELDNAME_to_update: NEW_FIELDNAME_to_update,
             };
+        }),
+
+    remove_FIELDNAME_to_update: (fieldname) =>
+        set((state) => {
+            const { [fieldname]: _removed, ...rest } =
+                state.FIELDNAME_to_update;
+
+            if (state.debug || state.debug_FIELDNAME_to_update) {
+                console.log(
+                    `[M_STORE_DEBUG] remove ${_removed} from FIELDNAME_to_update[${fieldname}]`,
+                );
+                console.log(
+                    `[M_STORE_DEBUG] rest of FIELDNAME_to_update[${fieldname}] = `,
+                    state.FIELDNAME_to_update[fieldname],
+                );
+                console.log("------------------------------------");
+            }
+
+            return { FIELDNAME_to_update: rest };
         }),
 
     D_Params_State: {}, // atomic states

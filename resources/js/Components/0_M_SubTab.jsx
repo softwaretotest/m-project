@@ -133,15 +133,15 @@ export default function SubTab({ data }) {
                     .filter(
                         (subtab) =>
                             typeof data[subtab] === "object" &&
-                            data[subtab] !== null &&
-                            /**
-                             * * don't need to show SubTab 't' of app_data
-                             * * Because, redandant to SubTab entities
-                             */
-                            !(
-                                activeTab === "app_data" &&
-                                subtab.toLowerCase() === "t"
-                            ),
+                            data[subtab] !== null,
+                        /**
+                         * * don't need to show SubTab 't' of app_data
+                         * * Because, redandant to SubTab entities
+                         */
+                        // && !(
+                        //     activeTab === "app_data" &&
+                        //     subtab.toLowerCase() === "t"
+                        // ),
                     )
                     .map((subtab) => (
                         <button

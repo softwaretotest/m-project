@@ -1,6 +1,6 @@
 // resources/js/Components/0_M_TabContent.jsx
 
-import { React, useState, useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { useScrollIntoView } from "@/hooks/useScrollIntoView";
 import { useError } from "@/Hooks/useError";
 
@@ -14,8 +14,10 @@ import {
 import SpecialField from "@/Components/0_M_SpecialField";
 import Field from "@/Components/0_M_Field";
 import EntityField from "@/Components/0_M_EntityField";
-import DB_Tablename from "@/Components/0_M_DB_Tablename";
-import { set_selected_D_U_UF_FOREIGN } from "@/Components/0_M_Data_Helper";
+import {
+    set_selected_D_U_UF_FOREIGN,
+    is_DATA_simple,
+} from "@/Components/0_M_Data_Helper";
 import { Render_fieldname_input } from "@/Components/0_M_Input_Group.jsx";
 
 export default function TabContent() {
@@ -77,7 +79,9 @@ export default function TabContent() {
                 // for update fielname , user must select a field first
                 disabled={!activeField}
             >
-                {["d", "u", "uf", "cd", "cu", "cud"].includes(activeSubTab) && (
+                {["d", "u", "uf", "cd", "cu", "cud", "t"].includes(
+                    activeSubTab,
+                ) && (
                     <div className="field-header-container">
                         <Render_fieldname_input
                             fieldname={fieldname}
@@ -109,9 +113,9 @@ export default function TabContent() {
                 {activeSubTab === "f" && Array.isArray(field_data) && (
                     <Field field_data={field_data} />
                 )}
-                {activeSubTab === "t" && (
-                    <DB_Tablename field_data={field_data} />
-                )}
+                {/* {activeSubTab === "t" && (
+                    <input type="text" className="fieldname" defaultValue={field_data} />
+                )} */}
                 {activeSubTab === "entities" && (
                     <EntityField
                         f_s_Class_Array={field_data}
@@ -166,7 +170,7 @@ export default function TabContent() {
      * * M_DATA = Simple Data (KEY: value)
      * * value = lowercase string
      */
-    async function add_field_M_DATA() {
+    async function add_field_DATA_simple() {
         const input_box_fieldname = document.querySelector(".new_field_name");
         const raw_name = input_box_fieldname ? input_box_fieldname.value : "";
 
@@ -188,17 +192,18 @@ export default function TabContent() {
 
         await M_value_Service.update(new_M_value);
 
-        if (trimmed_name) await setActiveField(trimmed_name.toLowerCase());
+        if (trimmed_name) setActiveField(trimmed_name.toLowerCase());
 
         use_M_Store.getState().set_is_new_field_added(true);
 
         if (input_box_fieldname) input_box_fieldname.value = "";
         set_FIELDNAME_to_add("");
 
-        // ไม่ต้องเรียก set_selected_D_U_UF_FOREIGN เพราะ M_DATA ไม่มีฟิลด์พวกนี้
+        // ไม่ต้องเรียก set_selected_D_U_UF_FOREIGN เพราะ DATA_simple ไม่มีฟิลด์พวกนี้
     }
 
     function add_field() {
+        console.log("[2] ??????? --- TabContent - add_field -- CALLED !!! ");
         if (
             (activeTab === "app_data" && activeSubTab === "f") ||
             (activeTab === "m_data" && activeSubTab === "s")
@@ -208,11 +213,8 @@ export default function TabContent() {
         if (is_ENTITIES) {
             add_field_ENTITIES();
         }
-        if (
-            activeTab === "m_data" &&
-            ["d", "u", "uf", "cd", "cu", "cud"].includes(activeSubTab)
-        ) {
-            add_field_M_DATA();
+        if (is_DATA_simple()) {
+            add_field_DATA_simple();
         }
     }
     /**

@@ -37,11 +37,10 @@ export function Render_fieldname_input({ fieldname, className }) {
         // fix bug , prevent to put old value in the input
         const current_value_in_store =
             use_M_Store.getState().FIELDNAME_to_update[fieldname];
+
         const value_to_save = current_value_in_store ?? FIELDNAME;
 
         await rename_M_value_KEY_and_fieldname(value_to_save);
-
-        setActiveField((value_to_save ?? "").toLowerCase());
         set_is_Editing(false);
     };
 
@@ -90,8 +89,8 @@ export function Render_fieldname_input({ fieldname, className }) {
                 key={fieldname}
                 value={
                     is_fieldname
-                        ? (FIELDNAME ?? "").toLowerCase()
-                        : (FIELDNAME ?? "").toUpperCase()
+                        ? FIELDNAME.toLowerCase()
+                        : FIELDNAME.toUpperCase()
                 }
                 className={className}
                 disabled={className !== "M_value_KEY"}
@@ -104,7 +103,6 @@ export function Render_fieldname_input({ fieldname, className }) {
                     ) {
                         setActiveField(fieldname.toLowerCase());
                     }
-
                     set_is_Editing(true);
                 }}
                 onChange={async (event) => await handle_Fieldname_Change(event)}
@@ -116,7 +114,8 @@ export function Render_fieldname_input({ fieldname, className }) {
                         className={"save-button"}
                         //no continue, if no data , or data invalide
                         disabled={!FIELDNAME}
-                        onClick={async () => {
+                        onClick={async (e) => {
+                            e.stopPropagation(); //prevent sent event to parent TabContent
                             handleSave();
                         }}
                     >
@@ -124,7 +123,8 @@ export function Render_fieldname_input({ fieldname, className }) {
                     </button>
                     <button
                         className={"cancel-button"}
-                        onClick={() => {
+                        onClick={(e) => {
+                            e.stopPropagation(); //prevent sent event to parent TabContent
                             handleCancel();
                         }}
                     >

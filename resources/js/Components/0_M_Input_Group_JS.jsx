@@ -13,6 +13,10 @@ export function Input_Group_JS({
     const [initialCode, setInitialCode] = useState(initial_code);
     const isDirty = code !== initialCode;
 
+    /**
+     * useEffect to save UI Formater (e.g. CURRENCY.js)
+     * at backend app/Constant/JS/
+     */
     useEffect(() => {
         if (!uf_name) return;
         fetch(`/api/uf-js/${uf_name}`)

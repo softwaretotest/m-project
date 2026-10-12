@@ -20,6 +20,8 @@
 
 # C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\resources\js\Stores\0_M_Store.jsx"
 
+# C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\resources\js\Services\0_M_value_Service.jsx"
+
 param (
     [string]$Path = "resources/js/Components",
     [string]$OutputFile = "SingleSourceCode.txt"

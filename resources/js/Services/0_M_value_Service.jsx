@@ -1,7 +1,10 @@
 // /Resources/Services/0_M_value_Service.jsx
 import { use_M_Store } from "@/Stores/0_M_Store.jsx";
 
-import { change_fieldname_in_field_data } from "@/Components/0_M_Data_Helper";
+import {
+    change_fieldname_in_field_data,
+    is_DATA_simple,
+} from "@/Components/0_M_Data_Helper";
 import { GLOBAL_METADATA } from "@/Providers/0_M_DataProvider";
 import { findout_F_or_S } from "@/Providers/0_M_DataProvider";
 
@@ -390,6 +393,10 @@ export async function rename_M_value_KEY_and_fieldname(fieldname) {
     const activeSubTab = use_M_Store.getState().activeSubTab;
     const activeField = use_M_Store.getState().activeField;
     const setActiveField = use_M_Store.getState().setActiveField;
+    const set_FIELDNAME_to_update =
+        use_M_Store.getState().set_FIELDNAME_to_update;
+    const remove_FIELDNAME_to_update =
+        use_M_Store.getState().remove_FIELDNAME_to_update;
 
     const is_F_or_S =
         (activeTab === "app_data" && activeSubTab === "f") ||
@@ -397,12 +404,8 @@ export async function rename_M_value_KEY_and_fieldname(fieldname) {
 
     const is_ENTITIES = activeTab === "entities" && activeSubTab === "entities";
 
-    const is_M_DATA_simple =
-        activeTab === "m_data" &&
-        ["d", "u", "uf", "cd", "cu", "cud"].includes(activeSubTab);
-
     let old_M_value = {};
-    if (is_F_or_S || is_M_DATA_simple)
+    if (is_F_or_S || is_DATA_simple())
         old_M_value = use_M_Store.getState().M_value;
     if (is_ENTITIES) {
         /**
@@ -435,7 +438,7 @@ export async function rename_M_value_KEY_and_fieldname(fieldname) {
 
     let new_M_value;
 
-    if (is_M_DATA_simple) {
+    if (is_DATA_simple()) {
         new_M_value = {};
         for (const KEY of Object.keys(old_M_value)) {
             if (KEY === OLD_KEY) {
@@ -454,6 +457,12 @@ export async function rename_M_value_KEY_and_fieldname(fieldname) {
     }
 
     setActiveField(NEW_KEY.toLowerCase());
+
+    // to fix bug BOOLEAN123 , must be BOOLEAN after deleted 1 from BOOLEAN1
+    set_FIELDNAME_to_update(NEW_KEY.toLowerCase(), NEW_KEY);
+    // clean map
+    remove_FIELDNAME_to_update(OLD_KEY.toLowerCase());
+
     set_NEW_added_fieldname(NEW_KEY.toLowerCase());
     set_has_Fieldname_Change(true);
     await M_value_Service.update(new_M_value);
@@ -648,10 +657,7 @@ export async function update_M_value_with_selected_F_S() {
         new_M_value,
     );
 
-    await M_value_Service.update(new_M_value, {
-        activeTab: "entities",
-        activeSubTab: "entities",
-    });
+    await M_value_Service.update(new_M_value);
 }
 
 /**
@@ -786,5 +792,8 @@ export async function add_field_ENTITIES({ isUser = false } = {}) {
 
     await add_cascade_tablename_in_app_data_t(
         use_M_Store.getState().activeField,
+    );
+    console.log(
+        "[3] ??????? --- M_value_Service - add_field_ENTITIES -- CALLED !!! ",
     );
 }

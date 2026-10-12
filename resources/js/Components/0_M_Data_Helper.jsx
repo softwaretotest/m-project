@@ -5,6 +5,19 @@ import { find_NEW_D_Params_in_M_MAP } from "@/Components/0_M_D_Params_Service";
 import { GLOBAL_METADATA } from "@/Providers/0_M_DataProvider";
 
 /**
+ * depend on activeSubTab and activeTab
+ * @returns boolean true if subTab in ["d", "u", "uf", "cd", "cu", "cud","t"]
+ */
+export function is_DATA_simple() {
+    const { activeTab, activeSubTab } = use_M_Store.getState();
+    return (
+        (activeTab === "m_data" &&
+            ["d", "u", "uf", "cd", "cu", "cud"].includes(activeSubTab)) ||
+        (activeTab === "app_data" && activeSubTab === "t")
+    );
+}
+
+/**
  * check if M_value_KEY a KEY of an item in GLOBAL_METADATA.m_data.s{}
  * @param {*} M_value_KEY
  * @returns
