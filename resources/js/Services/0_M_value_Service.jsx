@@ -144,7 +144,11 @@ export async function merge_M_value_Entities(M_value_Entities_imported) {
     GLOBAL_METADATA.entities.entities = M_value_Entities_imported;
 
     // 4. Send updated M_value via service
-    await M_value_Service.update(new_M_value_entities);
+    const cascade = {
+        activeTab: "entities",
+        activeSubTab: "entities",
+    };
+    await M_value_Service.update(new_M_value_entities, cascade);
 }
 /**
  * * Merge entities T by pushing button "copy Entities"

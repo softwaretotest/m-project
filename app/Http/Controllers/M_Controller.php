@@ -14,7 +14,7 @@ class M_Controller extends Controller
     /**
      * get path by key
      * @param $key = e.g. app_data , m_data , entities
-     * @return e.g. c:\Users\o\.vscode\react\ecommerce\app\Constant\M_JSON\Entities.json
+     * @return string c:\Users\o\.vscode\react\ecommerce\app\Constant\M_JSON\Entities.json
      */
     private function getPath(string $key): string
     {
@@ -150,30 +150,6 @@ class M_Controller extends Controller
         return $jsonData ?? [];
     }
 
-    public function copyJSON(Request $request): JsonResponse
-    {
-        $type = $request->input('type'); // get 'app_data' or 'entities'
-        $targetPaths = $this->get_Target_JSON_FilePath();
-
-        if (!isset($targetPaths[$type])) {
-            return response()->json(['error' => 'Invalid type : '.$type], 400);
-        }
-
-        $targetPath = $targetPaths[$type];
-
-        // define name of JSON
-        $exampleFileName = $type === 'app_data' ? 'Example_App-Data.json' : 'Example_Entities.json';
-        $sourcePath = base_path("app/Constant/M_JSON_Example/{$exampleFileName}");
-
-        if (!file_exists($sourcePath)) {
-            return response()->json(['error' => 'Example file not found : '.$sourcePath], 404);
-        }
-
-        DataHelper::ensureDir($targetPath);
-        copy($sourcePath, $targetPath);
-
-        return response()->json(['success' => true]);
-    }
 
     /**
      * Retrieve example JSON content for frontend validation prior to copying.
@@ -189,27 +165,95 @@ class M_Controller extends Controller
      */
     public function get_Example_JSON(Request $request): JsonResponse
     {
-        $request_type = $request->input('type');
+        $request_type = $request->input('type'); // 'app_data' or 'entities'
         $target_path_map = $this->get_Target_JSON_FilePath();
 
         if (!isset($target_path_map[$request_type])) {
             return response()->json(['error' => 'Invalid type specified: ' . $request_type], 400);
         }
 
-        $example_file_name = $request_type === 'app_data' ? 'Example_App-Data.json' : 'Example_Entities.json';
+        $example_file_name = $request->input('filename');
+        if (!$example_file_name) {
+            $example_file_name = $request_type === 'app_data' ? 'Example_App-Data.json' : 'Example_Entities.json';
+        }
+
         $source_file_path = base_path("app/Constant/M_JSON_Example/{$example_file_name}");
+
+        // Log::info("DEBUG get_Example_JSON -> filename: {$example_file_name}, path: {$source_file_path}");
 
         if (!file_exists($source_file_path)) {
             return response()->json(['error' => 'Example file not found: ' . $source_file_path], 404);
         }
 
         $raw_file_content = file_get_contents($source_file_path);
-        $parsed_json_payload = json_decode($raw_file_content, true);    // remove same key , keep the latest duplicated - item[key]
+        $parsed_json_payload = json_decode($raw_file_content, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             return response()->json(['error' => 'Invalid JSON structure in example file'], 500);
         }
-        // Log::info("get_Example_JSON - return : ".print_r($parsed_json_payload, true));
+
         return response()->json($parsed_json_payload);
     }
+
+
+    public function get_json_example_list(Request $request): JsonResponse
+    {
+
+        // Log::info('DEBUG Request Data:', $request->all());
+
+        $tab = $request->input('tab');
+
+        $dir = dirname(__DIR__, 3) . '/app/Constant/M_JSON_Example';
+        $results = [];
+
+        // Log::info("CALLED - M_Controller - get_json_example_list DIR : ". $dir);
+
+        if (is_dir($dir)) {
+            if ($tab === 'app_data') {
+                $files = glob($dir . '/Example_App-Data_*.json');
+            }
+            if ($tab === 'entities') {
+                $files = glob($dir . '/Example_Entities_*.json');
+            }
+            foreach ($files ?? [] as $file) {
+                $filename = basename($file);
+
+                if ($tab === 'app_data') {
+                    $name = str_replace(['Example_App-Data_', '.json'], '', $filename);
+                }
+                if ($tab === 'entities') {
+                    $name = str_replace(['Example_Entities_', '.json'], '', $filename);
+                }
+
+                $json_content = file_get_contents($file);
+                $content = json_decode($json_content, true);
+
+                if ($tab === 'app_data') {
+                    $fields = isset($content['f']) ? array_keys($content['f']) : [];
+                }
+                if ($tab === 'entities') {
+                    $fields = isset($content['entities']) ? array_keys($content['entities']) : [];
+                }
+
+                $fields = $fields ?? [];
+
+                $preview = implode(', ', array_slice($fields, 0, 4)) . (count($fields) > 4 ? '...' : '');
+
+                $results[] = [
+                    'filename' => $filename,
+                    'name' => $name ?? '',
+                    'preview' => $preview
+                ];
+            }
+        }
+
+        $response = response()->json([
+            'status' => 'success',
+            'data' => $results
+        ]);
+
+        // Log::info("CALLED - M_Controller - get_json_example_list - response : ". print_r($results, true));
+        return $response;
+    }
+
 }

@@ -17,6 +17,7 @@ import M_Sync from "@/Components/3_M_Sync.jsx";
 
 import { save_Target_App } from "@/Pages/3_M_TargetSelector";
 
+import { Example_Selector_App_Data } from "@/Components/3_M_Example_Selector";
 import { validate_imported_json } from "@/Components/3_M_value_Validator";
 
 const TABS = [
@@ -54,7 +55,9 @@ export default function M_Dashboard({ activeTarget }) {
     // ---- all Hooks must be always early return ----
     const [error_Dashboard, set_error_Dashboard] = useState("");
 
-    const [is_Sync_Modal_Open, set_is_Sync_Modal_Open] = useState(false);
+    const [open_Sync_Service, set_open_Sync_Service] = useState(false);
+
+    const [open_Example, set_open_Example] = useState(false);
 
     const active_Target_App = use_M_Store((state) => state.active_Target_App);
     const activeTab = use_M_Store((state) => state.activeTab);
@@ -90,14 +93,16 @@ export default function M_Dashboard({ activeTarget }) {
      * * so we need delay to show error again
      * @param {*} error_text
      */
-    function show_error_Dashboard(error_text) {
+    function show_error_Dashboard(error_text, stop = true) {
         setTimeout(() => {
             set_error_Dashboard("");
         }, 50);
         setTimeout(() => {
             set_error_Dashboard(error_text);
         }, 100);
-        throw new Error(error_text);
+        if (stop) {
+            throw new Error(error_text);
+        }
     }
 
     /**
@@ -110,9 +115,9 @@ export default function M_Dashboard({ activeTarget }) {
      * @param {String} tab - The target type identifier ('app_data' or 'entities').
      * @return {Promise<void>}
      */
-    async function handleCopyData(tab) {
+    async function handleCopyData(tab, filename) {
         const fetch_response = await fetch(
-            `/api/m-get-example-json?type=${tab}`,
+            `/api/m-get-example-json?type=${tab}&filename=${filename}`,
         );
         if (!fetch_response.ok) {
             show_error_Dashboard(
@@ -123,25 +128,31 @@ export default function M_Dashboard({ activeTarget }) {
         const imported_json_data = await fetch_response.json();
         const validation_result = validate_imported_json(imported_json_data);
 
+        console.log("validation_result = ", validation_result);
+
         if (validation_result.has_error) {
             show_error_Dashboard(
                 `VALIDATION ERROR ON COPY - '${tab}' <br />` +
                     `duplicate field ___ or ___ M_value_KEY <> fielname_UPPERCASE <br />` +
                     validation_result.error_message,
+                /* stop */ false, //if stop = false , UI show error but continues codes below
             );
-            return;
         }
 
         set_error_Dashboard("");
 
         if (imported_json_data.f) {
-            const M_value_f_imported = imported_json_data.f;
-            merge_M_value_F(M_value_f_imported);
+            merge_M_value_F(validation_result.new_M_value_f);
         }
 
         if (imported_json_data.entities) {
-            const M_value_Entities_imported = imported_json_data.entities;
-            merge_M_value_Entities(M_value_Entities_imported);
+            // const M_value_Entities_imported = imported_json_data.entities;
+            // merge_M_value_Entities(M_value_Entities_imported);
+            console.log(
+                "JKFDÖASJFDLKÖ --- DASHBOARD -handleCopyData validation_result.new_M_value_entities = ",
+                validation_result.new_M_value_entities,
+            );
+            merge_M_value_Entities(validation_result.new_M_value_entities);
         }
 
         // change tab and subTab after import success
@@ -160,34 +171,46 @@ export default function M_Dashboard({ activeTarget }) {
                 />
             )}
 
-            {is_Sync_Modal_Open && (
+            {open_Sync_Service && (
                 <M_Sync
-                    is_Sync_Modal_Open={is_Sync_Modal_Open}
-                    set_is_Sync_Modal_Open={set_is_Sync_Modal_Open}
+                    open_Sync_Service={open_Sync_Service}
+                    set_open_Sync_Service={set_open_Sync_Service}
+                />
+            )}
+
+            {open_Example && (
+                <Example_Selector_App_Data
+                    open_Example={open_Example}
+                    set_open_Example={set_open_Example}
+                    handleCopyData={handleCopyData}
+                    tab={use_M_Store.getState().activeTab}
                 />
             )}
 
             <div className="dashboard-wrapper">
-                <h1 className="dashboard-header">
+                <div className="header">
                     <button
-                        className="dashboard-header-button"
+                        className="header-target"
                         onClick={() => save_Target_App("", set_error_Dashboard)}
                     >
-                        <p>{active_Target_App} Dashboard</p>
-                        <p className="button-info">click to change App</p>
+                        <span>{active_Target_App} Dashboard</span>
+                        <span className="button-info">click to change App</span>
                     </button>
                     {show_add_USERS && (
                         <button
-                            className="dashboard-header-button"
+                            className="header-button"
                             onClick={() => add_field_ENTITIES({ isUser: true })}
                         >
                             ADD USERS TABLE
                         </button>
                     )}
-                    <div className="copy-buttons-container">
+                    <div className="btn-copy-container">
                         <button
                             className="btn-copy-app btn-setting"
-                            onClick={() => handleCopyData("app_data")}
+                            onClick={() => {
+                                use_M_Store.getState().setActiveTab("app_data");
+                                set_open_Example(true);
+                            }}
                         >
                             copy
                             <br />
@@ -195,7 +218,11 @@ export default function M_Dashboard({ activeTarget }) {
                         </button>
                         <button
                             className="btn-copy-entities btn-setting"
-                            onClick={() => handleCopyData("entities")}
+                            // onClick={() => handleCopyData("entities")}
+                            onClick={() => {
+                                use_M_Store.getState().setActiveTab("entities");
+                                set_open_Example(true);
+                            }}
                         >
                             copy
                             <br />
@@ -203,14 +230,14 @@ export default function M_Dashboard({ activeTarget }) {
                         </button>
                     </div>
 
-                    <p className="dashboard-header-title">Project M</p>
+                    <div className="header-title">Project M</div>
                     <button
                         className="btn-setting"
-                        onClick={() => set_is_Sync_Modal_Open(true)}
+                        onClick={() => set_open_Sync_Service(true)}
                     >
                         SYNC
                     </button>
-                </h1>
+                </div>
 
                 <div className="tab-switcher-container">
                     {TABS.map((tab) => {

@@ -101,11 +101,11 @@ function get_Run_Log_Segments(logs) {
  * Renders the Sync modal with script selection, run controls, and live logs.
  *
  * @param {Object} props Component properties.
- * @param {boolean} props.is_Sync_Modal_Open Whether the modal is visible.
- * @param {(isOpen: boolean) => void} props.set_is_Sync_Modal_Open Closes or opens the modal.
+ * @param {boolean} props.open_Sync_Service Whether the modal is visible.
+ * @param {(isOpen: boolean) => void} props.set_open_Sync_Service Closes or opens the modal.
  * @returns {JSX.Element|null} The modal markup or null while closed.
  */
-export default function M_Sync({ is_Sync_Modal_Open, set_is_Sync_Modal_Open }) {
+export default function M_Sync({ open_Sync_Service, set_open_Sync_Service }) {
     const [selected_Scripts, set_selected_Scripts] = useState(SELECTED_SCRIPTS);
 
     const [run_Status, set_run_Status] = useState("idle");
@@ -368,10 +368,10 @@ export default function M_Sync({ is_Sync_Modal_Open, set_is_Sync_Modal_Open }) {
      * @returns {void}
      */
     const close_Modal = () => {
-        set_is_Sync_Modal_Open(false);
+        set_open_Sync_Service(false);
     };
 
-    if (!is_Sync_Modal_Open) {
+    if (!open_Sync_Service) {
         return null;
     }
 

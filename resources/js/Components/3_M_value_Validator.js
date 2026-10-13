@@ -17,6 +17,9 @@ export function validate_imported_json(imported_json_data) {
     const duplicate_entities_f_s_list = [];
     const new_tablename_list = [];
 
+    let new_M_value_f = {};
+    let new_M_value_entities = {};
+
     const comment_string = imported_json_data?._comment || "";
 
     const is_app_data =
@@ -32,7 +35,7 @@ export function validate_imported_json(imported_json_data) {
         const S_items = GLOBAL_METADATA?.m_data?.s || GLOBAL_METADATA?.s || {};
         Object.keys(S_items).forEach((key) => seen_key_set.add(key));
 
-        check_Duplicate_f_s_entities_and_validate_fieldname(
+        new_M_value_f = check_Duplicate_f_s_entities_and_validate_fieldname(
             imported_json_data,
             /* subTabs */ ["f", "s"],
         );
@@ -49,9 +52,9 @@ export function validate_imported_json(imported_json_data) {
 
         //other Entities Checks
         const entities_imported = imported_json_data.entities;
-        check_Existence_Entities_F_S(entities_imported);
+        new_M_value_entities = check_Existence_Entities_F_S(entities_imported);
         check_Duplicate_Entities_F_S(entities_imported);
-        insert_new_tablename(entities_imported);
+        insert_new_tablename(entities_imported); // = update entities cascade t
     }
 
     const total_errors = [
@@ -66,6 +69,8 @@ export function validate_imported_json(imported_json_data) {
         error_message:
             // add newline to show in dangerouslySetInnerHTML={{ __html: error_Dashboard }}
             total_errors.length > 0 ? total_errors.join("<br />") : null,
+        new_M_value_f: new_M_value_f,
+        new_M_value_entities: new_M_value_entities,
     };
 
     /**
@@ -73,20 +78,67 @@ export function validate_imported_json(imported_json_data) {
      *
      * @param {Object} entities_imported
      */
+    // function check_Existence_Entities_F_S(entities_imported) {
+    //     const existing_f =
+    //         GLOBAL_METADATA?.app_data?.f || GLOBAL_METADATA?.f || {};
+    //     const existing_s =
+    //         GLOBAL_METADATA?.m_data?.s || GLOBAL_METADATA?.s || {};
+
+    //     Object.entries(entities_imported || {}).forEach(
+    //         ([table_name, field_list]) => {
+    //             if (!Array.isArray(field_list)) return;
+
+    //             field_list.forEach((field_string) => {
+    //                 // Expected format: "f::NAME" or "s::EMAIL"
+    //                 const parts = field_string.split("::");
+    //                 if (parts.length === 2) {
+    //                     const prefix = parts[0].toLowerCase();
+    //                     const field_key = parts[1].toUpperCase();
+
+    //                     let exists = false;
+    //                     if (prefix === "f") {
+    //                         exists = Object.prototype.hasOwnProperty.call(
+    //                             existing_f,
+    //                             field_key,
+    //                         );
+    //                     } else if (prefix === "s") {
+    //                         exists = Object.prototype.hasOwnProperty.call(
+    //                             existing_s,
+    //                             field_key,
+    //                         );
+    //                     }
+
+    //                     if (!exists) {
+    //                         existence_entities_f_s_list.push(
+    //                             `ENTITY Field NOT FOUND ===> Table: '${table_name}' references missing field '${field_string}'`,
+    //                         );
+    //                     }
+    //                 }
+    //             });
+    //         },
+    //     );
+    // }
     function check_Existence_Entities_F_S(entities_imported) {
         const existing_f =
             GLOBAL_METADATA?.app_data?.f || GLOBAL_METADATA?.f || {};
         const existing_s =
             GLOBAL_METADATA?.m_data?.s || GLOBAL_METADATA?.s || {};
 
-        Object.entries(entities_imported || {}).forEach(
+        // 1. สร้างสำเนาข้อมูลของ entities เพื่อเตรียมกรองฟิลด์ออก
+        const entities_validated = JSON.parse(
+            JSON.stringify(entities_imported || {}),
+        );
+
+        Object.entries(entities_validated || {}).forEach(
             ([table_name, field_list]) => {
                 if (!Array.isArray(field_list)) return;
 
-                field_list.forEach((field_string) => {
-                    // Expected format: "f::NAME" or "s::EMAIL"
-                    const parts = field_string.split("::");
-                    if (parts.length === 2) {
+                // 2. filter out non existing f:: or s:: in entities
+                entities_validated[table_name] = field_list.filter(
+                    (field_string) => {
+                        const parts = field_string.split("::");
+                        if (parts.length !== 2) return false;
+
                         const prefix = parts[0].toLowerCase();
                         const field_key = parts[1].toUpperCase();
 
@@ -103,15 +155,18 @@ export function validate_imported_json(imported_json_data) {
                             );
                         }
 
+                        // 3. note Error , it f:: , s:: not found
                         if (!exists) {
                             existence_entities_f_s_list.push(
                                 `ENTITY Field NOT FOUND ===> Table: '${table_name}' references missing field '${field_string}'`,
                             );
                         }
-                    }
-                });
+                        return exists;
+                    },
+                );
             },
         );
+        return entities_validated;
     }
 
     /**
@@ -144,7 +199,6 @@ export function validate_imported_json(imported_json_data) {
      * xxxxxxxxxx
      * 1. app data categories (f and s) for duplicate keys
      * 2. fieldname = naming conventions.
-     *
      * @param {Object} imported_json_data
      * @param {Set} seen_key_set
      * @param {Array} duplicate_key_list
@@ -154,16 +208,20 @@ export function validate_imported_json(imported_json_data) {
         imported_json_data,
         subTabs,
     ) {
+        // const validated_data = {};
+        const validated_subTab_data = {};
+
         subTabs.forEach((subTab) => {
             const subTab_data = imported_json_data?.[subTab];
             if (!subTab_data) return;
+            console.log("fdjlaöjfdlksafkl _ subTab_data = ", subTab_data);
+            // const validated_subTab_data = {};
 
             Object.entries(subTab_data).forEach(([M_value_KEY, field_data]) => {
-                // 1. check app data categories (f and s) for duplicate keys
+                // 1. check duplicate keys
                 if (seen_key_set.has(M_value_KEY)) {
                     duplicate_key_list.push(M_value_KEY);
                     const is_SpecialField = check_SpecialField(M_value_KEY);
-
                     const text_SpecialField = is_SpecialField
                         ? "( = Special Field in M-Data )"
                         : "";
@@ -174,16 +232,21 @@ export function validate_imported_json(imported_json_data) {
                     seen_key_set.add(M_value_KEY);
                 }
 
+                // 2. Validation of fieldname (for subTab 'f' 's' )
                 if (["f", "s"].includes(subTab)) {
                     const fieldname = field_data[0];
                     if (fieldname !== M_value_KEY.toLowerCase()) {
+                        // if Invalid fieldname , then do not add to validated_data
                         invalid_value_list.push(
                             `INVALID fieldname convention ===> '${M_value_KEY}' : '${fieldname}'`,
                         );
+                        return; // skip invalid field_data
                     }
                 }
+                validated_subTab_data[M_value_KEY] = field_data;
             });
         });
+        return validated_subTab_data;
     }
 
     /**
@@ -201,7 +264,6 @@ export function validate_imported_json(imported_json_data) {
         Object.keys(entities_imported || {}).forEach((table_name) => {
             const upper_table_name = table_name.toUpperCase();
             if (!T_items_set.has(upper_table_name)) {
-                // เก็บชื่อตารางใหม่ในรูปแบบที่พร้อมนำไปอัปเดตเข้า app_data.t
                 new_tablename_list.push({
                     key: upper_table_name,
                     value: table_name.toLowerCase(),

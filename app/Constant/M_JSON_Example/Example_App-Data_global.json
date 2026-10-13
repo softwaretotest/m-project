@@ -1,0 +1,17 @@
+{
+    "_comment": "App-Data.json",
+    "f": {
+        "IMAGE": ["image", ["d::STRING", 255], "u::FILE", ["cd::DEFAULT", ""]],
+        "NAME": ["name", ["d::STRING", 255], "u::TEXT", "cud::REQUIRED"],
+        "IS_ACTIVE": [
+            "is_active",
+            "d::BOOLEAN",
+            "u::SELECT",
+            ["cd::DEFAULT", true]
+        ],
+        "USER_ID": ["user_id", "cd::FOREIGN"]
+    },
+    "t": {
+        "USERS": "users"
+    }
+}

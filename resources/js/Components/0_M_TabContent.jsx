@@ -188,7 +188,7 @@ export default function TabContent() {
                     />
 
                     <button
-                        className="dashboard-header-button"
+                        className="tab-content-header-button"
                         onClick={() => {
                             add_field();
                         }}

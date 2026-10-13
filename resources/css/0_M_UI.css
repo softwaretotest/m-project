@@ -78,7 +78,128 @@ body {
 .json-item {
     margin-left: 20px;
 }
-/* --- Dashboard Main Layout --- */
+
+/* --- Dashboard Header --- */
+.header {
+    display: grid;
+    grid-template-columns:
+        max-content max-content max-content minmax(0, 1fr)
+        max-content;
+    grid-template-areas: "header-target header-button btn-copy-container header-title btn-setting";
+    align-items: center;
+    width: 100%;
+    gap: 5px;
+    padding: 4px;
+    box-sizing: border-box;
+    background-color: #94fb60;
+}
+.header-button {
+    grid-area: header-button;
+}
+.btn-copy-container {
+    display: flex;
+    flex-direction: row;
+    gap: 3px;
+    grid-area: btn-copy-container;
+}
+.header-title {
+    grid-area: header-title;
+}
+.btn-setting {
+    grid-area: btn-setting;
+}
+.header-button {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 7px;
+    background-color: #3498db;
+}
+.button-info {
+    font-size: 10px;
+    color: #511c29;
+    background-color: #fbfb60;
+}
+
+.btn-setting {
+    flex: 0; /* prevent flex squeeze */
+    height: 100%; /* high full of header */
+    padding: 5px;
+    margin: 0px;
+    transition: 0.2s ease;
+    cursor: pointer;
+    transform: scale(1);
+
+    /* make to square */
+    aspect-ratio: 1 / 1;
+    width: 55px;
+
+    font-weight: bold;
+    border-radius: 3px;
+    border-width: 3px;
+    background-color: rgb(45, 202, 45);
+
+    align-items: center;
+}
+
+/* --- btn-copy-* --- */
+.btn-copy-app span,
+.btn-copy-entities span {
+    font-size: 9px;
+    margin: 5px;
+    padding: 1px;
+    background-color: #fbfb60;
+}
+.btn-copy-container {
+    grid-area: btn-copy-container;
+    display: flex;
+    height: 100%;
+    gap: 5px;
+}
+.btn-copy-app,
+.btn-copy-entities {
+    height: 100%; /* high to parent size 100% */
+    aspect-ratio: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 0px;
+    margin: 0px;
+}
+.btn-copy-app {
+    background-color: #6dfefb;
+}
+.btn-copy-entities {
+    background-color: #fea7ff;
+}
+
+.header-target,
+.header-button,
+.tab-content-header-button,
+.header-title {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 24px;
+    font-weight: bold;
+    gap: 0;
+    padding: 4px;
+    margin: 0px;
+}
+
+.header-target,
+.tab-content-header-button,
+.header-button {
+    border: 3px solid #736a6a;
+    background: #64adf7;
+}
+
 div.dashboard-wrapper {
     padding: 0px !important;
     display: flex;
@@ -86,6 +207,7 @@ div.dashboard-wrapper {
     padding: 0px;
     margin: 0px;
 }
+
 .dashboard-wrapper {
     flex: 1;
     flex-direction: column;
@@ -93,38 +215,8 @@ div.dashboard-wrapper {
     max-width: 2000px;
     font-family: Arial;
 }
-/* --- Dashboard Header Layout (left - middle - right) --- */
-h1.dashboard-header {
-    margin: 0 !important;
-    padding: 0 !important;
-}
 
-/* --- Dashboard Header Layout (Fixed & Clean) --- */
-.dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    gap: 5px;
-    box-sizing: border-box;
-    background-color: #94fb60; /* ปรับตามสีพื้นหลังเดิมของคุณ */
-}
-
-/* 3 Blocks have same size */
-.dashboard-header > * {
-    flex: 1;
-    align-items: center;
-}
-
-/* left block */
-.dashboard-header > *:first-child,
-/* middle block */
-.dashboard-header > *:nth-child(2),
-/* right block */
-.dashboard-header > *:last-child {
-    justify-content: center;
-}
-
+/* --- Tabs M_DATA , APP_DATA , ENTITIES ---*/
 .tab-switcher-container {
     display: flex;
     gap: 10px;
@@ -387,8 +479,6 @@ h1.dashboard-header {
     border-color: #0056b3 !important;
 }
 
-.dashboard-header-title,
-.dashboard-header-button,
 .delete-button,
 .field-nav-link {
     text-align: left;
@@ -403,71 +493,28 @@ h1.dashboard-header {
     background: #f8f9fa;
 }
 
-.dashboard-header-title {
-    text-align: center;
-    border-color: transparent;
-    background-color: transparent;
-}
-
 .field-nav-link {
     padding: 10;
     margin: 0px;
 }
 
 .btn-setting:hover,
-.dashboard-header-button:hover,
+.header-button:hover,
+.tab-content-header-button:hover,
 .delete-button:hover,
 .field-nav-link:hover {
     background: #e2e6ea;
 }
 
 .btn-setting:active,
-.dashboard-header-button.active,
+.tab-content-header-button.active,
+.tab-content-header-button.active,
 .delete-button.active,
 .field-nav-link.active {
     background-color: #e3342f;
     color: white;
     border-color: #e3342f;
     font-weight: bold;
-}
-
-.dashboard-header-button {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 7px;
-    background-color: #3498db;
-}
-
-.dashboard-header-button p {
-    margin: 0;
-}
-
-.button-info {
-    font-size: 10px;
-    color: #511c29;
-    background-color: #b5e5a7;
-}
-
-.btn-setting {
-    flex: 0; /* prevent flex squeeze */
-    height: 100%; /* high full of header */
-    padding: 5px;
-    margin-right: 5px;
-    transition: 0.2s ease;
-    cursor: pointer;
-    transform: scale(1);
-
-    /* make to square */
-    aspect-ratio: 1 / 1;
-    width: 55px;
-
-    font-weight: bold;
-    border-radius: 3px;
-    border-width: 3px;
-    background-color: rgb(45, 202, 45);
-
-    align-items: center;
 }
 
 .delete-button {
@@ -557,9 +604,13 @@ h1.dashboard-header {
     grid-template-columns: max-content minmax(0, 1fr) max-content;
     grid-template-rows: auto auto;
     grid-template-areas:
-        "tch-label new_field_name dashboard-header-button"
+        "tch-label new_field_name tab-content-header-button"
         "error-text error-text error-text";
     align-items: center;
+}
+
+.tab-content-header-button {
+    grid-area: tab-content-header-button;
 }
 
 .tch-label {
@@ -569,10 +620,6 @@ h1.dashboard-header {
 .new_field_name {
     grid-area: new_field_name;
     justify-self: end;
-}
-
-.dashboard-header-button {
-    grid-area: dashboard-header-button;
 }
 
 @keyframes blink-frequenz {
@@ -1042,15 +1089,69 @@ body.overflow-hidden {
     padding: 16px;
     box-sizing: border-box;
 }
+/* --- Example_Selector_App_Data --- */
+.example-selector-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
 
-/* --- btn-copy-* --- */
-.btn-copy-app span,
-.btn-copy-entities span {
-    font-size: 9px;
+.example-selector-modal {
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    width: fit-content;
+    max-width: 90vw; /* จำกัดความกว้างสูงสุดไม่ให้เกิน 90% ของหน้าจอ */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
-.btn-copy-app {
-    background-color: #6dfefb;
+
+.example-options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 15px;
+    max-height: 300px;
+    overflow-y: auto;
 }
-.btn-copy-entities {
-    background-color: #fea7ff;
+
+.example-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background-color: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.example-item:hover {
+    background-color: #e2e8f0;
+    border-color: #cbd5e1;
+}
+
+.example-name {
+    font-weight: 600;
+    color: #1e293b;
+    flex-shrink: 0;
+    margin-right: 15px;
+    text-transform: capitalize;
+}
+
+.example-desc {
+    color: #64748b;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px; /* จำกัดความกว้างไม่ให้ล้น เกินไปจะแสดงเป็นจุดไข่ปลา (...) */
 }
