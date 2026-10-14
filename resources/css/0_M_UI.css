@@ -143,6 +143,7 @@ body {
 }
 
 /* --- btn-copy-* --- */
+.btn-switch-mode span,
 .btn-copy-app span,
 .btn-copy-entities span {
     font-size: 9px;
@@ -150,6 +151,7 @@ body {
     padding: 1px;
     background-color: #fbfb60;
 }
+
 .btn-copy-container {
     grid-area: btn-copy-container;
     display: flex;
@@ -189,8 +191,19 @@ body {
     font-size: 24px;
     font-weight: bold;
     gap: 0;
-    padding: 4px;
+    padding: 0 4px;
     margin: 0px;
+}
+
+.header-title {
+    flex-direction: row;
+    gap: 7px;
+}
+
+.header-title span {
+    align-content: center;
+    color: black;
+    padding: 3px;
 }
 
 .header-target,
@@ -198,6 +211,13 @@ body {
 .header-button {
     border: 3px solid #736a6a;
     background: #64adf7;
+}
+
+.btn-switch-mode {
+    font-size: large;
+    font-weight: bold;
+    border-radius: 4px;
+    border-width: 3px;
 }
 
 div.dashboard-wrapper {
@@ -258,14 +278,17 @@ div.dashboard-wrapper {
     font-size: 0.85em;
 }
 
-/* แท็บที่ยังว่าง (0) ต้องไป Import */
-.nav-button.tab-empty {
+.blink-red {
     background-color: #8b0000;
     color: #fff;
-    animation: tab-empty-blink 1s ease-in-out infinite;
+    animation: blink-red 1s ease-in-out infinite;
 }
 
-@keyframes tab-empty-blink {
+.bg-green {
+    background-color: #94fb60;
+}
+
+@keyframes blink-red {
     0%,
     100% {
         opacity: 1;
@@ -467,14 +490,14 @@ div.dashboard-wrapper {
     border: 2px dashed #0056b3 !important;
     color: #000 !important;
 
-    /* expand item size to see more blink effect */
+    /* expand item size to see more blink-red effect */
     transform: scale(1.2);
     transition: all 0.15s ease-in-out;
 }
 
 /* --- Drop Success Blink Effect --- */
-.dropped-blink {
-    animation: blink-frequenz 0.7s ease-in-out 4;
+.dropped-blink-red {
+    animation: blink-red-frequenz 0.7s ease-in-out 4;
     background-color: #38f5e8b9 !important;
     border-color: #0056b3 !important;
 }
@@ -498,6 +521,8 @@ div.dashboard-wrapper {
     margin: 0px;
 }
 
+.header-target:hover,
+.btn-switch-mode:hover,
 .btn-setting:hover,
 .header-button:hover,
 .tab-content-header-button:hover,
@@ -622,7 +647,7 @@ div.dashboard-wrapper {
     justify-self: end;
 }
 
-@keyframes blink-frequenz {
+@keyframes blink-red-frequenz {
     0% {
         opacity: 1;
     }
@@ -649,7 +674,7 @@ div.dashboard-wrapper {
     text-align: center;
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
 
-    animation: blink-frequenz 0.5s ease-in-out 4;
+    animation: blink-red-frequenz 0.5s ease-in-out 4;
 }
 
 /* CSS for ENTITIES TAB */

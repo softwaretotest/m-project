@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Constant;
+
 //0_Maker.php
 
 class Maker
@@ -26,7 +27,9 @@ class Maker
         }
 
         $tableName = self::checkTableName($className);
-        if (!$tableName) return;
+        if (!$tableName) {
+            return;
+        }
 
         if (!class_exists($className)) {
             echo "Class {$className} not found!\n";
@@ -47,13 +50,13 @@ class Maker
         foreach ($fields as $field) {
 
             /**
-             * array_shift() 
-             * move the first array element to $name variable 
+             * array_shift()
+             * move the first array element to $name variable
              * and remove it from array
-             * the first element is the field name 
+             * the first element is the field name
              * according to M-Project convention
              * a field (business field) is always and array)
-             * Example: 
+             * Example:
             class f
             {
                 public const IMAGE = ['image', d::STRING, u::FILE ];
@@ -65,8 +68,9 @@ class Maker
              */
             $name = array_shift($field);
 
-            if ($className === "App\Constant\ProductConstant")
+            if ($className === "App\Constant\ProductConstant") {
                 echo print_r($name, true) . "\n\n";
+            }
 
             $schema[$name] = MakeSchema::separate_db_ui($name, $field);
         }
@@ -78,7 +82,7 @@ class Maker
         }
 
         /**
-         * Initialize the MakeMigration to make Singleton 
+         * Initialize the MakeMigration to make Singleton
          */
         if (self::$makeMigration === null) {
             self::$makeMigration = new MakeMigration();

@@ -1,5 +1,5 @@
-# $folders = @("app/Constant", "app/Http/Controllers", "resources")
-$folders = @("app/Constant", "app/Http/Controllers")
+$folders = @("app/Constant", "app/Http/Controllers", "resources")
+# $folders = @("app/Constant", "app/Http/Controllers")
 # $folders = @("resources")
 $outputFile = "ProjectSourceCode.txt"
 
@@ -10,8 +10,8 @@ foreach ($folder in $folders) {
     if (Test-Path $folder) {
         Add-Content $outputFile "`n--- FOLDER: $folder ---`n"
         
-        # ดึงไฟล์ที่ต้องการโดยครอบคลุมทั้ง PHP, JS และ JSX
-        Get-ChildItem -Path $folder -Recurse -Include *.php, *.js, *.jsx | ForEach-Object {
+        # ดึงไฟล์ที่ต้องการโดยครอบคลุมทั้ง PHP, JS, JSX, JSON, CSS
+        Get-ChildItem -Path $folder -Recurse -Include *.php, *.js, *.jsx, *.css, *.json | ForEach-Object {
             Add-Content $outputFile "`n[FILE: $($_.FullName)]`n"
             Get-Content $_.FullName | Add-Content $outputFile
             Add-Content $outputFile "`n"

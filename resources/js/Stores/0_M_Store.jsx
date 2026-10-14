@@ -149,7 +149,7 @@ export const use_M_Store = create((set) => ({
             return { Error_FIELDNAME: Error_FIELDNAME };
         }),
     /**
-     * * error blinks
+     * * error blink-reds
      * * because of css .error-text (animation)
      * * and setTimeout to reset error text
      * * setTimeout is a trick to make

@@ -4,8 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
-class TargetManager_Config_Controller extends Controller
+class TargetManager_Controller extends Controller
 {
     private const CONFIG_PATH = 'Constant/3_TargetManager_Config.json';
 
@@ -56,7 +57,10 @@ class TargetManager_Config_Controller extends Controller
             }
 
             $name = basename($real);
-            $config['targets'][$name] = ['root_path' => $real];
+
+            //fix bug, update root_path without overwith mode
+            $config['targets'][$name]['root_path'] = $real;
+
             $config['activeTarget'] = $name;
         }
 
@@ -334,4 +338,62 @@ class TargetManager_Config_Controller extends Controller
             ? strcasecmp($m_Project_Path, $candidate_Path) === 0
             : $m_Project_Path === $candidate_Path;
     }
+
+    public function get_target_mode(Request $request): JsonResponse
+    {
+        $configPath = $this->get_Config_Path();
+
+        if (!file_exists($configPath)) {
+            return response()->json([
+                'success' => true,
+                'mode' => false
+            ]);
+        }
+
+        $content = file_get_contents($configPath);
+        $data = json_decode($content, true);
+
+        $activeTarget = $data['activeTarget'] ?? '';
+        $mode = false;
+
+        if ($activeTarget && isset($data['targets'][$activeTarget]['mode'])) {
+            $mode = $data['targets'][$activeTarget]['mode'];
+        }
+
+        return response()->json([
+            'success' => true,
+            'mode' => $mode
+        ]);
+    }
+
+    public function save_target_mode(Request $request): JsonResponse
+    {
+        Log::info('DEBUG Request Data:', $request->all());
+        $newMode = $request->input('mode', 'DEV');
+        $configPath = $this->get_Config_Path();
+
+        $config = ['activeTarget' => '', 'targets' => []];
+        if (file_exists($configPath)) {
+            $old = json_decode(file_get_contents($configPath), true);
+            if (is_array($old)) {
+                $config = $old;
+            }
+        }
+
+        $activeTarget = $config['activeTarget'] ?? '';
+        if ($activeTarget && isset($config['targets'][$activeTarget])) {
+            $config['targets'][$activeTarget]['mode'] = $newMode;
+        }
+
+        file_put_contents(
+            $configPath,
+            json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+        );
+
+        return response()->json([
+            'success' => true,
+            'mode' => $newMode
+        ]);
+    }
+
 }

@@ -1,8 +1,11 @@
 <?php
 
+//0_Runner.php
+
 namespace App\Constant;
 
-//0_Runner.php
+require __DIR__ . '/../../vendor/autoload.php';
+
 
 class Runner
 {
@@ -29,16 +32,16 @@ class Runner
             $error_no_entities = "--- Runner: No entity found. Nothing to migrate. ---\n"
                 . "    Target : " . TargetManager::get_activeTarget() . "\n"
                 . "    Path   : " . (string)TargetManager::gen_path('Constant');
-            Logger::error($error_no_entities);
             Logger::collect_error($error_no_entities); // for 3_M_Sync_Service
+            Logger::error($error_no_entities);
         }
 
         if ($count > self::MAX_MIGRATIONS) {
             $error_max_migrations = "--- CRITICAL: Migration limit exceeded. "
                 . "\n Found {$count} tables, limit is " . self::MAX_MIGRATIONS
                 . "\n Please split your migration tasks across multiple runs. ---";
-            Logger::error($error_max_migrations);
             Logger::collect_error($error_max_migrations); // for 3_M_Sync_Service
+            Logger::error($error_max_migrations);
         }
 
         foreach ($entities as $entity) {
@@ -139,3 +142,5 @@ class Runner
         return true;
     }
 }
+
+Runner::run();

@@ -9,7 +9,7 @@ class M_Sync_Service_EXE_Script
     private const SCRIPT_FILES = [
         M_Sync_Service::SCRIPT_JSON_TO_PHP => 'app/Constant/2_M_Sync_JSON.php',
         M_Sync_Service::SCRIPT_PHP_TO_JSON => 'app/Constant/1_M_Sync.php',
-        M_Sync_Service::SCRIPT_MIGRATION => 'app/Constant/0_Runner_run.php',
+        M_Sync_Service::SCRIPT_MIGRATION => 'app/Constant/0_Runner.php',
         M_Sync_Service::SCRIPT_GENERATORS => 'app/Constant/3_EntityGenerator.php',
         M_Sync_Service::SCRIPT_COPY_JS => 'app/Constant/3_M_Sync_UI_Formater_JS.php',
     ];

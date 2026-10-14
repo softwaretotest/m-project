@@ -87,7 +87,7 @@ export default function M_Dashboard({ activeTarget }) {
 
     /**
      * * we need to reset before show error
-     * * to show the blink effect
+     * * to show the blink-red effect
      * * Timeout : reset 50 and show 100 ,
      * * because React re-render immediatly
      * * so we need delay to show error again
@@ -162,6 +162,73 @@ export default function M_Dashboard({ activeTarget }) {
         use_M_Store.getState().setActiveField(null);
     }
 
+    const [mode, set_mode] = useState(false);
+
+    useEffect(() => {
+        fetchModeFromBackend();
+    }, []);
+
+    function fetchModeFromBackend() {
+        fetch("/api/target/get-target-mode")
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                if (data && data.success) {
+                    set_mode(data.mode);
+                }
+            })
+            .catch(function (error) {
+                console.error("Error fetching target mode:", error);
+            });
+    }
+
+    function switch_mode() {
+        if (false === mode || mode === "" || !mode) {
+            set_mode("DEV");
+            saveModeToBackend("DEV");
+            return;
+        }
+
+        if ("DEV" === mode) {
+            var isConfirmed = window.confirm(
+                "You cannot change back to DEV again in UI. Are you sure to set mode to PROD ?",
+            );
+
+            if (!isConfirmed) {
+                return;
+            }
+
+            set_mode("PROD");
+            saveModeToBackend("PROD");
+            return;
+        }
+
+        if ("PROD" === mode) {
+            return;
+        }
+    }
+
+    function saveModeToBackend(targetMode) {
+        fetch("/api/target/save-target-mode", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+            body: JSON.stringify({ mode: targetMode }),
+        })
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                console.log("Mode saved successfully:", data);
+            })
+            .catch(function (error) {
+                console.error("Error saving mode:", error);
+            });
+    }
+
     return (
         <>
             {error_Dashboard && (
@@ -193,9 +260,11 @@ export default function M_Dashboard({ activeTarget }) {
                         className="header-target"
                         onClick={() => save_Target_App("", set_error_Dashboard)}
                     >
-                        <span>{active_Target_App} Dashboard</span>
+                        {active_Target_App} Dashboard
+                        <br />
                         <span className="button-info">click to change App</span>
                     </button>
+
                     {show_add_USERS && (
                         <button
                             className="header-button"
@@ -204,6 +273,7 @@ export default function M_Dashboard({ activeTarget }) {
                             ADD USERS TABLE
                         </button>
                     )}
+
                     <div className="btn-copy-container">
                         <button
                             className="btn-copy-app btn-setting"
@@ -218,7 +288,6 @@ export default function M_Dashboard({ activeTarget }) {
                         </button>
                         <button
                             className="btn-copy-entities btn-setting"
-                            // onClick={() => handleCopyData("entities")}
                             onClick={() => {
                                 use_M_Store.getState().setActiveTab("entities");
                                 set_open_Example(true);
@@ -230,7 +299,27 @@ export default function M_Dashboard({ activeTarget }) {
                         </button>
                     </div>
 
-                    <div className="header-title">Project M</div>
+                    <div className="header-title">
+                        <span>Project M</span>
+                        <button
+                            className={`btn-switch-mode 
+                                ${
+                                    false === mode || mode === "PROD"
+                                        ? "blink-red"
+                                        : "bg-green"
+                                }`}
+                            onClick={() => switch_mode()}
+                        >
+                            {mode === false ? "DEV / PROD" : mode}
+                            <br />
+                            <span>
+                                {mode === "PROD"
+                                    ? "LOCKED (PROD)"
+                                    : "click to switch"}
+                            </span>
+                        </button>
+                    </div>
+
                     <button
                         className="btn-setting"
                         onClick={() => set_open_Sync_Service(true)}
@@ -249,7 +338,7 @@ export default function M_Dashboard({ activeTarget }) {
                             <button
                                 key={tab.id}
                                 onClick={() => handle_Tab_Click(tab.id)}
-                                className={`nav-button ${isActive ? "active" : ""} ${isEmpty ? "tab-empty" : ""}`}
+                                className={`nav-button ${isActive ? "active" : ""} ${isEmpty ? "blink-red" : ""}`}
                             >
                                 {tab.label}
                                 {count !== null && (

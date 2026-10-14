@@ -27,7 +27,7 @@ export default function Sidebar() {
     useScrollIntoView(activeField, scrollRefs);
 
     /**
-     * Ref for drag item and state for drop blinking effect
+     * Ref for drag item and state for drop blink-reding effect
      */
     const dragged_Index = useRef(null);
     const [droppedIndex, setDroppedIndex] = useState(null);
@@ -81,7 +81,7 @@ export default function Sidebar() {
      * * check if drop on the first item, then set_error
      * * Re-order selected_F_S on Drop
      * * save new sorted Entities to backend , after drop
-     * * dropped item blinks 3000ms after drop
+     * * dropped item blink-reds 3000ms after drop
      * * auto scroll to dropped item and set it to active field
      * @param {*} target_Index
      * @returns
@@ -116,7 +116,7 @@ export default function Sidebar() {
         const new_M_value = make_M_value_by_selected_F_S();
         await M_value_Service.update(new_M_value);
 
-        // dropped item blinks 3000ms after drop
+        // dropped item blink-reds 3000ms after drop
         setDroppedIndex(target_Index);
         setTimeout(() => {
             setDroppedIndex((prev) => (prev === target_Index ? null : prev));
@@ -145,7 +145,7 @@ export default function Sidebar() {
                     // --------  Drag and Drop acition ----------
                     className={`field-nav-link 
                         ${activeField === M_value_KEY.toLowerCase() ? "active" : ""} 
-                        ${droppedIndex === index ? "dropped-blink" : ""}`}
+                        ${droppedIndex === index ? "dropped-blink-red" : ""}`}
                     draggable={
                         activeTab === "entities" && activeSubTab === "entities"
                     }
