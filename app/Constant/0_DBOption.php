@@ -43,7 +43,7 @@ class DBOption
      * * [BEHAVIOR: Overwrite / Replace Existing Fields]
      * * Loop all lines of Migration file and replace if matches DBOption found
      */
-    private static function updateLines(array $lines, array &$processedFields, string $tableName, array $dbSchema): array
+    private static function updateLines(array $lines, array &$duplicateFields, string $tableName, array $dbSchema): array
     {
         $inTable = false;
         foreach ($lines as $index => $line) {
@@ -60,32 +60,38 @@ class DBOption
                 $inTable = false;
             }
 
-            if ($inTable) {
-                foreach ($dbSchema as $fieldName => $dbOptions) {
-                    if (strpos($line, "'{$fieldName}'") !== false) {
-                        /**
-                         * * * SPECIAL CASE users table in Laravel :
-                         * * this line overwrite existing Laravel migration methode
-                         * * e.g.
-                         * *    $table->string('name');
-                         * *    $table->string('email')->unique();
-                         * *    ... etc.
-                         * * So, this must be commented out // $lines[$index] = ....
-                         */
-                        // $lines[$index] = "            " . self::makeLine($fieldName, $dbOptions) . ";";
+            if ($inTable === false) {
+                continue;
+            }
 
-                        /**
-                         * * but, we still need to set
-                            $processedFields[] = $fieldName;
-                         * * to make to make function makeLines() works correctly
-                         * * otherwise it can overwrite laravel methode
-                         * * e.g. from $table->string('name', 255) to $table->decimal('name', 10, 2);
-                         * * and can cause error
-                         */
-                        $processedFields[] = $fieldName;
-                    }
+            foreach ($dbSchema as $fieldName => $dbOptions) {
+                if (strpos($line, "'{$fieldName}'") !== false) {
+                    /**
+                     * * * SPECIAL CASE users table in Laravel :
+                     * * this line overwrite existing Laravel migration methode
+                     * * e.g.
+                     * *    $table->string('name');
+                     * *    $table->string('email')->unique();
+                     * *    ... etc.
+                     * * So, this must be commented out // $lines[$index] = ....
+                     */
+                    // $lines[$index] = "            " . self::makeLine($fieldName, $dbOptions) . ";";
+
+                    /**
+                     * * but, we still need to set
+                        $duplicateFields[] = $fieldName;
+                     * * to make to make function makeLines() works correctly
+                     * * otherwise it can overwrite laravel methode
+                     * * e.g. from $table->string('name', 255) to $table->decimal('name', 10, 2);
+                     * * and can cause error
+                     */
+                    $duplicateFields[] = $fieldName;
                 }
             }
+        }
+        if (false === empty($duplicateFields)) {
+            Logger::warning(" Migration found same fields on table : $tableName  = [ ".implode(', ', $duplicateFields) ."]");
+            Logger::error(" same field will not be overwritten , please correct Entities.json , remove the same fields!!!");
         }
         return $lines;
     }
@@ -225,7 +231,7 @@ class DBOption
      * @example ->default(0)
      * @example ->decimal(10, 2)
      */
-    public static function format(string $option): string
+    public static function format(string|array $option): string
     {
         // 1. Handle String
         if (is_string($option)) {

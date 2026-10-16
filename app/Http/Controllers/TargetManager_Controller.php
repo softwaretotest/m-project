@@ -339,26 +339,39 @@ class TargetManager_Controller extends Controller
             : $m_Project_Path === $candidate_Path;
     }
 
-    public function get_target_mode(Request $request): JsonResponse
+    /**
+         * * Internal helper to retrieve the current mode of the active target.
+         * * Can be called directly from backend scripts without an HTTP Request.
+         */
+    public function get_mode(): string|false
     {
         $configPath = $this->get_Config_Path();
 
         if (!file_exists($configPath)) {
-            return response()->json([
-                'success' => true,
-                'mode' => false
-            ]);
+            return false;
         }
 
         $content = file_get_contents($configPath);
         $data = json_decode($content, true);
 
+        if (!is_array($data)) {
+            return false;
+        }
+
         $activeTarget = $data['activeTarget'] ?? '';
-        $mode = false;
 
         if ($activeTarget && isset($data['targets'][$activeTarget]['mode'])) {
-            $mode = $data['targets'][$activeTarget]['mode'];
+            return $data['targets'][$activeTarget]['mode'];
         }
+        return false;
+    }
+
+    /**
+     * API Endpoint for Frontend UI
+     */
+    public function get_target_mode(Request $request): JsonResponse
+    {
+        $mode = $this->get_mode();
 
         return response()->json([
             'success' => true,

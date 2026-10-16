@@ -1,4 +1,4 @@
-$folders = @("app/Constant", "app/Http/Controllers", "resources")
+$folders = @("app/Constant", "app/Http/Controllers", "resources", "routes")
 # $folders = @("app/Constant", "app/Http/Controllers")
 # $folders = @("resources")
 $outputFile = "ProjectSourceCode.txt"

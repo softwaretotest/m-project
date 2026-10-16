@@ -1,8 +1,15 @@
 {
     "_comment": "Entities.json",
     "entities": {
-        "USERS": ["f::NAME", "s::EMAIL", "f::IS_ACTIVE", "f::IMAGE"],
-        "SHOPS": ["f::NAME", "f::IMAGE", "f::USER_ID"],
+        "USERS": [
+            "f::IS_ACTIVE",
+            "f::IMAGE"
+        ],
+        "SHOPS": [
+            "f::NAME",
+            "f::IMAGE",
+            "f::USER_ID"
+        ],
         "PRODUCTS": [
             "f::NAME",
             "f::IMAGE",

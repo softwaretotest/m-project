@@ -48,32 +48,32 @@ class MakeMigration
         MigrationFile::createNew($tableName);
     }
 
-    /**
-     * Overwrite the existing migration file with the processed content.
-     */
-    public static function replaceExisting(string $filePath, string $tableName): void
-    {
-        M_Historizer::move_old_file_to_history($filePath);
+    // /**
+    //  * Overwrite the existing migration file with the processed content.
+    //  */
+    // public static function replaceExisting(string $filePath, string $tableName): void
+    // {
+    //     M_Historizer::move_old_file_to_history($filePath);
 
-        $content = file_get_contents($filePath);
-        $newContent = self::updateMigration($content, $tableName);
+    //     $content = file_get_contents($filePath);
+    //     $newContent = self::updateMigration($content, $tableName);
 
-        if ($content !== $newContent) {
-            if (is_writable($filePath)) {
-                file_put_contents($filePath, $newContent);
-                echo "--- Maker: Successfully updated migration file at [{$filePath}] ---\n\n";
-            } else {
-                echo "--- Maker: Error! File is not writable: [{$filePath}] ---\n\n";
-            }
-        } else {
-            echo "--- Maker: No changes detected. Migration file is already up to date. ---\n\n";
-        }
-    }
+    //     if ($content !== $newContent) {
+    //         if (is_writable($filePath)) {
+    //             file_put_contents($filePath, $newContent);
+    //             echo "--- Maker: Successfully updated migration file at [{$filePath}] ---\n\n";
+    //         } else {
+    //             echo "--- Maker: Error! File is not writable: [{$filePath}] ---\n\n";
+    //         }
+    //     } else {
+    //         echo "--- Maker: No changes detected. Migration file is already up to date. ---\n\n";
+    //     }
+    // }
 
     /**
      * Orchestrates the transformation of the migration content.
      */
-    private static function updateMigration(string $content, string $tableName): string
+    public static function updateMigration(string $content, string $tableName): string
     {
         $content = str_replace('tablename', $tableName, $content);
 
@@ -86,7 +86,7 @@ class MakeMigration
          */
         $lines = DBOption::makeLines($lines, $fields, $tableName, self::$dbSchema);
 
-        echo "--- Maker: Fields processed: " . implode(', ', $fields) . " ---\n\n";
+        // echo "--- Maker: Fields processed: " . implode(', ', $fields) . " ---\n\n";
         return implode("\n", $lines);
     }
 }
