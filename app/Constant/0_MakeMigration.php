@@ -2,8 +2,6 @@
 
 namespace App\Constant;
 
-//0_MakeMigration.php
-
 class MakeMigration
 {
     public static array $dbSchema = [];
@@ -20,9 +18,7 @@ class MakeMigration
             self::$dbSchema[$fieldName] = $data['db'];
         }
 
-        echo "---------------------------------------------------------------------";
-        echo "--- Maker: Starting Migration Generation for [{$tableName}] ---\n\n";
-        echo "---------------------------------------------------------------------";
+        Echo_::printBox("--- Maker: Starting Migration Generation for [{$tableName}] ---");
 
         // Search for the migration file dynamically based on tableName
         $pattern = (string) TargetManager::gen_path(
@@ -31,7 +27,6 @@ class MakeMigration
         );
 
         $files = glob($pattern);
-
 
         /**
          * * * SPECIAL CASE users table in Laravel :
@@ -48,24 +43,25 @@ class MakeMigration
          * * if duplicate field -> Logger::error
          * * else add only new field in 0_add_new_fields_to_orders_table.php
          */
-        if (!empty($files)) {
-            if (Runner::$mode === 'DEV') {
-                // delete *_{$tableName}_table.php
-                // delete file from system like rm of CMD
-                @unlink($files[0]);
-            }
+        if (!empty($files)
+            && Runner::$mode === 'DEV'
+        ) {
+            // delete *_{$tableName}_table.php
+            // delete file from system like rm of CMD
+            @unlink($files[0]);
             echo "--- Maker: Removed old migration [" . basename($files[0]) . "] ---\n\n";
         }
 
         if (Runner::$mode === 'DEV') {
             Echo_::printBox(" ----------- [ DEV ] mode selected ----------- ");
-            echo "--- Maker: Preparing to create migration file for [{$tableName}]. ---\n\n";
+            echo "--- Maker: Preparing to CREATE NEW TABLE [{$tableName}]. ---\n\n";
             MigrationFile::createNew($tableName);
         }
 
         if (Runner::$mode === 'PROD') {
             Echo_::printBox(" ----------- [ PROD ] mode selected ----------- ");
-            // Here begin Logic for PROD Flow
+            echo "--- Maker: Preparing to ADD NEW FIELDS for [{$tableName}]. ---\n\n";
+            MigrationFile::add_new_Field($tableName);
         }
     }
 }

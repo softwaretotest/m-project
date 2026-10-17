@@ -24,6 +24,8 @@
 
 # C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\app\Constant\3_M_Sync_UI_Formater_JS.php"
 
+# C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\app\Constant\0_MigrationFile.php"
+
 param (
     [string]$Path = "resources/js/Components",
     [string]$OutputFile = "SingleSourceCode.txt"
@@ -46,7 +48,7 @@ else {
 foreach ($folder in $folders) {
     if (Test-Path $folder) {
         Add-Content $OutputFile "`n--- FOLDER: $folder ---`n"
-            Get-ChildItem -Path $folder -Recurse -Include *.php, *.js, *.jsx | ForEach-Object {
+        Get-ChildItem -Path $folder -Recurse -Include *.php, *.js, *.jsx | ForEach-Object {
             Add-Content $OutputFile "`n[FILE: $($_.FullName)]`n"
             Get-Content $_.FullName | Add-Content $OutputFile
             Add-Content $OutputFile "`n"

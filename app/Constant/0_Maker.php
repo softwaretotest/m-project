@@ -39,16 +39,8 @@ class Maker
         $fields = $className::fields();
 
         $tableName = $className::TABLE_NAME;
-        // $line = str_repeat("=", strlen($tableName) + 4);
-
-        // echo "\n";
-        // echo "╔{$line}╗\n";
-        // echo "║  {$tableName}  ║\n";
-        // echo "╚{$line}╝\n";
-        // echo "\n";
 
         Echo_::printBox($tableName);
-
 
         foreach ($fields as $field) {
 

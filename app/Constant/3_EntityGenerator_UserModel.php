@@ -297,9 +297,9 @@ class EntityGenerator_UserModel
          * * indent = Einrücken (Tabulator-Zeichen)
          * * if has NewLine then keep it
             protected $fillable = [
-                'name',  // ใช้ $indent (8 spaces)
-                'email', // ใช้ $indent (8 spaces)
-            ];           // ใช้ $closeIndent (4 spaces)
+                'name',  // $indent (8 spaces)
+                'email', // $indent (8 spaces)
+            ];           // $closeIndent (4 spaces)
          */
         if (strpos(trim($laravel_user_fields_string), "\n") !== false) {
             preg_match('/\n(\s+)/', $laravel_user_fields_string, $indent_array);
@@ -332,8 +332,8 @@ class EntityGenerator_UserModel
      * @param string $quote     The quote character (' or ")
      * @return string           Formatted line (e.g., "    'name',")
      * * protected $fillable = [
-     * *            'name',  // ใช้ $indent (8 spaces)
-     * *            'email', // ใช้ $indent (8 spaces)
+     * *            'name',  // $indent (8 spaces)
+     * *            'email', // $indent (8 spaces)
      * *        ];
      */
     private static function formatFieldLine(string $fieldName, string $indent, string $quote): string

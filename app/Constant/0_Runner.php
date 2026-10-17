@@ -63,6 +63,14 @@ class Runner
 
             Maker::run($entity);
         }
+
+        // show all duplicate fields of all migration fields
+        if (!empty(MigrationFile::$allDuplicateFields)) {
+            Logger::warning(Logger::ERROR."---[ PROD - mode ] ⚠️🚫❌😡❌🚫⚠️ Duplicate fields found: ". print_r(MigrationFile::$allDuplicateFields, true));
+            exit(1); // = faild
+            //  we don't use Logger::error() , because throwing exception repeat error output 4 times
+        }
+
         Logger::finish();
     }
 
