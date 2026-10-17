@@ -18,14 +18,6 @@ class TargetManager
     public const CONFIG_FILE = __DIR__ . '/3_TargetManager_Config.json';
 
     /**
-     * getter เงียบ ไม่อ่านไฟล์ ไม่ log — ไว้ให้ Logger ใช้โดยเฉพาะ
-     */
-    public static function peek_activeTarget(): string
-    {
-        return self::$activeTarget;
-    }
-
-    /**
      * Read the active target, honoring a valid target override for Sync worker scripts.
      *
      * @return string Active target name, or an empty string when config is unavailable.
@@ -81,28 +73,17 @@ class TargetManager
      */
     public static function gen_path($path = '', $baseFolder = 'app'): string
     {
-        // ถ้ายังไม่มี activeTarget ให้คืนค่าพาธสำรองหรือหยุดเตือนทันที
+        // if no activeTarget return reserve path
         if (empty(self::$activeTarget) || !isset(self::$targets[self::$activeTarget])) {
-            // ดึงค่าล่าสุดมาก่อนเผื่อยังไม่ได้โหลด
-            self::get_activeTarget();
+            // get latest set target
             self::get_activeTarget();
             if (empty(self::$activeTarget) || !isset(self::$targets[self::$activeTarget])) {
-                return base_path($path); // คืนค่าพาธหลักของ m-project กันพัง
+                return base_path($path); // guard return m-project  , but why ?
             }
         }
 
         $basePath = self::$targets[self::$activeTarget]['root_path'];
         return $basePath . '/' . $baseFolder . '/' . ltrim($path, '/');
-    }
-
-    /**
-     * root path ของ target app ที่ active อยู่
-     *
-     * @return string e.g. 'C:/Users/o/.vscode/react/ecommerce'
-     */
-    public static function root(): string
-    {
-        return self::$targets[self::$activeTarget]['root_path'];
     }
 
 }

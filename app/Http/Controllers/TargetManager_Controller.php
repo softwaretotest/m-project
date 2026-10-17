@@ -15,7 +15,7 @@ class TargetManager_Controller extends Controller
      */
     private function get_Config_Path(): string
     {
-        return app_path(self::CONFIG_PATH);
+        return dirname(__DIR__, 2) . '/' . self::CONFIG_PATH;
     }
 
     /**

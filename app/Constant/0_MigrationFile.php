@@ -49,7 +49,7 @@ class MigrationFile
         self::dieSameMigration($isUser);
 
         // Execution Zone
-        self::makeFile($isUser);
+        self::makeFile();
     }
 
     /**
@@ -80,73 +80,47 @@ class MigrationFile
         }
     }
 
-    // private static function makeFile($isUser): void
-    // {
-    //     echo "--- Maker: Found draft file. Copying to migrations directory... ---\n\n";
-
-    //     if (copy(self::$draftPath, self::$destinationPath)) {
-    //         echo "--- Maker: Successfully created new migration: " . self::$fileName . " ---\n\n";
-
-    //         // if (!$isUser) {
-    //         MakeMigration::replaceExisting(self::$destinationPath, self::$tableName);
-    //         // }
-    //         // output successful
-    //         echo "\n";
-    //         echo "╔" . str_repeat("═", 48) . "╗\n";
-    //         echo "║" . str_pad("SUCCESSFUL", 48, " ", STR_PAD_BOTH) . "║\n";
-    //         echo "╚" . str_repeat("═", 48) . "╝\n";
-    //         echo "\n";
-    //     } else {
-    //         Logger::error("Error! Failed to copy to : " . self::$destinationPath);
-    //     }
-    // }
-
     /**
      * Process migration draft in-memory, handle history backup, and write the final file.
      *
      * Steps:
      * 1. Read the draft file contents directly into memory.
-     * 2. Process and update the migration schema in-memory using updateMigration.
+     * 2. Process and update the migration schema in-memory using DBOption::makeLines.
      * 3. Move any existing destination file to history storage.
      * 4. Write the final processed content to the destination path in a single step.
-     *
-     * @param bool $isUser Flag indicating if the entity is user.
-     * @return void
      */
-    private static function makeFile($isUser): void
+    private static function makeFile(): void
     {
-        echo "--- Maker: Reading draft file into memory... ---\n\n";
-
         // 1. Read draft file contents into memory
         $draftContent = file_get_contents(self::$draftPath);
 
-        if ($draftContent !== false) {
-
-            // 2. Process migration content in-memory (In-Memory Processing First)
-            $processedContent = MakeMigration::updateMigration($draftContent, self::$tableName);
-
-            // 3. Move old file to history if it already exists
-            if (file_exists(self::$destinationPath)) {
-                M_Historizer::move_old_file_to_history(self::$destinationPath);
-            }
-
-            // 4. Write the final processed content to the destination path
-            if (is_writable(dirname(self::$destinationPath))) {
-                file_put_contents(self::$destinationPath, $processedContent);
-
-                echo "--- Maker: Successfully created new migration: " . self::$fileName . " ---\n\n";
-
-                echo "\n";
-                echo "┌" . str_repeat("=", 48) . "┐\n";
-                echo "|" . str_pad("SUCCESSFUL", 48, " ", STR_PAD_BOTH) . "|\n";
-                echo "└" . str_repeat("=", 48) . "┘\n";
-                echo "\n";
-            } else {
-                Logger::error("Error! Directory is not writable: " . dirname(self::$destinationPath));
-            }
-
-        } else {
+        if ($draftContent === false) {
             Logger::error("Error! Failed to read draft file from : " . self::$draftPath);
         }
+
+        // 2. Process migration content in-memory (In-Memory Processing First)
+        $processedContent = DBOption::makeLines($draftContent, self::$tableName);
+
+        // 3. Move old file to history if it already exists
+        if (file_exists(self::$destinationPath)) {
+            M_Historizer::move_old_file_to_history(self::$destinationPath);
+        }
+
+        // 4. Write the final processed content to the destination path
+        if (is_writable(dirname(self::$destinationPath))) {
+            file_put_contents(self::$destinationPath, $processedContent);
+
+            Logger::success("--- Maker: Successfully created new migration: " . self::$fileName . " ---\n\n");
+
+            echo "\n";
+            echo "┌" . str_repeat("=", 48) . "┐\n";
+            echo "|" . str_pad("SUCCESSFUL", 48, " ", STR_PAD_BOTH) . "|\n";
+            echo "└" . str_repeat("=", 48) . "┘\n";
+            echo "\n";
+        } else {
+            Logger::error("Error! Directory is not writable: " . dirname(self::$destinationPath));
+        }
+
+
     }
 }

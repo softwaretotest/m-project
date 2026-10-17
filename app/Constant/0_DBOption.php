@@ -12,38 +12,58 @@ class DBOption
      * 2. Add missing lines
      * * ----------------------------------------------------
      * * VERY IMPORTAINT NOTE !!!
-     * * &$processedFields ( & = passed by Ref )
-     * * So, processedFields must be handled by both functions updateLines() and addMissingLines()
+     * * &$duplicateFields ( & = passed by Ref )
+     * * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+     * * So, duplicateFields must be handled by both functions :
+     * *    - find_Duplicate_Field_dbSchema()
+     * * and then :
+     * *    - addMissingLines()
      * * no matter if ($tableName === 'users') or not
      * * to complete the make Lines Process correctly
      * * without this line :
-     * *    $lines = self::updateLines($lines, $processedFields, $tableName, $dbSchema);
+     * *    $lines = self::find_Duplicate_Field_dbSchema($lines, $duplicateFields, $tableName, $dbSchema);
      * * 0_Runner.php will add multiple same line like this:
      * *
      * *      $table->string('name');                     // from original Laravel migration
      * *      $table->string('name', 255)->required();    // from M_Project UserConstant.php
      * *
      */
-    public static function makeLines(array $lines, array &$processedFields, string $tableName, array $dbSchema): array
+    public static function makeLines(string $draftContent, string $tableName): string
     {
+        $draftContent = str_replace('tablename', $tableName, $draftContent);
+
+        $lines = explode("\n", $draftContent);
+        $duplicateFields = [];
+
         /**
          * * * SPECIAL CASE users table in Laravel :
          * * do not remove this, even the code look unnecessary
          * * 1. Update existing lines
          **/
-        $lines = self::updateLines($lines, $processedFields, $tableName, $dbSchema);
+        self::find_Duplicate_Field_dbSchema(
+            $lines,
+            $duplicateFields,
+            $tableName,
+            MakeMigration::$dbSchema
+        );
 
         // 2. Add missing lines
-        self::addMissingLines($lines, $processedFields, $dbSchema);
+        self::addMissingLines(
+            $lines,
+            $duplicateFields,
+            MakeMigration::$dbSchema
+        );
 
-        return $lines;
+        return implode("\n", $lines);
     }
 
     /**
-     * * [BEHAVIOR: Overwrite / Replace Existing Fields]
-     * * Loop all lines of Migration file and replace if matches DBOption found
+     * * Loop all lines of Migration file --> Loop DbSchema
+     * * and collect duplicate fieldname in duplicateFields[]
+     * * if FOUND duplicate fieldname , then throw ERROR and stop for user to correct this
+     * * NOTE : m-project does not allow multiple same fieldname in all laravel migration files
      */
-    private static function updateLines(array $lines, array &$duplicateFields, string $tableName, array $dbSchema): array
+    private static function find_Duplicate_Field_dbSchema(array $lines, array &$duplicateFields, string $tableName, array $dbSchema)
     {
         $inTable = false;
         foreach ($lines as $index => $line) {
@@ -64,36 +84,21 @@ class DBOption
                 continue;
             }
 
-            foreach ($dbSchema as $fieldName => $dbOptions) {
+            foreach (array_keys($dbSchema) as $fieldName) {
                 if (strpos($line, "'{$fieldName}'") !== false) {
-                    /**
-                     * * * SPECIAL CASE users table in Laravel :
-                     * * this line overwrite existing Laravel migration methode
-                     * * e.g.
-                     * *    $table->string('name');
-                     * *    $table->string('email')->unique();
-                     * *    ... etc.
-                     * * So, this must be commented out // $lines[$index] = ....
-                     */
-                    // $lines[$index] = "            " . self::makeLine($fieldName, $dbOptions) . ";";
-
-                    /**
-                     * * but, we still need to set
-                        $duplicateFields[] = $fieldName;
-                     * * to make to make function makeLines() works correctly
-                     * * otherwise it can overwrite laravel methode
-                     * * e.g. from $table->string('name', 255) to $table->decimal('name', 10, 2);
-                     * * and can cause error
-                     */
+                    // collect duplicate line
                     $duplicateFields[] = $fieldName;
                 }
             }
         }
         if (false === empty($duplicateFields)) {
-            Logger::warning(" Migration found same fields on table : $tableName  = [ ".implode(', ', $duplicateFields) ."]");
-            Logger::error(" same field will not be overwritten , please correct Entities.json , remove the same fields!!!");
+            Logger::warning(Logger::ERROR." Migration found same fields on table : $tableName  = [ ".implode(', ', $duplicateFields) ."]");
+            Logger::warning(Logger::ERROR." same field will not be overwritten , please do following :");
+            Logger::warning(Logger::ERROR." 1. remove all same fields in Tab ENTITIES (of m-project UI)");
+            Logger::warning(Logger::ERROR." 2. re-run all Sync_Service Scripts");
+            // Flow stop here , until user correct duplicate manually in En
+            Logger::error(Logger::ERROR." !!! DUPLICATE FIELD FOUND ===> STOP ALL !!!");
         }
-        return $lines;
     }
 
     /**
@@ -101,7 +106,7 @@ class DBOption
      * 2. order foreing key to the end
      * 3. place $allNewLines over $table->timestamps();
      */
-    private static function addMissingLines(array &$lines, array $processedFields, array $dbSchema): void
+    private static function addMissingLines(array &$lines, array $duplicateFields, array $dbSchema): void
     {
         $normalLines = [];
         $foreignLines = [];
@@ -123,7 +128,7 @@ class DBOption
             // echo "  dbOption = ";
             // echo print_r($dbOptions);
             // echo "\n-------END-----------\n\n";
-            if (!in_array($fieldName, $processedFields)) {
+            if (!in_array($fieldName, $duplicateFields)) {
                 $newLine = self::makeLine($fieldName, $dbOptions);
                 if ($dbOptions[0] === 'foreign') {
                     $foreignLines[] = "            " . $newLine . ";";
@@ -156,7 +161,7 @@ class DBOption
                             $table->timestamps();
                         });
                      */
-                    array_splice($lines, $index, 0, $allNewLines);
+                    array_splice($lines, $index, 0, $allNewLines); // 0 = do not remove any old item
                     /**
                      * example of splice :
                      $letters = ['A', 'B', 'E'];

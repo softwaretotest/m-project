@@ -110,7 +110,7 @@ class M_Historizer
                 $destinationPath = self::HISTORY_DIR . '/' . TargetManager::get_activeTarget() . '/' . $newFileName;
 
                 echo "[3.2.2] Moving entity file {$phpFileName} to history as {$newFileName}\n";
-                if (rename($phpFilePath, $destinationPath)) {
+                if (copy($phpFilePath, $destinationPath)) {
                     Logger::success("Entity file successfully moved to history.");
                 } else {
                     Logger::error("Failed to move entity file {$phpFileName}.");

@@ -6,6 +6,7 @@ namespace App\Constant;
 
 require __DIR__ . '/../../vendor/autoload.php';
 
+use App\http\Controllers\TargetManager_Controller;
 
 class Runner
 {
@@ -21,8 +22,13 @@ class Runner
      */
     public static int $entityCounter = 0;
 
+    public static string $mode;
+
     public static function run(): void
     {
+        $tm_controller = new TargetManager_Controller();
+        self::$mode = $tm_controller->get_mode();
+
         // dynamicly get app/Constant/EntityContant.php
         $entities = (array) self::get_Entities();
 

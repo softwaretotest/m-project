@@ -88,7 +88,7 @@ class Logger
         DataHelper::ensureDir($logDir);
 
         // log file name = app name
-        $appName = TargetManager::peek_activeTarget() ?: 'm-project';
+        $appName = TargetManager::get_activeTarget() ?: 'm-project';
         $logFile = $logDir . '/' . $appName . '.log';
 
 
@@ -156,7 +156,7 @@ class Logger
                 mkdir($historyDir, 0777, true);
             }
 
-            $appName = TargetManager::peek_activeTarget() ?: 'm-project';
+            $appName = TargetManager::get_activeTarget() ?: 'm-project';
             $timestamp = date('Y-m-d_H-i-s');
             $historyFile = $historyDir . '/' . $appName . '_' . $timestamp . '.log';
 
