@@ -25,23 +25,25 @@ class MigrationFile
         $NO_old_migration_file = self::find_Duplicate_Field_allMigrationFiles($tableName);
 
         if ($NO_old_migration_file) {
-            Echo_::printBox(' [ ⚠️😡 ] NO_old_migration_file = TRUE');
+            Echo_::printBox_Emoji(' [ ⚠️😡 ] NO_old_migration_file = TRUE');
             self::createNew($tableName); // all same like DEV FLOW
         } else { // PROD FLOW
-            Echo_::printBox(' [ ✅😊😘🩷 ] NO_old_migration_file = FALSE');
+            Echo_::printBox_Emoji(' [ ✅😊😘🩷 ] NO_old_migration_file = FALSE');
 
             // Preparation Zone
             $isUser = ($tableName === 'users');
             self::$draftPath = __DIR__ . '/' . (
                 $isUser ? '0_create_users_table.php' : '0_add_new_fields_to_orders_table.php' //use PROD stub
             );
-            // next Logic to be analysed .......
+            // next Logic to make add_new_fields_to_{$tablename}_table.php
         }
     }
 
 
     /**
      * * PROD Mode: Find and scan duplicate fields across all existing migration files
+     * 1. get all duplicate fieldnames in this table
+     * 2. Loop to add found duplicate fieldname
      * @return true if NO OLD migration files found
      */
     private static function find_Duplicate_Field_allMigrationFiles(string $tableName): bool
@@ -61,13 +63,12 @@ class MigrationFile
                 echo "Found File: " . basename($fileFullPath) . "\n";
                 $migrationFiles[] = $fileFullPath;
 
-                // เรียกใช้ฟังก์ชันตรวจสอบฟิลด์ซ้ำจากไฟล์นี้ โดยส่ง $fileFullPath และ schema ปัจจุบันเข้าไป
-                // (สมมติว่าฟังก์ชันย่อยชื่อ check_duplicate_field_in_file)
+                // 1. get all duplicate fieldnames in this table
                 $duplicatesInThisFile = self::check_duplicate_field_in_file($fileFullPath, MakeMigration::$dbSchema);
 
                 if (!empty($duplicatesInThisFile)) {
 
-                    // วนลูปแปะชื่อตารางนำหน้าชื่อฟิลด์ที่ซ้ำทีละตัว
+                    // 2. Loop to add found duplicate fieldname
                     foreach ($duplicatesInThisFile as $fieldName) {
                         self::$allDuplicateFields[] = "{$tableName} --> {$fieldName}";
                     }
@@ -134,12 +135,12 @@ class MigrationFile
 
         $content = file_get_contents($filePath);
 
-        // ใช้ Regex ค้นหาบล็อก Schema ทั้งหมดในไฟล์นี้ ( Schema::create | Schema::table ) (DEV | PROD)
+        // Regex to find Schema ( Schema::create | Schema::table ) (DEV | PROD)
         $block_pattern = "/Schema::(?:create|table)\s*\(\s*['\"].*?['\"]\s*,\s*function\s*\(\s*Blueprint\s+\\\$table\s*\)\s*\{.*?\}\);/s";
 
         if (preg_match_all($block_pattern, $content, $block_matches)) {
             foreach ($block_matches[0] as $target_schema_block) {
-                // ดึงชื่อฟิลด์จากคำสั่ง $table->...
+                // get line info of : $table->...
                 preg_match_all("/\\\$table->\w+\s*\(\s*['\"]([^'\"]+)['\"]/", $target_schema_block, $matches);
 
                 if (!empty($matches[1])) {
