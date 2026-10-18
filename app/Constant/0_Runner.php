@@ -65,12 +65,15 @@ class Runner
         }
 
         // show all duplicate fields of all migration fields
-        if (!empty(MigrationFile::$allDuplicateFields)) {
-            Logger::warning(Logger::ERROR."---[ PROD - mode ] ⚠️🚫❌😡❌🚫⚠️ Duplicate fields found: ". print_r(MigrationFile::$allDuplicateFields, true));
-            exit(1); // = faild
-            //  we don't use Logger::error() , because throwing exception repeat error output 4 times
+        if (!empty(MigrationFile::$duplicate_table_fields)) {
+            //  we don't use Logger::error() , because throwing exception will repeat error output 4 times
+            Logger::warning(
+                Logger::ERROR."---[ PROD - mode ] ⚠️🚫❌😡❌🚫⚠️ Duplicate fields found: "
+                . print_r(MakeMigration::$duplicate_table_fields, true)
+            );
+            // for test to be removed
+            exit(1); // = faild , show in M_Sync_Service UI
         }
-
         Logger::finish();
     }
 
