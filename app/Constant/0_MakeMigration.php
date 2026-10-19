@@ -57,13 +57,16 @@ class MakeMigration
          * * * SPECIAL CASE users table in Laravel :
          * * mode DEV :
          * * xxxxxxxxxx
-         * * we must remove old *_create_{$tableName}_table.php  , before continue
+         * * we must remove old *_create_{$tableName}_table.php  , before continue , to simplify DEV
+         *
          * * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
          * * mode PROD :
          * * xxxxxxxxxx
          * * we do not update existing field , but
+         *
          * 1. use stub for PROD
          * * 0_add_new_fields_to_orders_table.php
+         *
          * 2. checkDuplicate fields first
          * * if duplicate field -> Logger::error
          * * else add only new field in 0_add_new_fields_to_orders_table.php
@@ -71,6 +74,9 @@ class MakeMigration
         if (!empty($files)
             && Runner::$mode === 'DEV'
         ) {
+            // can be commented out, if you don't want to full /history during DEV
+            M_Historizer::move_old_file_to_history($files[0]);
+
             // delete *_{$tableName}_table.php
             // delete file from system like rm of CMD
             @unlink($files[0]);
@@ -83,22 +89,11 @@ class MakeMigration
             MigrationFile::createNew($tableName);
         }
 
-        // if (
-        //     Runner::$mode === 'PROD'
-        //     && self::find_Duplicate_Field_allMigrationFiles($tableName)
-        // ) {
-        //     // selected PROD !!! But, no duplicate fields found , then use same DEV FLOW
-        //     MigrationFile::createNew($tableName);
-        //     return ;
-        // }
-
         if (Runner::$mode === 'PROD') {
             Echo_::printBox(" ----------- [ PROD ] mode selected ----------- ");
             echo "--- Maker: Preparing to ADD NEW FIELDS for [{$tableName}]. ---\n\n";
 
             $NO_old_migration_file = self::find_Duplicate_Field_allMigrationFiles($tableName);
-
-            Logger::warning('NO_old_migration_file = '.($NO_old_migration_file ? 'TRUE' : 'FALSE'));
 
             if ($NO_old_migration_file) {
                 MigrationFile::createNew($tableName);
@@ -122,8 +117,6 @@ class MakeMigration
         $pattern = TargetManager::gen_path("migrations/*_{$tableName}_table.php", 'database');
         $migrationFiles = glob($pattern);
 
-        Logger::warning("FOUND files: " . print_r($migrationFiles, true));
-
         if (empty($migrationFiles)) {
             Echo_::printBox("--- PROD: NO OLD migration files found for [ {$tableName} ] ---");
             return true; // NO_old_migration_file
@@ -141,19 +134,17 @@ class MakeMigration
 
             // 2. Loop to add found duplicate fieldnames
             $duplicates = self::check_duplicate_field_in_file($filePath, MakeMigration::$dbSchema);
-            Logger::warning("duplicatesInThisFile = " . print_r($duplicates, true));
 
             if (!empty($duplicates)) {
                 self::$allDuplicateFields = array_merge(self::$allDuplicateFields, $duplicates);
             }
         }
 
-        // ตัดฟิลด์ที่ซ้ำออก ให้เหลือแต่ฟิลด์ใหม่จริงๆ ที่ต้องเติม
+        // cut out multiple duplicate fields
         self::$allDuplicateFields = array_unique(self::$allDuplicateFields);
-        self::$new_fields = array_diff($allSchemaFields, self::$allDuplicateFields);
 
-        Logger::warning("allDuplicateFields = " . print_r(self::$allDuplicateFields, true));
-        Logger::warning("new_fields = " . print_r(self::$new_fields, true));
+        // get new fields by comparing with db schema( db opton ) with duplicate fields
+        self::$new_fields = array_diff($allSchemaFields, self::$allDuplicateFields);
 
         return false; // has_old_migration_file
     }

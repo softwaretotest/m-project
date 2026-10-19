@@ -161,7 +161,7 @@ class MigrationFile
         // 2. Process migration content in-memory (In-Memory Processing First)
         $processedContent = DBOption::makeLines($draftContent, self::$tableName);
 
-        // 3. Move old file to history if it already exists
+        // 3. Move old file to history if it already exists (for PROD FLOW , DEV FLOW unlink(file) at MakeMigration)
         if (file_exists(self::$destinationPath)) {
             M_Historizer::move_old_file_to_history(self::$destinationPath);
         }
