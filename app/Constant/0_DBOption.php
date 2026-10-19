@@ -143,33 +143,70 @@ class DBOption
 
         // 3. place $allNewLines over $table->timestamps();
         if (!empty($allNewLines)) {
+
+            $draftText = implode("\n", $lines);
+            $isCreateDraft = strpos($draftText, 'Schema::create(') !== false;
+            if ($isCreateDraft) { //if (Runner::$mode === 'DEV') {
+                foreach ($lines as $index => $line) {
+                    if (strpos($line, '$table->timestamps();') !== false) {
+                        /**
+                         * example of splice :
+                        $letters = ['A', 'B', 'E'];
+                        array_splice($letters, 2, 0, ['C', 'D']);
+                                // 2 = position to add ,
+                                // 0 = count of item to delete
+                        $letters = ['A', 'B', 'C', 'D', 'E'];
+                        */
+                        array_splice($lines, $index, 0, $allNewLines);
+                        break;
+                    }
+                }
+            } else { //if (Runner::$mode === 'PROD') {
+                self::apply_prod_migration_lines($lines, $allNewLines, $dbSchema, $duplicateFields);
+            }
+        }
+    }
+
+    /**
+     * Applies up() missing lines and down() dropColumn lines into PROD migration file.
+     *
+     * @param array $lines Reference to migration lines array.
+     * @param array $allNewLines Array of generated schema lines for up().
+     * @param array $dbSchema Full database schema array.
+     * @param array $processedFields Fields already generated or existing in previous migrations.
+     * @return void
+     */
+    private static function apply_prod_migration_lines(array &$lines, array $allNewLines, array $dbSchema, array $processedFields): void
+    {
+        $flipped_processed_fields = array_flip($processedFields);
+        $diff_schema_keys = array_diff_key($dbSchema, $flipped_processed_fields);
+        $new_field_names = array_keys($diff_schema_keys);
+
+        $dropLine = [];
+        if (!empty($new_field_names)) {
+            $imploded_fields = implode("', '", $new_field_names);
+            $formatted_fields = "'" . $imploded_fields . "'";
+            $drop_column_statement = "\$table->dropColumn([{$formatted_fields}]);";
+            $dropLine = [
+                "            " . $drop_column_statement
+            ];
+        }
+
+        // Step 1: Replace '//' in up() section
+        foreach ($lines as $index => $line) {
+            $has_placeholder_comment = (strpos($line, '//') !== false);
+            if ($has_placeholder_comment) {
+                array_splice($lines, $index, 1, $allNewLines);
+                break;
+            }
+        }
+
+        // Step 2: Replace '//' in down() section (Re-scan $lines with updated array structure)
+        if (!empty($dropLine)) {
             foreach ($lines as $index => $line) {
-                if (strpos($line, '$table->timestamps();') !== false) {
-                    /**
-                     * splice add lines before $table->timestamps(); // index, 0
-                     * e.g. before splice :
-                        Schema::create('tablename', function (Blueprint $table) {
-                            $table->id();
-                            $table->timestamps();
-                        });
-                     * e.g. after splice :
-                        Schema::create('tablename', function (Blueprint $table) {
-                            $table->id();
-                            $table->string('name');
-                            $table->decimal('price', 10, 2);
-                            $table->integer('stock');
-                            $table->timestamps();
-                        });
-                     */
-                    array_splice($lines, $index, 0, $allNewLines); // 0 = do not remove any old item
-                    /**
-                     * example of splice :
-                     $letters = ['A', 'B', 'E'];
-                     array_splice($letters, 2, 0, ['C', 'D']);
-                            // 2 = position to add ,
-                            // 0 = count of item to delete
-                     $letters = ['A', 'B', 'C', 'D', 'E'];
-                     */
+                $has_placeholder_comment = (strpos($line, '//') !== false);
+                if ($has_placeholder_comment) {
+                    array_splice($lines, $index, 1, $dropLine);
                     break;
                 }
             }

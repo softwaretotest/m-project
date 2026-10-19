@@ -1,15 +1,15 @@
 {
     "target": "ecommerce",
-    "status": "failed",
+    "status": "completed",
     "selected_scripts": [
         "migration"
     ],
     "script_statuses": {
         "json_to_php": "skipped",
         "php_to_json": "skipped",
-        "migration": "failed",
+        "migration": "completed",
         "generators": "skipped",
         "copy_js": "skipped"
     },
-    "message": "Script migration execution failed."
+    "message": null
 }

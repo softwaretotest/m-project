@@ -83,81 +83,79 @@ class MakeMigration
             MigrationFile::createNew($tableName);
         }
 
-        if (
-            Runner::$mode === 'PROD'
-            && self::find_Duplicate_Field_allMigrationFiles($tableName)
-        ) {
-            // selected PROD !!! But, no duplicate fields found , then use same DEV FLOW
-            MigrationFile::createNew($tableName);
-            return ;
-        }
+        // if (
+        //     Runner::$mode === 'PROD'
+        //     && self::find_Duplicate_Field_allMigrationFiles($tableName)
+        // ) {
+        //     // selected PROD !!! But, no duplicate fields found , then use same DEV FLOW
+        //     MigrationFile::createNew($tableName);
+        //     return ;
+        // }
 
         if (Runner::$mode === 'PROD') {
             Echo_::printBox(" ----------- [ PROD ] mode selected ----------- ");
             echo "--- Maker: Preparing to ADD NEW FIELDS for [{$tableName}]. ---\n\n";
-            MigrationFile::add_new_Field($tableName, self::$new_fields);
+
+            $NO_old_migration_file = self::find_Duplicate_Field_allMigrationFiles($tableName);
+
+            Logger::warning('NO_old_migration_file = '.($NO_old_migration_file ? 'TRUE' : 'FALSE'));
+
+            if ($NO_old_migration_file) {
+                MigrationFile::createNew($tableName);
+                return;
+            }
+
+            if (!empty(self::$new_fields)) {
+                MigrationFile::add_new_Field($tableName, self::$new_fields);
+            }
         }
     }
 
     /**
-        * * PROD Mode: Find and scan duplicate fields across all existing migration files
-        * 1. get all duplicate fieldnames in this table
-        * 2. Loop to add found duplicate fieldname
-        * @return true if NO OLD migration files found
-        */
+    * * PROD Mode: Find and scan duplicate fields across all existing migration files
+    * 1. get all duplicate fieldnames in this table
+    * 2. Loop to add found duplicate fieldnames
+    * @return true if NO OLD migration files found
+    */
     private static function find_Duplicate_Field_allMigrationFiles(string $tableName): bool
     {
         $pattern = TargetManager::gen_path("migrations/*_{$tableName}_table.php", 'database');
+        $migrationFiles = glob($pattern);
 
-        $files = glob($pattern);
+        Logger::warning("FOUND files: " . print_r($migrationFiles, true));
 
-        $migrationFiles = [];
-
-        $NO_old_migration_file = false;
-        if (empty($files)) {
+        if (empty($migrationFiles)) {
             Echo_::printBox("--- PROD: NO OLD migration files found for [ {$tableName} ] ---");
-            $NO_old_migration_file = true;
-            return $NO_old_migration_file;
+            return true; // NO_old_migration_file
         }
 
         Echo_::printBox("--- PROD: Scanning migration files for table [{$tableName}] ---");
 
-        // Logger::warning("jkfdlösajfkldösajfl  count files = " . count($files) . ' files');
+        // เคลียร์ค่าเริ่มต้นเพื่อป้องกันข้อมูลเก่าค้าง
+        self::$allDuplicateFields = [];
+        $allSchemaFields = array_keys(MakeMigration::$dbSchema);
 
-        foreach ($files as $fileFullPath) {
-            echo "Found File: " . basename($fileFullPath) . "\n";
-            $migrationFiles[] = $fileFullPath;
+        // 1. get all duplicate fieldnames in this table
+        foreach ($migrationFiles as $filePath) {
+            echo "Found File: " . basename($filePath) . "\n";
 
-            // 1. get all duplicate fieldnames in this table
-            $duplicatesInThisFile = self::check_duplicate_field_in_file($fileFullPath, MakeMigration::$dbSchema);
+            // 2. Loop to add found duplicate fieldnames
+            $duplicates = self::check_duplicate_field_in_file($filePath, MakeMigration::$dbSchema);
+            Logger::warning("duplicatesInThisFile = " . print_r($duplicates, true));
 
-            /**
-             * allSchemaFields e.g.
-               [users] => Array
-                (
-                    [0] => is_active
-                    [1] => image
-                )
-             */
-            $allSchemaFields = array_keys(MakeMigration::$dbSchema);
-
-            // find new fields
-            self::$new_fields[$tableName] = array_diff($allSchemaFields, self::$allDuplicateFields);
-
-
-            if (!empty($duplicatesInThisFile)) {
-                self::$allDuplicateFields = array_merge(self::$allDuplicateFields, $duplicatesInThisFile);
-
-                // 2. Loop to add found duplicate fieldname
-                foreach ($duplicatesInThisFile as $fieldName) {
-                    self::$duplicate_table_fields[] = "{$tableName} --> {$fieldName}";
-                }
+            if (!empty($duplicates)) {
+                self::$allDuplicateFields = array_merge(self::$allDuplicateFields, $duplicates);
             }
         }
 
-        Logger::warning("Found " . count($migrationFiles) . " migration file(s) for table: " . $tableName);
+        // ตัดฟิลด์ที่ซ้ำออก ให้เหลือแต่ฟิลด์ใหม่จริงๆ ที่ต้องเติม
+        self::$allDuplicateFields = array_unique(self::$allDuplicateFields);
+        self::$new_fields = array_diff($allSchemaFields, self::$allDuplicateFields);
 
-        return $NO_old_migration_file;
+        Logger::warning("allDuplicateFields = " . print_r(self::$allDuplicateFields, true));
+        Logger::warning("new_fields = " . print_r(self::$new_fields, true));
+
+        return false; // has_old_migration_file
     }
 
     /**
@@ -178,48 +176,43 @@ class MakeMigration
     }
 
     /**
-    * Extracts existing field names from migration files matching target table schema block only.
-    * e.g. Schema::create('shops', function...) -> captures only fields inside this specific block.
-    *
-    * Regex Breakdown for $block_pattern:
-    * - Schema::(?:create|table) : Matches "Schema::create" or "Schema::table" (non-capturing).
-    * - \s*\(\s*                : Matches opening parenthesis with optional surrounding whitespace.
-    * - ['\"]                   : Matches opening single or double quote for table name.
-    * - {$escaped_table_name}   : Matches the exact dynamic target table name safely.
-    * - ['\"]                   : Matches closing single or double quote for table name.
-    * - .*?                     : Lazily matches parameters (e.g., function(Blueprint $table) {...}).
-    * - \}\);\s*                : Matches closing block syntax "});" with trailing whitespace.
-    *
-    * Example Matched Block:
-    * Schema::create('shops', function (Blueprint $table) {
-    *     $table->id();
-    *     $table->string('name');
-    * });
-    *
-    * @param string $filePath Path to the migration file.
-    * @return array Unique list of column names found inside the target schema block.
-    */
+     * ```text
+     * e.g. found fields in the filePath:
+     * $table->boolean('is_active')
+     * $table->string('image', 255)
+     * @return array e.g.
+     * [ 'is_active' , 'image' ]
+     */
     public static function get_fieldname_from_migration_file(string $filePath): array
     {
         $existingColumns = [];
-
         if (!is_file($filePath)) {
             return $existingColumns;
         }
 
-        $content = file_get_contents($filePath);
+        $lines = file($filePath);
+        foreach ($lines as $line) {
+            $line = trim($line);
 
-        // Regex to find Schema ( Schema::create | Schema::table ) (DEV | PROD)
-        $block_pattern = "/Schema::(?:create|table)\s*\(\s*['\"].*?['\"]\s*,\s*function\s*\(\s*Blueprint\s+\\\$table\s*\)\s*\{.*?\}\);/s";
+            // check if line beginns with $table-> and has '(' , ')'
+            if (strpos($line, '$table->') !== false) {
+                // find the 1st quote "'"
+                $firstQuote = strpos($line, "'");
+                if ($firstQuote === false) {
+                    $firstQuote = strpos($line, '"');
+                }
 
-        if (preg_match_all($block_pattern, $content, $block_matches)) {
-            foreach ($block_matches[0] as $target_schema_block) {
-                // get line info of : $table->...
-                preg_match_all("/\\\$table->\w+\s*\(\s*['\"]([^'\"]+)['\"]/", $target_schema_block, $matches);
+                if ($firstQuote !== false) {
+                    // find the 2nd quote "'"
+                    $quoteChar = $line[$firstQuote];
+                    $secondQuote = strpos($line, $quoteChar, $firstQuote + 1);
 
-                if (!empty($matches[1])) {
-                    foreach ($matches[1] as $colName) {
-                        $existingColumns[] = $colName;
+                    if ($secondQuote !== false) {
+                        // cut out the text between the 2 quote 'fieldname'
+                        $colName = substr($line, $firstQuote + 1, $secondQuote - $firstQuote - 1);
+                        if (!empty($colName)) {
+                            $existingColumns[] = $colName;
+                        }
                     }
                 }
             }
@@ -227,5 +220,57 @@ class MakeMigration
 
         return array_unique($existingColumns);
     }
+
+    // Old version with regex solution , difficult to understand, but it works
+    // /**
+    // * Extracts existing field names from migration files matching target table schema block only.
+    // * e.g. Schema::create('shops', function...) -> captures only fields inside this specific block.
+    // *
+    // * Regex Breakdown for $block_pattern:
+    // * - Schema::(?:create|table) : Matches "Schema::create" or "Schema::table" (non-capturing).
+    // * - \s*\(\s*                : Matches opening parenthesis with optional surrounding whitespace.
+    // * - ['\"]                   : Matches opening single or double quote for table name.
+    // * - {$escaped_table_name}   : Matches the exact dynamic target table name safely.
+    // * - ['\"]                   : Matches closing single or double quote for table name.
+    // * - .*?                     : Lazily matches parameters (e.g., function(Blueprint $table) {...}).
+    // * - \}\);\s*                : Matches closing block syntax "});" with trailing whitespace.
+    // *
+    // * Example Matched Block:
+    // * Schema::create('shops', function (Blueprint $table) {
+    // *     $table->id();
+    // *     $table->string('name');
+    // * });
+    // *
+    // * @param string $filePath Path to the migration file.
+    // * @return array Unique list of column names found inside the target schema block.
+    // */
+    // public static function get_fieldname_from_migration_file(string $filePath): array
+    // {
+    //     $existingColumns = [];
+
+    //     if (!is_file($filePath)) {
+    //         return $existingColumns;
+    //     }
+
+    //     $content = file_get_contents($filePath);
+
+    //     // Regex to find Schema ( Schema::create | Schema::table ) (DEV | PROD)
+    //     $block_pattern = "/Schema::(?:create|table)\s*\(\s*['\"].*?['\"]\s*,\s*function\s*\(\s*Blueprint\s+\\\$table\s*\)\s*\{.*?\}\);/s";
+
+    //     if (preg_match_all($block_pattern, $content, $block_matches)) {
+    //         foreach ($block_matches[0] as $target_schema_block) {
+    //             // get line info of : $table->...
+    //             preg_match_all("/\\\$table->\w+\s*\(\s*['\"]([^'\"]+)['\"]/", $target_schema_block, $matches);
+
+    //             if (!empty($matches[1])) {
+    //                 foreach ($matches[1] as $colName) {
+    //                     $existingColumns[] = $colName;
+    //                 }
+    //             }
+    //         }
+    //     }
+
+    //     return array_unique($existingColumns);
+    // }
 
 }
