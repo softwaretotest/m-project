@@ -30,6 +30,8 @@
 
 # C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\app\Constant\0_DBOption.php"
 
+# C:\Users\o\.vscode\react\m-project\storage\scripts\file-output_v2.ps1 -Path "C:\Users\o\.vscode\react\m-project\app\Constant\3_EntityGenerator.php"
+
 param (
     [string]$Path = "resources/js/Components",
     [string]$OutputFile = "SingleSourceCode.txt"

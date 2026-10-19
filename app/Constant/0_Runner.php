@@ -26,6 +26,8 @@ class Runner
 
     public static function run(): void
     {
+        TargetManager::load_Classes_in_Constant_M_APP_from_Target();
+
         $tm_controller = new TargetManager_Controller();
         self::$mode = $tm_controller->get_mode();
 

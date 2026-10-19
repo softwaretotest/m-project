@@ -16,7 +16,7 @@ class EntityGenerator
     public static function runAll()
     {
 
-        $app_Constant_Dir = dirname(__DIR__, 3) . '/' . TargetManager::get_activeTarget() . '/app/Constant';
+        $app_Constant_Dir = TargetManager::load_Classes_in_Constant_M_APP_from_Target();
 
         $files = glob($app_Constant_Dir . '/*Constant.php');
 

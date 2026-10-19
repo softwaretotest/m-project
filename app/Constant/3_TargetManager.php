@@ -86,4 +86,28 @@ class TargetManager
         return $basePath . '/' . $baseFolder . '/' . ltrim($path, '/');
     }
 
+
+    /**
+     * ```text
+     * We must load Classes d,u,cd,cu,cud,uf,s,f,t of M-Project from Target ,
+     * before running script with Reflection
+     * otherwise there will be Exception like:
+     * Fatal error: Uncaught Error: Class "App\Constant\t" not found
+     * @return string app/Constant DIR of Target
+     */
+    public static function load_Classes_in_Constant_M_APP_from_Target()
+    {
+        $app_Constant_Dir = dirname(__DIR__, 3) . '/' . TargetManager::get_activeTarget() . '/app/Constant';
+
+        // force to load file from Target before from m-project , to read from target ===================
+        if (file_exists($app_Constant_Dir . '/0_Constant_APP.php')) {
+            require_once $app_Constant_Dir . '/0_Constant_APP.php';
+        }
+        if (file_exists($app_Constant_Dir . '/0_Constant_M.php')) {
+            require_once $app_Constant_Dir . '/0_Constant_M.php';
+        }
+        // ==============================================================================================
+        return $app_Constant_Dir;
+    }
+
 }
