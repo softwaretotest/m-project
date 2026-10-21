@@ -63,10 +63,46 @@ class DBOption
 
         self::find_Duplicate_Fieldname_in_dbSchema($schemaLines);
 
+        self::find_alter_lines($schemaLines);
+
         // 2. Add missing lines
         self::addMissingLines($lines);
 
         return implode("\n", $lines);
+    }
+
+    private static function find_alter_lines(array $schemaLines): void
+    {
+        // 1. ดึงชื่อฟิลด์และบรรทัดเดิมจากไฟล์เก่าเก็บไว้
+        $existing = [];
+        foreach ($schemaLines as $line) {
+            if (preg_match("/->\w+\('([^']+)'/", $line, $match)) {
+                $existing[$match[1]] = $line;
+            }
+        }
+
+        // 2. รีเซ็ตค่าเก่าทิ้งก่อนเริ่มรอบใหม่
+        MigrationFile::$alter_fields = [];
+
+        // 3. วนลูปเทียบข้อมูลเฉพาะฟิลด์ที่มีการเปลี่ยนแปลง
+        foreach (array_unique(self::$duplicateFields) as $fieldName) {
+            $target = self::makeLine($fieldName, MakeMigration::$dbSchema[$fieldName]);
+            $old = $existing[$fieldName] ?? '';
+
+            if (self::normalize_line($target) !== self::normalize_line($old)) {
+                // กลับมาใช้โครงสร้างเดิมที่มีทั้ง up และ down ครบถ้วนตามมาตรฐาน Laravel
+                MigrationFile::$alter_fields[$fieldName] = [
+                    'up'   => $target,
+                    'down' => $old,
+                ];
+            }
+        }
+    }
+
+    private static function normalize_line(string $line): string
+    {
+        $line = preg_replace('/\s+/', '', $line);
+        return str_replace(['->change()', ';', '"'], ['', '', "'"], $line);
     }
 
     /**
@@ -87,18 +123,6 @@ class DBOption
                 }
             }
         }
-
-        Logger::warning('self::$duplicateFields = '.print_r(self::$duplicateFields, true));
-
-        //// THIS maybe not necessary anymore , to be removed
-        // if (false === empty(self::$duplicateFields)) {
-        //     Logger::warning(Logger::ERROR." Migration found same fields on table : " . Maker::$tableName ." = [ ".implode(', ', self::$duplicateFields) ."]");
-        //     Logger::warning(Logger::ERROR." same field will not be overwritten , please do following :");
-        //     Logger::warning(Logger::ERROR." 1. remove all same fields in Tab ENTITIES (of m-project UI)");
-        //     Logger::warning(Logger::ERROR." 2. re-run all Sync_Service Scripts");
-        //     // Flow stop here , until user correct duplicate manually in En
-        //     Logger::error(Logger::ERROR." !!! DUPLICATE FIELD FOUND ===> STOP ALL !!!");
-        // }
     }
 
     /**
@@ -128,7 +152,7 @@ class DBOption
             // echo "  dbOption = ";
             // echo print_r($dbOptions);
             // echo "\n-------END-----------\n\n";
-            if (!in_array($fieldName, self::$duplicateFields)) {
+            if (!in_array($fieldName, self::$duplicateFields)) {  // Condition for New Field only !!!
                 $newLine = self::makeLine($fieldName, $dbOptions);
                 if ($dbOptions[0] === 'foreign') {
                     $foreignLines[] = "            " . $newLine . ";";
@@ -268,9 +292,15 @@ class DBOption
          * if not note the new line in alter_fields
          * for Alter_Flow ==> will be check again at makeFile()
          */
-        if (!in_array($line, MakeMigration::$all_existing_dbSchema_of_allMigrationFiles)) {
-            MigrationFile::$alter_fields[] = $line;
-        }
+        // Logger::warning('$line = '.$line);
+        // Logger::warning(
+        //     '$all_existing_dbSchema_of_allMigrationFiles = '.
+        //     print_r(MakeMigration::$all_existing_dbSchema_of_allMigrationFiles, true)
+        // );
+        // if (!in_array($line, MakeMigration::$all_existing_dbSchema_of_allMigrationFiles)) {
+        //     Echo_::printBox_Emoji('✅😊✅✅😊✅✅😊✅✅😊✅ adding $allter_field[] = $line = '.$line);
+        //     MigrationFile::$alter_fields[] = $line;
+        // }
 
         return $line;
     }

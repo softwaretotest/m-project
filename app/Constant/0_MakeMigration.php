@@ -137,18 +137,31 @@ class MakeMigration
             MigrationFile::createNew($tableName);
         }
 
+
         if (Runner::$mode === 'PROD') {
             Echo_::printBox(" ----------- [ PROD ] mode selected ----------- ");
-            echo "--- Maker: Preparing to ADD NEW FIELDS for [{$tableName}]. ---\n\n";
+            Echo_::printBox_Emoji("🩷🩷❌ Maker: Preparing to ADD NEW FIELDS for [{$tableName}].❌🩷🩷");
 
             $NO_old_migration_file = self::find_Duplicate_Field_allMigrationFiles($tableName);
+
+            // Logger::warning("DEBUG CHECK alter_fields = " . print_r(MigrationFile::$alter_fields, true));
+
 
             if ($NO_old_migration_file) {
                 MigrationFile::createNew($tableName);
                 return;
             }
 
+            if (!isset(MigrationFile::$alter_fields)
+                ||
+                empty(MigrationFile::$alter_fields)) {
+                Echo_::printBox_Emoji('🩷🩷❌❌😩😩😩 CALLING $alter_Field()');
+                MigrationFile::alter_Field();
+                return;
+            }
+
             if (!empty(self::$new_fields)) {
+                Echo_::printBox_Emoji('✅😊✅✅😊✅ CALLING $add_new_Field()');
                 MigrationFile::add_new_Field();
             }
         }
@@ -295,11 +308,11 @@ class MakeMigration
                 }
             }
 
-            Logger::warning(
-                '[ DEBUG 1 ] '.
-                'self::$all_existing_dbSchema_of_allMigrationFiles = '.
-                print_r(self::$all_existing_dbSchema_of_allMigrationFiles, true)
-            );
+            // Logger::warning(
+            //     '[ DEBUG 1 ] '.
+            //     'self::$all_existing_dbSchema_of_allMigrationFiles = '.
+            //     print_r(self::$all_existing_dbSchema_of_allMigrationFiles, true)
+            // );
         }
 
         return $existingColumns;

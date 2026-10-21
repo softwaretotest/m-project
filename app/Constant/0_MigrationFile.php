@@ -36,6 +36,27 @@ class MigrationFile
     /**
      * ```text
      * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+     * *  [ PROD - FLOW ]      ALTER FIELDS
+     * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    */
+    public static function alter_Field(): void
+    {
+        // แสดง Log ตามสไตล์ของคุณ
+        Echo_::printBox_Emoji(' [ 🔄😊😘🩷 ] ALTER FIELDS FLOW TRIGGERED');
+
+        $draftFullPath = __DIR__ . '/0_alter_fields_to_entity_table.php';
+
+        self::set_config_and_makeFile(
+            $draftFullPath,
+            function () {
+                return self::$filePrefix . "_alter_fields_to_".Maker::$tableName."_table.php";
+            }
+        );
+    }
+
+    /**
+     * ```text
+     * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
      * *  [ DEV - FLOW ]      CREATE NEW
      * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
      */
@@ -136,7 +157,7 @@ class MigrationFile
      *
      * Steps:
      * 1. Read the draft file contents directly into memory.
-     * 2. Process and update the migration schema in-memory using DBOption::makeLines.
+     * 2. Process and update the migration schema in-memory
      *  ==> 2.1 GARD : DO NOT make any migration file, if no new line to add
      * 3. Move any existing destination file to history storage.
      * 4. Write the final processed content to the destination path in a single step.
@@ -150,11 +171,23 @@ class MigrationFile
             Logger::error("Error! Failed to read draft file from : " . self::$draftFilePath);
         }
 
-        // 2. Process migration content in-memory (In-Memory Processing First)
+        /**
+         * this must be call at least once, even when it is alter_fields Flow
+         * to find out if alter_field exist
+         */
         $processedContent = DBOption::makeLines($draftContent);
 
-        // 2.1 GARD : DO NOT make any migration file, if no new line to add
-        if (empty(DBOption::$allNewLines)) {
+        // 2. Process migration content in-memory (In-Memory Processing First)
+        // เช็คแยกทางระหว่าง Alter กับ Add ทันทีตรงนี้
+        if (!empty(self::$alter_fields)) {
+            $processedContent = self::processAlterFieldsContent($draftContent);
+            Logger::warning('processedContent = '.$processedContent);
+        }
+
+        Logger::warning('[ DEBUG 2 ] MigrationFile::$alter_fields'.print_r(self::$alter_fields, true));
+
+        // 2.1 GARD : DO NOT make any migration file, if no new line and no alter field to add
+        if (empty(DBOption::$allNewLines) && empty(self::$alter_fields)) {
             return;
         }
 
@@ -177,5 +210,48 @@ class MigrationFile
         } else {
             Logger::error("Error! Directory is not writable: " . dirname(self::$destinationPath));
         }
+    }
+
+    private static function processAlterFieldsContent(string $draftContent): string
+    {
+        // 1. แตกไฟล์ออกเป็นอาเรย์บรรทัด (เหมือนต้นแบบ)
+        $lines = explode("\n", $draftContent);
+
+        // 2. กรองเอาเฉพาะคีย์ที่เป็นชื่อฟิลด์จริง ๆ (ตัดขยะตัวเลขออก)
+        $cleanAlterFields = array_filter(self::$alter_fields, fn ($key) => !is_numeric($key), ARRAY_FILTER_USE_KEY);
+
+        $upLines = [];
+        $downLines = [];
+
+        // 3. วินิจฉัยดึงข้อมูล up และ down มาเตรียมไว้ พร้อมเติม ->change();
+        foreach ($cleanAlterFields as $fieldName => $data) {
+            if (is_array($data)) {
+                if (!empty($data['up'])) {
+                    $upLines[] = "            " . rtrim(trim($data['up']), ';') . "->change();";
+                }
+                if (!empty($data['down'])) {
+                    $downLines[] = "            " . rtrim(trim($data['down']), ';') . "->change();";
+                }
+            }
+        }
+
+        // Step 1: วนหาคอมเมนต์ '//' ตัวแรก (ในฟังก์ชัน up()) แล้วใช้ array_splice แทนที่
+        foreach ($lines as $index => $line) {
+            if (strpos($line, '//') !== false) {
+                array_splice($lines, $index, 1, $upLines);
+                break;
+            }
+        }
+
+        // Step 2: วนหาคอมเมนต์ '//' ตัวถัดไป (ในฟังก์ชัน down()) แล้วใช้ array_splice แทนที่
+        foreach ($lines as $index => $line) {
+            if (strpos($line, '//') !== false) {
+                array_splice($lines, $index, 1, $downLines);
+                break;
+            }
+        }
+
+        // 4. ประกอบร่างอาเรย์บรรทัดกลับคืนเป็น string
+        return implode("\n", $lines);
     }
 }
