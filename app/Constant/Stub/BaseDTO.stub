@@ -11,7 +11,7 @@ abstract class BaseDTO
         return [];
     }
 
-    /** ใช้กับ Validator::make($data, XxxDTO::rules()) — คืน field => 'required|string|...' */
+    /** use with Validator::make($data, XxxDTO::rules()) — return field => 'required|string|...' */
     public static function rules(): array
     {
         $out = [];
@@ -21,7 +21,7 @@ abstract class BaseDTO
         return $out;
     }
 
-    /** ส่งให้ Frontend ใช้ render form (ตัด rules ที่ backend ใช้คนเดียวออก) */
+    /** set to Frontend to render form */
     public static function uiSchema(): array
     {
         $out = [];

@@ -21,14 +21,14 @@ class M_Sync_JSON_App_Data
         }
 
         $code = "<?php\n\nnamespace App\Constant;\n\nclass f\n{\n";
-        foreach ($json['f'] as $k => $v) {
-            $formattedVal = self::formatArray($v);
-            $code .= "    public const {$k} = {$formattedVal};\n";
+        foreach ($json['f'] as $key => $value) {
+            $formattedVal = self::format_json_value($value);
+            $code .= "    public const {$key} = {$formattedVal};\n";
         }
 
         $code .= "}\n\nclass t\n{\n";
-        foreach ($json['t'] as $k => $v) {
-            $code .= "    public const {$k} = " . var_export($v, true) . ";\n";
+        foreach ($json['t'] as $key => $value) {
+            $code .= "    public const {$key} = " . var_export($value, true) . ";\n";
         }
         $code .= "}\n";
 
@@ -40,18 +40,23 @@ class M_Sync_JSON_App_Data
         }
     }
 
-    private static function formatArray(array|string $arr): string
+    private static function format_json_value(mixed $json_value): string
     {
-        if (!is_array($arr)) {
+        // 1. Guard for Boolean to return true or false directly
+        if (is_bool($json_value)) {
+            return $json_value ? 'true' : 'false';
+        }
+
+        if (!is_array($json_value)) {
             // if constant e.g. 'd::STRING', 'u::FILE' remove '
-            if (is_string($arr) && preg_match('/^[a-z]+::[A-Z_]+$/', $arr)) {
-                return $arr;
+            if (is_string($json_value) && preg_match('/^[a-z]+::[A-Z_]+$/', $json_value)) {
+                return $json_value;
             }
-            return var_export($arr, true);
+            return var_export($json_value, true);
         }
         $items = [];
-        foreach ($arr as $val) {
-            $items[] = self::formatArray($val);
+        foreach ($json_value as $val) {
+            $items[] = self::format_json_value($val);
         }
         return '[' . implode(', ', $items) . ']';
     }

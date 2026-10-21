@@ -4,8 +4,16 @@ namespace App\Constant;
 
 //0_DBOption.php
 
+/**
+ * factory for $lines (content) for new MigrationFile
+ * using $dbSchema
+ */
 class DBOption
 {
+    public static array $allNewLines;
+
+    private static array $duplicateFields;
+
     /**
      * * Main entry to process all lines in a migration file.
      * 1. Update existing lines
@@ -15,44 +23,48 @@ class DBOption
      * * &$duplicateFields ( & = passed by Ref )
      * * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
      * * So, duplicateFields must be handled by both functions :
-     * *    - find_Duplicate_Field_dbSchema()
+     * *    - find_Duplicate_Fieldname_in_dbSchema()
      * * and then :
      * *    - addMissingLines()
      * * no matter if ($tableName === 'users') or not
      * * to complete the make Lines Process correctly
      * * without this line :
-     * *    $lines = self::find_Duplicate_Field_dbSchema($lines, $duplicateFields, $tableName, $dbSchema);
+     * *    $lines = self::find_Duplicate_Fieldname_in_dbSchema();
      * * 0_Runner.php will add multiple same line like this:
      * *
      * *      $table->string('name');                     // from original Laravel migration
      * *      $table->string('name', 255)->required();    // from M_Project UserConstant.php
      * *
      */
-    public static function makeLines(string $draftContent, string $tableName): string
+    public static function makeLines(string $draftContent): string
     {
-        $draftContent = str_replace('tablename', $tableName, $draftContent);
+        $draftContent = str_replace('tablename', Maker::$tableName, $draftContent);
 
         $lines = explode("\n", $draftContent);
-        $duplicateFields = [];
+        self::$duplicateFields = [];
 
         /**
          * * * SPECIAL CASE users table in Laravel :
          * * do not remove this, even the code look unnecessary
          * * 1. Update existing lines
          **/
-        self::find_Duplicate_Field_dbSchema(
-            $lines,
-            $duplicateFields,
-            $tableName,
-            MakeMigration::$dbSchema
-        );
+        $allMigrationFiles = MakeMigration::get_allMigrationFiles(Maker::$tableName);
+        $schemaLines = [];
+        foreach ($allMigrationFiles as $filePath) {
+            $new_schemaLines = MakeMigration::extract_schema_lines_from_file(
+                $filePath,
+                Maker::$tableName
+            );
+            Logger::warning('new_schemaLines = '.print_r($new_schemaLines, true));
+            $schemaLines = array_merge($schemaLines, $new_schemaLines);
+        }
+
+        Logger::warning('schemaLines = '.print_r($schemaLines, true));
+
+        self::find_Duplicate_Fieldname_in_dbSchema($schemaLines);
 
         // 2. Add missing lines
-        self::addMissingLines(
-            $lines,
-            $duplicateFields,
-            MakeMigration::$dbSchema
-        );
+        self::addMissingLines($lines);
 
         return implode("\n", $lines);
     }
@@ -63,42 +75,30 @@ class DBOption
      * * if FOUND duplicate fieldname , then throw ERROR and stop for user to correct this
      * * NOTE : m-project does not allow multiple same fieldname in all laravel migration files
      */
-    private static function find_Duplicate_Field_dbSchema(array $lines, array &$duplicateFields, string $tableName, array $dbSchema)
+    private static function find_Duplicate_Fieldname_in_dbSchema(array $schemaLines)
     {
         $inTable = false;
-        foreach ($lines as $index => $line) {
-            /**
-             * * this if check if we are still in
-             * *    Schema::create('tablename', function (Blueprint $table) {
-             * *       ..........content...............
-             * *    });
-             */
-            if (strpos($line, "Schema::create('{$tableName}'") !== false) {
-                $inTable = true;
-            }
-            if ($inTable && strpos($line, "});") !== false) {
-                $inTable = false;
-            }
+        foreach ($schemaLines as $index => $line) {
 
-            if ($inTable === false) {
-                continue;
-            }
-
-            foreach (array_keys($dbSchema) as $fieldName) {
+            foreach (array_keys(MakeMigration::$dbSchema) as $fieldName) {
                 if (strpos($line, "'{$fieldName}'") !== false) {
                     // collect duplicate line
-                    $duplicateFields[] = $fieldName;
+                    self::$duplicateFields[] = $fieldName;
                 }
             }
         }
-        if (false === empty($duplicateFields)) {
-            Logger::warning(Logger::ERROR." Migration found same fields on table : $tableName  = [ ".implode(', ', $duplicateFields) ."]");
-            Logger::warning(Logger::ERROR." same field will not be overwritten , please do following :");
-            Logger::warning(Logger::ERROR." 1. remove all same fields in Tab ENTITIES (of m-project UI)");
-            Logger::warning(Logger::ERROR." 2. re-run all Sync_Service Scripts");
-            // Flow stop here , until user correct duplicate manually in En
-            Logger::error(Logger::ERROR." !!! DUPLICATE FIELD FOUND ===> STOP ALL !!!");
-        }
+
+        Logger::warning('self::$duplicateFields = '.print_r(self::$duplicateFields, true));
+
+        //// THIS maybe not necessary anymore , to be removed
+        // if (false === empty(self::$duplicateFields)) {
+        //     Logger::warning(Logger::ERROR." Migration found same fields on table : " . Maker::$tableName ." = [ ".implode(', ', self::$duplicateFields) ."]");
+        //     Logger::warning(Logger::ERROR." same field will not be overwritten , please do following :");
+        //     Logger::warning(Logger::ERROR." 1. remove all same fields in Tab ENTITIES (of m-project UI)");
+        //     Logger::warning(Logger::ERROR." 2. re-run all Sync_Service Scripts");
+        //     // Flow stop here , until user correct duplicate manually in En
+        //     Logger::error(Logger::ERROR." !!! DUPLICATE FIELD FOUND ===> STOP ALL !!!");
+        // }
     }
 
     /**
@@ -106,7 +106,7 @@ class DBOption
      * 2. order foreing key to the end
      * 3. place $allNewLines over $table->timestamps();
      */
-    private static function addMissingLines(array &$lines, array $duplicateFields, array $dbSchema): void
+    private static function addMissingLines(array &$lines): void
     {
         $normalLines = [];
         $foreignLines = [];
@@ -123,12 +123,12 @@ class DBOption
          * *                 )
          * *        )
          */
-        foreach ($dbSchema as $fieldName => $dbOptions) {
+        foreach (MakeMigration::$dbSchema as $fieldName => $dbOptions) {
             // echo "  fieldName = $fieldName ,  =>  \n\n";
             // echo "  dbOption = ";
             // echo print_r($dbOptions);
             // echo "\n-------END-----------\n\n";
-            if (!in_array($fieldName, $duplicateFields)) {
+            if (!in_array($fieldName, self::$duplicateFields)) {
                 $newLine = self::makeLine($fieldName, $dbOptions);
                 if ($dbOptions[0] === 'foreign') {
                     $foreignLines[] = "            " . $newLine . ";";
@@ -139,14 +139,14 @@ class DBOption
         }
 
         // 2. order foreing key to the end
-        $allNewLines = array_merge($normalLines, $foreignLines);
+        self::$allNewLines = array_merge($normalLines, $foreignLines);
 
         // 3. place $allNewLines over $table->timestamps();
-        if (!empty($allNewLines)) {
+        if (!empty(self::$allNewLines)) {
 
             $draftText = implode("\n", $lines);
             $isCreateDraft = strpos($draftText, 'Schema::create(') !== false;
-            if ($isCreateDraft) { //if (Runner::$mode === 'DEV') {
+            if ($isCreateDraft) { //if (Runner::$mode === 'DEV' or 'PROD' but no duplicate fieldname found) {
                 foreach ($lines as $index => $line) {
                     if (strpos($line, '$table->timestamps();') !== false) {
                         /**
@@ -157,12 +157,12 @@ class DBOption
                                 // 0 = count of item to delete
                         $letters = ['A', 'B', 'C', 'D', 'E'];
                         */
-                        array_splice($lines, $index, 0, $allNewLines);
+                        array_splice($lines, $index, 0, self::$allNewLines);
                         break;
                     }
                 }
             } else { //if (Runner::$mode === 'PROD') {
-                self::apply_prod_migration_lines($lines, $allNewLines, $dbSchema, $duplicateFields);
+                self::apply_prod_migration_lines($lines, self::$allNewLines);
             }
         }
     }
@@ -172,14 +172,13 @@ class DBOption
      *
      * @param array $lines Reference to migration lines array.
      * @param array $allNewLines Array of generated schema lines for up().
-     * @param array $dbSchema Full database schema array.
-     * @param array $processedFields Fields already generated or existing in previous migrations.
+     * @param array self::$duplicateFields Fields already generated or existing in previous migrations.
      * @return void
      */
-    private static function apply_prod_migration_lines(array &$lines, array $allNewLines, array $dbSchema, array $processedFields): void
+    private static function apply_prod_migration_lines(array &$lines, array $allNewLines): void
     {
-        $flipped_processed_fields = array_flip($processedFields);
-        $diff_schema_keys = array_diff_key($dbSchema, $flipped_processed_fields);
+        $flipped_processed_fields = array_flip(self::$duplicateFields);
+        $diff_schema_keys = array_diff_key(MakeMigration::$dbSchema, $flipped_processed_fields);
         $new_field_names = array_keys($diff_schema_keys);
 
         $dropLine = [];
@@ -262,6 +261,15 @@ class DBOption
         // 4. Append additional constraints
         foreach ($dbOptions as $option) {
             $line .= self::format($option);
+        }
+
+        /**
+         * check if line exists in old migration file,
+         * if not note the new line in alter_fields
+         * for Alter_Flow ==> will be check again at makeFile()
+         */
+        if (!in_array($line, MakeMigration::$all_existing_dbSchema_of_allMigrationFiles)) {
+            MigrationFile::$alter_fields[] = $line;
         }
 
         return $line;

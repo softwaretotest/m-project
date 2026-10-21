@@ -111,7 +111,7 @@ class DataHelper
     /**
      * return default value for [d::DEFAUT, default_value]
      */
-    public static function castDefault($value, string $php_type)
+    public static function castDefault(mixed $value, string $php_type)
     {
         if ($value === null) {
             return null;
@@ -119,7 +119,7 @@ class DataHelper
         return match ($php_type) {
             'string' => is_bool($value) ? ($value ? '1' : '0') : (string) $value,
             'int'    => (int) $value,
-            'bool'   => (bool) $value,
+            'bool' => $value ? true : false,
             default  => $value,
         };
     }

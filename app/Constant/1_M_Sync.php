@@ -77,7 +77,7 @@ class M_Sync
         $traverser->traverse($ast); // Automatically fires function enterNode($node) under the hood , if the funct. exist
     }
 
-    private static function run_PHP_to_JSON($sourceFile, $jsonFile): void
+    private static function run_PHP_to_JSON(string $sourceFile, string $jsonFile): void
     {
         $code = '';
 
@@ -136,7 +136,7 @@ class M_Sync
      * 2. check if old Entitites.json exist to use JSON - Master Order
      * 3. save Entities.json , keeping Master Order done by UI
      */
-    private static function run_Entities_to_JSON($jsonFile): void
+    private static function run_Entities_to_JSON(string $jsonFile): void
     {
         $visitor = new Entities_to_JSON();
 

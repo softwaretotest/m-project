@@ -14,6 +14,22 @@ class MakeMigration
     public static array $allDuplicateFields = []; // all duplicate fields
 
     /**
+     * E.g.
+     * ```php
+     * [
+     *      'users' => [
+     *           "$table->boolean('is_active')->default(true);",
+     *           "$table->string('image',255)->default('');",
+     *      ],
+     *      'products' => [
+     *           "$table->string('name',255)->default('');",
+     *      ],
+     *      ... etc.
+     * ]
+     */
+    public static array $all_existing_dbSchema_of_allMigrationFiles = [];
+
+    /**
      * * show tableName --> fieldName per item
      * * to show all errors at the end of Runner::run
      */
@@ -32,12 +48,44 @@ class MakeMigration
     public static array $new_fields = [];
 
     /**
+     * ```php
+     Array
+        (
+            [$table->id();] => 1
+            [$table->string('name');] => 1
+            [$table->string('email')->unique();] => 1
+            [$table->timestamp('email_verified_at')->nullable();] => 1
+            [$table->string('password');] => 1
+            [$table->rememberToken();] => 1
+            [$table->timestamps();] => 1
+        )
+     */
+    public static $user_fields_laravel = [];
+
+    /**
+     * set $user_fields_laravel
+     * @see self::$user_fields_laravel
+     */
+    private static function get_user_fields_laravel(): void
+    {
+        $stubPath = __DIR__.'\0_create_users_table.php';
+
+        if (Maker::$tableName === 'users' && file_exists($stubPath)) {
+            $schemaLines = self::extract_schema_lines_from_file($stubPath, 'users');
+            foreach ($schemaLines as $line) {
+                self::$user_fields_laravel[$line] = true;
+            }
+        }
+    }
+
+    /**
      * Entry point to trigger migration analysis or creation.
      */
     public static function run(string $tableName, array $schema): void
     {
-        echo "--- Maker: Get DB schema for {$tableName} ---\n\n";
+        self::get_user_fields_laravel();
 
+        Echo_::printBox("--- Maker: Get DB schema for {$tableName} ---");
         self::$dbSchema = [];
         foreach ($schema as $fieldName => $data) {
             self::$dbSchema[$fieldName] = $data['db'];
@@ -101,9 +149,15 @@ class MakeMigration
             }
 
             if (!empty(self::$new_fields)) {
-                MigrationFile::add_new_Field($tableName, self::$new_fields);
+                MigrationFile::add_new_Field();
             }
         }
+    }
+
+    public static function get_allMigrationFiles(string $tableName): array
+    {
+        $pattern = TargetManager::gen_path("migrations/*_{$tableName}_table.php", 'database');
+        return glob($pattern);
     }
 
     /**
@@ -112,10 +166,9 @@ class MakeMigration
     * 2. Loop to add found duplicate fieldnames
     * @return true if NO OLD migration files found
     */
-    private static function find_Duplicate_Field_allMigrationFiles(string $tableName): bool
+    public static function find_Duplicate_Field_allMigrationFiles(string $tableName): bool
     {
-        $pattern = TargetManager::gen_path("migrations/*_{$tableName}_table.php", 'database');
-        $migrationFiles = glob($pattern);
+        $migrationFiles = self::get_allMigrationFiles(Maker::$tableName);
 
         if (empty($migrationFiles)) {
             Echo_::printBox("--- PROD: NO OLD migration files found for [ {$tableName} ] ---");
@@ -124,7 +177,7 @@ class MakeMigration
 
         Echo_::printBox("--- PROD: Scanning migration files for table [{$tableName}] ---");
 
-        // เคลียร์ค่าเริ่มต้นเพื่อป้องกันข้อมูลเก่าค้าง
+        // reset old data before checking
         self::$allDuplicateFields = [];
         $allSchemaFields = array_keys(MakeMigration::$dbSchema);
 
@@ -173,44 +226,156 @@ class MakeMigration
      * $table->string('image', 255)
      * @return array e.g.
      * [ 'is_active' , 'image' ]
+     *
+     * * additional job : collect $all_existing_dbSchema_of_allMigrationFiles [ ]
+     * ```php
+        Array
+        (
+            [users] => Array
+                (
+                    [$table->boolean('is_active')->default(true);] => 1
+                    [$table->string('image', 255)->default('');] => 1
+                )
+            [orders] => Array
+                (
+                    [$table->id();] => 1
+                    ...
+                    [$table->timestamps();] => 1
+                )
+
+        )
      */
-    public static function get_fieldname_from_migration_file(string $filePath): array
+    private static function get_fieldname_from_migration_file(string $filePath): array
     {
         $existingColumns = [];
+
+        $tableName = Maker::$tableName;
+
+        $schemaLines = self::extract_schema_lines_from_file($filePath, $tableName);
+
+        foreach ($schemaLines as $line) {
+            // filter out Laravel laravel basic fields before add to $all_existing_dbSchema
+            if ($tableName === 'users' && isset(self::$user_fields_laravel[$line])) {
+                continue;
+            }
+
+            if (isset(self::$all_existing_dbSchema_of_allMigrationFiles[$tableName][$line])) {
+                Logger::warning(
+                    Logger::ERROR . "Duplicate schema line detected in table [{$tableName}]: {$line}"
+                );
+                exit(1);
+            }
+
+            /**
+             * Collecting : Map content as key and correct table name as value for collision detection
+             * e.g.
+             * [$table->string('image', 255)->default('');] => 1
+            */
+            self::$all_existing_dbSchema_of_allMigrationFiles[$tableName][$line] = true;
+
+            $firstQuote = strpos($line, "'");
+            if ($firstQuote === false) {
+                $firstQuote = strpos($line, '"');
+            }
+
+            /**
+             * e.g. "$table->string('name', 255);"
+             *      fine text between 1st quote ' and 2nd qoute '
+             *      $colName = name
+             */
+            if ($firstQuote !== false) {
+                $quoteChar = $line[$firstQuote];
+                $secondQuote = strpos($line, $quoteChar, $firstQuote + 1);
+
+                if ($secondQuote !== false) {
+                    $colName = substr($line, $firstQuote + 1, $secondQuote - $firstQuote - 1);
+                    if (!empty($colName)) {
+                        $existingColumns[] = $colName;
+                    }
+                }
+            }
+
+            Logger::warning(
+                '[ DEBUG 1 ] '.
+                'self::$all_existing_dbSchema_of_allMigrationFiles = '.
+                print_r(self::$all_existing_dbSchema_of_allMigrationFiles, true)
+            );
+        }
+
+        return $existingColumns;
+    }
+
+    /**
+     * content of $fiePath = e.g.
+     * ```php
+     ...
+       public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->boolean('is_active')->default(true);
+            $table->string('image', 255)->default('');
+        });
+    }
+     ...
+     * @return array e.g.
+    [
+        $table->boolean('is_active')->default(true);
+        $table->string('image', 255)->default('');
+    ]
+     */
+    public static function extract_schema_lines_from_file(string $filePath, string $tableName): array
+    {
+        $schemaLines = [];
         if (!is_file($filePath)) {
-            return $existingColumns;
+            return $schemaLines;
         }
 
         $lines = file($filePath);
+        $inUpFunction = false;
+        $inTargetSchemaBlock = false;
+        $schemaBraceDepth = 0;
+
         foreach ($lines as $line) {
             $line = trim($line);
 
-            // check if line beginns with $table-> and has '(' , ')'
-            if (strpos($line, '$table->') !== false) {
-                // find the 1st quote "'"
-                $firstQuote = strpos($line, "'");
-                if ($firstQuote === false) {
-                    $firstQuote = strpos($line, '"');
+            if (strpos($line, 'public function up()') !== false) {
+                $inUpFunction = true;
+                continue;
+            }
+
+            if (strpos($line, 'public function down()') !== false) {
+                $inUpFunction = false;
+                $inTargetSchemaBlock = false;
+                continue;
+            }
+
+            if (!$inUpFunction) {
+                continue;
+            }
+
+            if (!$inTargetSchemaBlock) {
+                if (strpos($line, "Schema::create('" . $tableName . "'") !== false ||
+                    strpos($line, "Schema::table('" . $tableName . "'") !== false) {
+                    $inTargetSchemaBlock = true;
+                    $schemaBraceDepth = substr_count($line, '{') - substr_count($line, '}');
+                    continue;
+                }
+            } else {
+                $schemaBraceDepth += substr_count($line, '{') - substr_count($line, '}');
+                if ($schemaBraceDepth <= 0) {
+                    $inTargetSchemaBlock = false;
+                    continue;
                 }
 
-                if ($firstQuote !== false) {
-                    // find the 2nd quote "'"
-                    $quoteChar = $line[$firstQuote];
-                    $secondQuote = strpos($line, $quoteChar, $firstQuote + 1);
-
-                    if ($secondQuote !== false) {
-                        // cut out the text between the 2 quote 'fieldname'
-                        $colName = substr($line, $firstQuote + 1, $secondQuote - $firstQuote - 1);
-                        if (!empty($colName)) {
-                            $existingColumns[] = $colName;
-                        }
-                    }
+                if (strpos($line, '$table->') !== false) {
+                    $schemaLines[] = $line;
                 }
             }
         }
 
-        return array_unique($existingColumns);
+        return $schemaLines;
     }
+
 
     // Old version with regex solution , difficult to understand, but it works
     // /**

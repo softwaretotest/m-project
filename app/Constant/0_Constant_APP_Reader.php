@@ -2,11 +2,8 @@
 
 namespace App\Constant;
 
-use ReflectionClass;
-
 class Constant_APP_Reader
 {
-
     /** SSOT: d value => ความหมายของ param ตามลำดับ */
     private static array $d_param_map = [
         'decimal'            => ['total_digits', 'scale'],
@@ -31,7 +28,7 @@ class Constant_APP_Reader
 
     /**
      * * convert definition array -> metadata
-     * @param 
+     * @param
      * * -----------------------
                 Array
                 (
@@ -53,7 +50,7 @@ class Constant_APP_Reader
 
                     [5] => required
                 )
-     * @return 
+     * @return
      * * -----------------------
                 Array
                 (
@@ -124,7 +121,7 @@ class Constant_APP_Reader
                     }
                     break;
 
-                // ---------- UI input type ----------
+                    // ---------- UI input type ----------
                 case 'u':
                     $out['ui_input'] = $ref['value'];          // 'tel', 'number', 'select'...
                     if (is_array($item) && count($item) > 1) { // เผื่ออนาคต [u::SELECT, [...options]]
@@ -132,12 +129,12 @@ class Constant_APP_Reader
                     }
                     break;
 
-                // ---------- UI format ----------
+                    // ---------- UI format ----------
                 case 'uf':
                     $out['ui_format'] = $ref['value'];         // 'currency'
                     break;
 
-                // ---------- column constraints ----------
+                    // ---------- column constraints ----------
                 case 'cd':
                     match ($ref['name']) {
                         'FOREIGN'  => [$out['is_foreign'] = true, $out['php_type'] ??= 'int'],
@@ -152,7 +149,7 @@ class Constant_APP_Reader
                     };
                     break;
 
-                // ---------- user constraints ----------
+                    // ---------- user constraints ----------
                 case 'cud':
                     if ($ref['name'] === 'REQUIRED') {
                         $out['is_required'] = true;
@@ -205,7 +202,7 @@ class Constant_APP_Reader
 
             case 'decimal':
                 $rules[] = 'numeric';
-                $scale = isset($meta['params']['scale'])        ? (int) $meta['params']['scale']        : null;
+                $scale = isset($meta['params']['scale']) ? (int) $meta['params']['scale'] : null;
                 $total = isset($meta['params']['total_digits']) ? (int) $meta['params']['total_digits'] : null;
                 if ($scale !== null) {
                     $rules[] = "decimal:0,{$scale}";

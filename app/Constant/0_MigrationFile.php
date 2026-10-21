@@ -6,43 +6,35 @@ namespace App\Constant;
 
 class MigrationFile
 {
-    private static string $tableName;
-    private static string $draftFullPath;
+    public static string $draftFilePath;
+
     private static string $destinationPath;
     private static string $fileName;
     private static string $filePrefix;
+
+    public static array $alter_fields;
 
     /**
      * ```text
      * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
      * *  [ PROD - FLOW ]      ADD NEW FIELDS
      * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-     * @param $new_fields = e.g.
-     * ```php
-            [users] => Array
-                (
-                    [0] => is_active
-                    [1] => image
-                )
-     * ```
     */
-    public static function add_new_Field(string $tableName, array $new_fields): void
+    public static function add_new_Field(): void
     {
-
-        // PROD FLOW
         Echo_::printBox_Emoji(' [ ✅😊😘🩷 ] NO_old_migration_file = FALSE');
 
-        $draftFullPath = __DIR__ . '/0_add_new_fields_to_entity_table.php';
-        self::set_config(
-            $draftFullPath,
-            $tableName,
-            function () use ($tableName) {
-                return self::$filePrefix . "_add_new_fields_to_{$tableName}_table.php";
+        $draftFilePath = __DIR__ . '/0_add_new_fields_to_entity_table.php';
+        self::set_config_and_makeFile(
+            $draftFilePath,
+            function () {
+                return self::$filePrefix . "_add_new_fields_to_".Maker::$tableName."_table.php";
             }
         );
     }
 
     /**
+     * ```text
      * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
      * *  [ DEV - FLOW ]      CREATE NEW
      * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -50,17 +42,16 @@ class MigrationFile
     public static function createNew(string $tableName): void
     {
         $isUser = ($tableName === 'users');
-        $draftFullPath = __DIR__ . '/' . (
+        $draftFilePath = __DIR__ . '/' . (
             $isUser ? '0_create_users_table.php' : '0_create_entity_table.php'
         );
 
-        self::set_config(
-            $draftFullPath,
-            $tableName,
-            function () use ($isUser, $tableName) {
+        self::set_config_and_makeFile(
+            $draftFilePath,
+            function () use ($isUser) {
                 return $isUser
                     ? '0001_01_01_000000_create_users_table.php'
-                    : self::$filePrefix."_create_{$tableName}_table.php";
+                    : self::$filePrefix."_create_".Maker::$tableName."_table.php";
             },
             $isUser
         );
@@ -70,15 +61,15 @@ class MigrationFile
     /**
      * set all Config = static Vars of Class MigrationFile
      */
-    private static function set_config(
-        string $draftFullPath,
-        string $tableName,
+    private static function set_config_and_makeFile(
+        string $draftFilePath,
         callable $get_fileName,
         bool $isUser = false
     ): void {
-        self::$tableName = $tableName;
 
-        self::$draftFullPath = $draftFullPath;
+        self::$draftFilePath = $draftFilePath;
+
+        self::$alter_fields = []; // clean before process new table
 
         $paddingLength = strlen((string) Runner::MAX_MIGRATIONS);
 
@@ -120,8 +111,8 @@ class MigrationFile
      */
     private static function dieSameMigration(bool $isUser): void
     {
-        if (!file_exists(self::$draftFullPath)) {
-            Logger::error("Error! Draft file not found at : " . self::$draftFullPath);
+        if (!file_exists(self::$draftFilePath)) {
+            Logger::error("Error! Draft file not found at : " . self::$draftFilePath);
         }
 
         if ($isUser) {
@@ -146,20 +137,26 @@ class MigrationFile
      * Steps:
      * 1. Read the draft file contents directly into memory.
      * 2. Process and update the migration schema in-memory using DBOption::makeLines.
+     *  ==> 2.1 GARD : DO NOT make any migration file, if no new line to add
      * 3. Move any existing destination file to history storage.
      * 4. Write the final processed content to the destination path in a single step.
      */
     private static function makeFile(): void
     {
         // 1. Read draft file contents into memory
-        $draftContent = file_get_contents(self::$draftFullPath);
+        $draftContent = file_get_contents(self::$draftFilePath);
 
         if ($draftContent === false) {
-            Logger::error("Error! Failed to read draft file from : " . self::$draftFullPath);
+            Logger::error("Error! Failed to read draft file from : " . self::$draftFilePath);
         }
 
         // 2. Process migration content in-memory (In-Memory Processing First)
-        $processedContent = DBOption::makeLines($draftContent, self::$tableName);
+        $processedContent = DBOption::makeLines($draftContent);
+
+        // 2.1 GARD : DO NOT make any migration file, if no new line to add
+        if (empty(DBOption::$allNewLines)) {
+            return;
+        }
 
         // 3. Move old file to history if it already exists (for PROD FLOW , DEV FLOW unlink(file) at MakeMigration)
         if (file_exists(self::$destinationPath)) {

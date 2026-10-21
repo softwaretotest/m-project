@@ -1,13 +1,14 @@
 <?php
 
 namespace App\Constant;
+
 // 1_Constant_M_APP_to_JSON.php
 
 require __DIR__ . '/../../vendor/autoload.php';
 
-use PhpParser\NodeVisitorAbstract;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassConst;
+use PhpParser\NodeVisitorAbstract;
 
 class Constant_M_APP_to_JSON extends NodeVisitorAbstract
 {
@@ -15,7 +16,7 @@ class Constant_M_APP_to_JSON extends NodeVisitorAbstract
     private $currentClassName = '';
 
     /**
-     * 
+     *
      */
     public function enterNode($node)
     {
@@ -45,11 +46,11 @@ class Constant_M_APP_to_JSON extends NodeVisitorAbstract
      * * NODE = Specific element (e.g., Array_, String_, ClassConstFetch)
      * * EXAMPLES (Mapped from your project):
      * - String_ ('text')         -> "text" (from class u)
-     * - Array_  (['image', d::STRING, u::FILE]) 
+     * - Array_  (['image', d::STRING, u::FILE])
      * -> ["image", "string", "file"] (from class f)
      * - ClassConstFetch (d::STRING) -> "d::STRING" (from class f)
-     * @param $node 
-     * 
+     * @param $node
+     *
      * * object(PhpParser\Node\Scalar\String_)#807 (2) {
      * *   ["attributes":protected]=>
      * *   array(8) {
@@ -73,14 +74,14 @@ class Constant_M_APP_to_JSON extends NodeVisitorAbstract
      * *   ["value"]=>
      * *   string(7) "boolean"
      * * }
-     * @return 
-     * * {$class}::{$const} = e.g. d::STRING 
-     * 
-     * * $node->value 
+     * @return
+     * * {$class}::{$const} = e.g. d::STRING
+     *
+     * * $node->value
      * * CASE String_ = e.g string(6) name
      * * CASE LNumber = e.g string(5)  255
      */
-    private function resolveValue($node)
+    private function resolveValue(\PhpParser\Node $node)
     {
         // String_: e.g. string(7) "boolean"
         if ($node instanceof \PhpParser\Node\Scalar\String_) {

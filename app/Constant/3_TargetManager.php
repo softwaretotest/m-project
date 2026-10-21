@@ -35,7 +35,6 @@ class TargetManager
 
         // 1. Warning if not config
         if (!file_exists(self::CONFIG_FILE)) {
-            // Logger::warning("M-Config file not found at: " . self::CONFIG_FILE);
             self::$activeTarget = '';
             self::$targets = [];
 
@@ -47,7 +46,6 @@ class TargetManager
 
         // 3. clear jsonData
         if (!isset($jsonData['activeTarget']) || !isset($jsonData['targets'])) {
-            // Logger::error("Invalid Config format in: " . self::CONFIG_FILE);
             self::$activeTarget = '';
             self::$targets = [];
 

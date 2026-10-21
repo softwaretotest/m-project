@@ -4,8 +4,12 @@ namespace App\Constant;
 
 //0_Maker.php
 
+/**
+ * make a singleton of MakeMigration Class
+ */
 class Maker
 {
+    public static string $tableName;
     /**
      * Singleton instance of MakeMigration.
      * * PURPOSE:
@@ -38,7 +42,9 @@ class Maker
 
         $fields = $className::fields();
 
-        $tableName = $className::TABLE_NAME;
+        // need value for MakMigration::get_fieldname_from_migration_file()
+        // because this is early initialize than in MigrationFile::set_config()
+        self::$tableName = $className::TABLE_NAME;
 
         Echo_::printBox($tableName);
 

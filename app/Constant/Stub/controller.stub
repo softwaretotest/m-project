@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Dummy;
 use App\DTOs\DummyDTO;
+use App\Models\Dummy;
 use Illuminate\Http\Request;
 
 class DummyController extends BaseController
@@ -20,7 +20,7 @@ class DummyController extends BaseController
         return $this->responseSuccess(Dummy::create($dto->toArray()));
     }
 
-    public function show($id)
+    public function show(int $id)
     {
         return $this->responseSuccess(Dummy::findOrFail($id));
     }
