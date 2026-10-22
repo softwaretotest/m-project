@@ -59,18 +59,25 @@ class M_Sync_Service_EXE_Script
         // get stream realtime and append in log
 
         // START MarK-Script-Color
-        M_Sync_Service_Status_Log::write_Log("[[M_SYNC_SCRIPT_START:{$script_ID}]]\n", true);
+        M_Sync_Service_Status_Log::write_Log(
+            "[[M_SYNC_SCRIPT_START:{$script_ID}]]\n"
+        );
 
-        // Do not remove param string $type , because Symfony Process use it ,
+        // Do not remove param string $type ,
+        // because Symfony Process use it ,
         // to make UI show Log message, insteat of 'out'
-        $script_Process->start(function (string $type, string $buffer): void {
-            M_Sync_Service_Status_Log::write_Log($buffer, true);
-        });
+        $script_Process->start(
+            function (string $type, string $buffer): void {
+                M_Sync_Service_Status_Log::write_Log($buffer);
+            }
+        );
 
         $script_Process->wait();
 
         // END MarK-Script-Color
-        M_Sync_Service_Status_Log::write_Log("[[M_SYNC_SCRIPT_END:{$script_ID}]]\n", true);
+        M_Sync_Service_Status_Log::write_Log(
+            "[[M_SYNC_SCRIPT_END:{$script_ID}]]\n"
+        );
 
         $exit_Code = $script_Process->getExitCode() ?? 1;
 

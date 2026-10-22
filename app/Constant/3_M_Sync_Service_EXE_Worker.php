@@ -35,7 +35,10 @@ class M_Sync_Service_EXE_Worker
             // 2. run script + write Log
             $this->update_Script_Status($script_ID, M_Sync_Service::STATUS_PENDING);
             M_Sync_Service_Status_Log::write_Log(
-                "---------- START script: {$script_ID} ----------" . PHP_EOL
+                "----------------------------------".
+                " START script: 🩷 {$script_ID} 🩷 ".
+                "----------------------------------",
+                M_Sync_Service_Status_Log::USE_ECHO_PRINT_BOX
             );
 
             $result = $EXE_Script->execute_EXE_Script($run_Record, $script_ID);

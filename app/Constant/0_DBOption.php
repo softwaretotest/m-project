@@ -39,8 +39,8 @@ class DBOption
     public static function makeLines(string $draftContent): string
     {
         $draftContent = str_replace('tablename', Maker::$tableName, $draftContent);
-
         $lines = explode("\n", $draftContent);
+
         self::$duplicateFields = [];
 
         /**
@@ -48,14 +48,15 @@ class DBOption
          * * do not remove this, even the code look unnecessary
          * * 1. Update existing lines
          **/
-        $allMigrationFiles = MakeMigration::get_allMigrationFiles(Maker::$tableName);
         $schemaLines = [];
-        foreach ($allMigrationFiles as $filePath) {
+        foreach (MakeMigration::$allMigrationFiles as $filePath) {
             $new_schemaLines = MakeMigration::extract_schema_lines_from_file(
                 $filePath,
                 Maker::$tableName
             );
+            Logger::warning('filePath = '.$filePath);
             Logger::warning('new_schemaLines = '.print_r($new_schemaLines, true));
+
             $schemaLines = array_merge($schemaLines, $new_schemaLines);
         }
 
@@ -73,37 +74,83 @@ class DBOption
 
     private static function find_alter_lines(array $schemaLines): void
     {
-        // 1. ดึงชื่อฟิลด์และบรรทัดเดิมจากไฟล์เก่าเก็บไว้
+        Logger::warning('🩷🩷❌❌😩😩😩✅😊✅ $schemaLines'.print_r($schemaLines, true));
+
         $existing = [];
+
+        // 1. วนลูปดึงชื่อฟิลด์และเก็บ "บรรทัดเต็ม" จากไฟล์เก่าไว้ (ใช้โครงสร้างเช็ค string ปกติ ไม่ใช้ regex)
         foreach ($schemaLines as $line) {
-            if (preg_match("/->\w+\('([^']+)'/", $line, $match)) {
-                $existing[$match[1]] = $line;
+            $fieldName = null;
+            if (str_contains($line, '(') && str_contains($line, "'")) {
+                $parts = explode('(', $line, 2);
+                if (isset($parts[1])) {
+                    $inner = $parts[1];
+                    $firstQuote = strpos($inner, "'");
+                    if ($firstQuote !== false) {
+                        $secondQuote = strpos($inner, "'", $firstQuote + 1);
+                        if ($secondQuote !== false) {
+                            $fieldName = substr($inner, $firstQuote + 1, $secondQuote - $firstQuote - 1);
+                        }
+                    }
+                }
+            }
+
+            if ($fieldName) {
+                // เก็บทั้งบรรทัดที่คลีนคำว่า ->change() ออกแล้ว เพื่อเอาไว้เทียบความเหมือน
+                $cleanLine = trim(str_replace('->change()', '', $line));
+                $existing[$fieldName] = $cleanLine;
             }
         }
 
-        // 2. รีเซ็ตค่าเก่าทิ้งก่อนเริ่มรอบใหม่
-        MigrationFile::$alter_fields = [];
+        // 3. วนลูปเทียบกับสเปกปัจจุบันใน MakeMigration::$dbSchema
+        foreach (MakeMigration::$dbSchema as $fieldName => $fieldDefinition) {
+            $target = trim(self::makeLine($fieldName, $fieldDefinition));
 
-        // 3. วนลูปเทียบข้อมูลเฉพาะฟิลด์ที่มีการเปลี่ยนแปลง
-        foreach (array_unique(self::$duplicateFields) as $fieldName) {
-            $target = self::makeLine($fieldName, MakeMigration::$dbSchema[$fieldName]);
-            $old = $existing[$fieldName] ?? '';
+            Logger::warning('🩷🩷❌❌😩😩😩✅😊✅ self::normalize_line($target) = '.self::normalize_line($target));
 
-            if (self::normalize_line($target) !== self::normalize_line($old)) {
-                // กลับมาใช้โครงสร้างเดิมที่มีทั้ง up และ down ครบถ้วนตามมาตรฐาน Laravel
+            // ถ้าฟิลด์นี้มีอยู่แล้วในระบบเดิม
+            if (isset($existing[$fieldName])) {
+                $old = $existing[$fieldName];
+                Logger::warning('🩷🩷❌❌😩😩😩✅😊✅ self::normalize_line($old) = '.self::normalize_line($old));
+
+                // เปรียบเทียบ "ทั้งบรรทัด" ของใหม่ ($target) กับของเก่า ($old)
+                // ถ้า normalize แล้วเหมือนกันเป๊ะ แปลว่าเป็นตัวเดิม ไม่มีการเปลี่ยนค่า (Duplicate แบบสมบูรณ์) -> ไม่ต้องทำอะไร ปล่อยผ่านไปเลย!
+                if (self::normalize_line($target) === self::normalize_line($old)) {
+                    continue;
+                }
+
+                // แต่ถ้าบรรทัดไม่เหมือนกัน (แปลว่ามีการเปลี่ยนแปลงค่า เช่น เปลี่ยน default หรือความยาว) -> เก็บลง alter_fields เพื่อนำไปสร้างไฟล์จัดการต่อ
                 MigrationFile::$alter_fields[$fieldName] = [
                     'up'   => $target,
-                    'down' => $old,
+                    'down' => $old
                 ];
             }
         }
     }
 
+    /**
+     * Normalize a schema definition line for reliable comparison.
+     * Completely avoids regex to ensure code readability and maintainability.
+     */
     private static function normalize_line(string $line): string
     {
-        $line = preg_replace('/\s+/', '', $line);
-        return str_replace(['->change()', ';', '"'], ['', '', "'"], $line);
+        // Step 1: Remove all whitespace characters (spaces, tabs, newlines)
+        $normalized = str_replace([" ", "\t", "\n", "\r"], "", $line);
+
+        // Step 2: Remove Laravel migration change modifier if present
+        $normalized = str_replace("->change()", "", $normalized);
+
+        // Step 3: Remove semicolons so lines with and without trailing semicolons match
+        $normalized = str_replace(";", "", $normalized);
+
+        return $normalized;
     }
+
+    // private static function normalize_line(string $line): string
+    // {
+    //     $line = preg_replace('/\s+/', '', $line);
+    //     return str_replace(['->change()', ';', '"'], ['', '', "'"], $line);
+    // }
 
     /**
      * * Loop all lines of Migration file --> Loop DbSchema

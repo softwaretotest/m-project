@@ -2,11 +2,13 @@
     "target": "ecommerce",
     "status": "completed",
     "selected_scripts": [
+        "json_to_php",
+        "php_to_json",
         "migration"
     ],
     "script_statuses": {
-        "json_to_php": "skipped",
-        "php_to_json": "skipped",
+        "json_to_php": "completed",
+        "php_to_json": "completed",
         "migration": "completed",
         "generators": "skipped",
         "copy_js": "skipped"

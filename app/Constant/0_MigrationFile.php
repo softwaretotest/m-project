@@ -42,7 +42,7 @@ class MigrationFile
     public static function alter_Field(): void
     {
         // แสดง Log ตามสไตล์ของคุณ
-        Echo_::printBox_Emoji(' [ 🔄😊😘🩷 ] ALTER FIELDS FLOW TRIGGERED');
+        Echo_::printBox('---- ALTER FIELDS FLOW TRIGGERED ----');
 
         $draftFullPath = __DIR__ . '/0_alter_fields_to_entity_table.php';
 
@@ -60,9 +60,9 @@ class MigrationFile
      * *  [ DEV - FLOW ]      CREATE NEW
      * xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
      */
-    public static function createNew(string $tableName): void
+    public static function createNew(): void
     {
-        $isUser = ($tableName === 'users');
+        $isUser = (Maker::$tableName === 'users');
         $draftFilePath = __DIR__ . '/' . (
             $isUser ? '0_create_users_table.php' : '0_create_entity_table.php'
         );
@@ -118,7 +118,9 @@ class MigrationFile
         DataHelper::ensureDir(self::$destinationPath);
 
         // Validation Zone
-        self::dieSameMigration($isUser);
+        if (Runner::$mode === 'DEV') {
+            self::dieSameMigration($isUser);
+        }
 
         // Execution Zone
         self::makeFile();
@@ -133,13 +135,15 @@ class MigrationFile
     private static function dieSameMigration(bool $isUser): void
     {
         if (!file_exists(self::$draftFilePath)) {
-            Logger::error("Error! Draft file not found at : " . self::$draftFilePath);
+            Logger::error("Draft file not found at : " . self::$draftFilePath);
         }
 
         if ($isUser) {
             Logger::warning(" Found Laravel User Migration -- skipt this , cause Laravel takes care of User table itself");
             return;
         }
+
+        Echo_::printBox_Emoji('✅😊😘🩷✅😊---'.self::$filePrefix.'---😘🩷✅😊😘🩷 ');
 
         $pattern = (string) TargetManager::gen_path(
             'migrations/' . self::$filePrefix . '_*.php',
@@ -214,16 +218,34 @@ class MigrationFile
 
     private static function processAlterFieldsContent(string $draftContent): string
     {
-        // 1. แตกไฟล์ออกเป็นอาเรย์บรรทัด (เหมือนต้นแบบ)
+        $draftContent = str_replace('tablename', Maker::$tableName, $draftContent);
         $lines = explode("\n", $draftContent);
 
-        // 2. กรองเอาเฉพาะคีย์ที่เป็นชื่อฟิลด์จริง ๆ (ตัดขยะตัวเลขออก)
-        $cleanAlterFields = array_filter(self::$alter_fields, fn ($key) => !is_numeric($key), ARRAY_FILTER_USE_KEY);
+        Logger::warning('self::$alter_fields = '.print_r(self::$alter_fields, true));
+
+        $cleanAlterFields = [];
+        /**
+         * Loop through all alter fields to filter out numeric keys
+         * before
+            [
+                [1] => $table->string('name')
+                [2] => $table->string('email')
+                [is_active] => $table->boolean('is_active')
+            ]
+        * after
+            [
+                [is_active] => $table->boolean('is_active')
+            ]
+         */
+        foreach (self::$alter_fields as $key => $value) {
+            if (!is_numeric($key)) {
+                $cleanAlterFields[$key] = $value;
+            }
+        }
 
         $upLines = [];
         $downLines = [];
 
-        // 3. วินิจฉัยดึงข้อมูล up และ down มาเตรียมไว้ พร้อมเติม ->change();
         foreach ($cleanAlterFields as $fieldName => $data) {
             if (is_array($data)) {
                 if (!empty($data['up'])) {

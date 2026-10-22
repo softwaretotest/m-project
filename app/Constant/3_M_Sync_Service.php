@@ -56,7 +56,6 @@ class M_Sync_Service
 
         M_Sync_Service_Status_Log::reset_Log();
         M_Sync_Service_Status_Log::write_M_Sync_Status_json($run_Record);
-        M_Sync_Service_Status_Log::write_Log("---------- START SYNCHRONIZATION RUN ----------" . PHP_EOL);
 
         $this->launch_Worker_Process(self::PHASE_INITIAL);
 

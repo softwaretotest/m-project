@@ -12,6 +12,9 @@ class M_Sync_Service_Status_Log
      */
     public const LOG_FILE = 'logs/3_M_Sync.log';
 
+
+    public const USE_ECHO_PRINT_BOX = true;
+
     /**
      * * Symfony Process(sf_proc_*.out) will create a temporary log file
      * * in the system's temp directory by default.
@@ -156,19 +159,25 @@ class M_Sync_Service_Status_Log
         self::write_M_Sync_Status_json($run_Record);
     }
 
-    public static function write_Log(string $content, bool $append = true): void
+    public static function write_Log(string $content, bool $use_Echo_printBox = false): void
     {
         $valid_content = mb_convert_encoding($content, 'UTF-8', 'UTF-8');
+
         if ($content === '') {
             return;
         }
         $log_Path = self::get_Log_File_Path();
 
-        $flags = $append ? (FILE_APPEND | LOCK_EX) : LOCK_EX;
+        if ($use_Echo_printBox) {
+            $valid_content = Echo_::printBox_Emoji($valid_content);
+        }
+
+        $valid_content = mb_convert_encoding($valid_content, 'UTF-8', 'UTF-8');
+
         /**
          * @ = stop showing error
          */
-        @file_put_contents($log_Path, $valid_content, $flags);
+        @file_put_contents($log_Path, $valid_content, FILE_APPEND | LOCK_EX);
     }
 
     /**

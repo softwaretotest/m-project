@@ -60,7 +60,22 @@ class MakeMigration
             [$table->timestamps();] => 1
         )
      */
-    public static $user_fields_laravel = [];
+    public static array $user_fields_laravel = [];
+
+
+    /**
+     * glob (.... "migrations/*_{$tableName}_table.php" ...)
+     * retsult = e.g.
+     * ```php
+      Array
+        (
+            [0] => C:/Users/o/.vscode/react/ecommerce/database/migrations/0001_01_01_000000_create_users_table.php
+            [1] => C:/Users/o/.vscode/react/ecommerce/database/migrations/2026_10_20_235950_00_add_new_fields_to_users_table.php
+            [2] => C:/Users/o/.vscode/react/ecommerce/database/migrations/2026_10_21_054238_00_alter_fields_to_users_table.php
+        )
+     * ```
+     */
+    public static array $allMigrationFiles = [];
 
     /**
      * set $user_fields_laravel
@@ -81,25 +96,29 @@ class MakeMigration
     /**
      * Entry point to trigger migration analysis or creation.
      */
-    public static function run(string $tableName, array $schema): void
+    public static function run(array $schema): void
     {
+        // --- CLEAR STATIC STATE TO PREVENT POLLUTION ---
+        self::$dbSchema = [];
+        self::$allDuplicateFields = [];
+        self::$new_fields = [];
+        MigrationFile::$alter_fields = [];
+        MigrationFile::$draftFilePath = '';
+        // ---------------------------------------------
+
+        // --- GET INIT Variable for run ---
+        $pattern = TargetManager::gen_path("migrations/*_".Maker::$tableName."_table.php", 'database');
+        self::$allMigrationFiles = glob($pattern);
+
         self::get_user_fields_laravel();
 
-        Echo_::printBox("--- Maker: Get DB schema for {$tableName} ---");
-        self::$dbSchema = [];
+        Echo_::printBox("--- Maker: Get DB schema for ".Maker::$tableName." ---");
+
         foreach ($schema as $fieldName => $data) {
             self::$dbSchema[$fieldName] = $data['db'];
         }
 
-        Echo_::printBox("--- Maker: Starting Migration Generation for [{$tableName}] ---");
-
-        // Search for the migration file dynamically based on tableName
-        $pattern = (string) TargetManager::gen_path(
-            "migrations/*_{$tableName}_table.php",
-            'database'
-        );
-
-        $files = glob($pattern);
+        Echo_::printBox("--- Maker: Starting Migration Generation for [".Maker::$tableName."] ---");
 
         /**
          * * * SPECIAL CASE users table in Laravel :
@@ -119,58 +138,85 @@ class MakeMigration
          * * if duplicate field -> Logger::error
          * * else add only new field in 0_add_new_fields_to_orders_table.php
          */
-        if (!empty($files)
+        if (!empty(self::$allMigrationFiles)
             && Runner::$mode === 'DEV'
         ) {
             // can be commented out, if you don't want to full /history during DEV
-            M_Historizer::move_old_file_to_history($files[0]);
+            M_Historizer::move_old_file_to_history(self::$allMigrationFiles[0]);
 
-            // delete *_{$tableName}_table.php
+            // delete *_".Maker::$tableName."_table.php
             // delete file from system like rm of CMD
-            @unlink($files[0]);
-            echo "--- Maker: Removed old migration [" . basename($files[0]) . "] ---\n\n";
+            @unlink(self::$allMigrationFiles[0]);
+            echo "--- Maker: Removed old migration [" . basename(self::$allMigrationFiles[0]) . "] ---\n\n";
         }
 
         if (Runner::$mode === 'DEV') {
             Echo_::printBox(" ----------- [ DEV ] mode selected ----------- ");
-            echo "--- Maker: Preparing to CREATE NEW TABLE [{$tableName}]. ---\n\n";
-            MigrationFile::createNew($tableName);
+            echo "--- Maker: Preparing to CREATE NEW TABLE [".Maker::$tableName."]. ---\n\n";
+            MigrationFile::createNew();
         }
 
 
         if (Runner::$mode === 'PROD') {
             Echo_::printBox(" ----------- [ PROD ] mode selected ----------- ");
-            Echo_::printBox_Emoji("🩷🩷❌ Maker: Preparing to ADD NEW FIELDS for [{$tableName}].❌🩷🩷");
+            Echo_::printBox("----------- Maker: Preparing to ADD NEW FIELDS for [".Maker::$tableName."] -----------");
 
-            $NO_old_migration_file = self::find_Duplicate_Field_allMigrationFiles($tableName);
+            $is_create_table_exist = self::check_is_create_table_exists();
+
+            if ($is_create_table_exist) {
+                Echo_::printBox("--- Maker: Create table migration not found. Generating create file first. ---");
+            }
+
+            $NO_old_migration_file = self::find_Duplicate_Field_allMigrationFiles();
 
             // Logger::warning("DEBUG CHECK alter_fields = " . print_r(MigrationFile::$alter_fields, true));
 
-
-            if ($NO_old_migration_file) {
-                MigrationFile::createNew($tableName);
-                return;
-            }
-
-            if (!isset(MigrationFile::$alter_fields)
-                ||
-                empty(MigrationFile::$alter_fields)) {
-                Echo_::printBox_Emoji('🩷🩷❌❌😩😩😩 CALLING $alter_Field()');
-                MigrationFile::alter_Field();
-                return;
+            if ($NO_old_migration_file  || false === $is_create_table_exist) {
+                MigrationFile::createNew();
             }
 
             if (!empty(self::$new_fields)) {
-                Echo_::printBox_Emoji('✅😊✅✅😊✅ CALLING $add_new_Field()');
                 MigrationFile::add_new_Field();
+
+                // --- DEBUG: เช็คข้อมูลก่อนกรอง ---
+                Logger::warning("=== [DEBUG BEFORE DIFF] Table: " . Maker::$tableName . " ===");
+                Logger::warning("self::\$new_fields = " . print_r(self::$new_fields, true));
+                Logger::warning("MigrationFile::\$alter_fields (Before) = " . print_r(MigrationFile::$alter_fields, true));
+
+                // logic to extract already added self::$new_fields from MigrationFile::$alter_fields
+                MigrationFile::$alter_fields = array_diff_key(
+                    MigrationFile::$alter_fields,
+                    self::$new_fields
+                );
+
+                // --- DEBUG: เช็คข้อมูลหลังกรอง ---
+                Logger::warning("MigrationFile::\$alter_fields (After) = " . print_r(MigrationFile::$alter_fields, true));
+            }
+
+            if (
+                false === empty(MigrationFile::$alter_fields)
+                &&
+                $is_create_table_exist
+            ) {
+                MigrationFile::alter_Field();
             }
         }
     }
 
-    public static function get_allMigrationFiles(string $tableName): array
+    /**
+ * Check if the create table migration file already exists for the current table
+ */
+    public static function check_is_create_table_exists(): bool
     {
-        $pattern = TargetManager::gen_path("migrations/*_{$tableName}_table.php", 'database');
-        return glob($pattern);
+        $tableName = Maker::$tableName;
+
+        foreach (self::$allMigrationFiles as $filePath) {
+            if (str_contains(basename($filePath), "create_{$tableName}_table")) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -179,23 +225,28 @@ class MakeMigration
     * 2. Loop to add found duplicate fieldnames
     * @return true if NO OLD migration files found
     */
-    public static function find_Duplicate_Field_allMigrationFiles(string $tableName): bool
+    public static function find_Duplicate_Field_allMigrationFiles(): bool
     {
-        $migrationFiles = self::get_allMigrationFiles(Maker::$tableName);
+        // --- DEBUG LOGGER SPECIFIC FOR NON-USER TABLES ---
+        if (Maker::$tableName !== 'users') {
+            Logger::warning("🕵️‍♂️ [DEBUG Non-User] Inspecting table: " . Maker::$tableName);
+            Logger::warning("🕵️‍♂️ [DEBUG Non-User] self::\$allMigrationFiles count = " . count(self::$allMigrationFiles));
+            Logger::warning("🕵️‍♂️ [DEBUG Non-User] self::\$allMigrationFiles content = " . print_r(self::$allMigrationFiles, true));
+        }
 
-        if (empty($migrationFiles)) {
-            Echo_::printBox("--- PROD: NO OLD migration files found for [ {$tableName} ] ---");
+        Logger::warning('migrationFiles = '.print_r(self::$allMigrationFiles, true));
+
+        if (empty(self::$allMigrationFiles)) {
+            Echo_::printBox("--- PROD: NO OLD migration files found for [ ".Maker::$tableName." ] ---");
             return true; // NO_old_migration_file
         }
 
-        Echo_::printBox("--- PROD: Scanning migration files for table [{$tableName}] ---");
+        Echo_::printBox("--- PROD: Scanning migration files for table [".Maker::$tableName."] ---");
 
-        // reset old data before checking
-        self::$allDuplicateFields = [];
         $allSchemaFields = array_keys(MakeMigration::$dbSchema);
 
         // 1. get all duplicate fieldnames in this table
-        foreach ($migrationFiles as $filePath) {
+        foreach (self::$allMigrationFiles as $filePath) {
             echo "Found File: " . basename($filePath) . "\n";
 
             // 2. Loop to add found duplicate fieldnames
@@ -262,19 +313,20 @@ class MakeMigration
     {
         $existingColumns = [];
 
-        $tableName = Maker::$tableName;
-
-        $schemaLines = self::extract_schema_lines_from_file($filePath, $tableName);
+        $schemaLines = self::extract_schema_lines_from_file($filePath, Maker::$tableName);
 
         foreach ($schemaLines as $line) {
             // filter out Laravel laravel basic fields before add to $all_existing_dbSchema
-            if ($tableName === 'users' && isset(self::$user_fields_laravel[$line])) {
+            if (Maker::$tableName === 'users'
+                &&
+                isset(self::$user_fields_laravel[$line])
+            ) {
                 continue;
             }
 
-            if (isset(self::$all_existing_dbSchema_of_allMigrationFiles[$tableName][$line])) {
+            if (isset(self::$all_existing_dbSchema_of_allMigrationFiles[Maker::$tableName][$line])) {
                 Logger::warning(
-                    Logger::ERROR . "Duplicate schema line detected in table [{$tableName}]: {$line}"
+                    Logger::ERROR . "Duplicate schema line detected in table [".Maker::$tableName."]: {$line}"
                 );
                 exit(1);
             }
@@ -284,7 +336,7 @@ class MakeMigration
              * e.g.
              * [$table->string('image', 255)->default('');] => 1
             */
-            self::$all_existing_dbSchema_of_allMigrationFiles[$tableName][$line] = true;
+            self::$all_existing_dbSchema_of_allMigrationFiles[Maker::$tableName][$line] = true;
 
             $firstQuote = strpos($line, "'");
             if ($firstQuote === false) {
@@ -388,58 +440,4 @@ class MakeMigration
 
         return $schemaLines;
     }
-
-
-    // Old version with regex solution , difficult to understand, but it works
-    // /**
-    // * Extracts existing field names from migration files matching target table schema block only.
-    // * e.g. Schema::create('shops', function...) -> captures only fields inside this specific block.
-    // *
-    // * Regex Breakdown for $block_pattern:
-    // * - Schema::(?:create|table) : Matches "Schema::create" or "Schema::table" (non-capturing).
-    // * - \s*\(\s*                : Matches opening parenthesis with optional surrounding whitespace.
-    // * - ['\"]                   : Matches opening single or double quote for table name.
-    // * - {$escaped_table_name}   : Matches the exact dynamic target table name safely.
-    // * - ['\"]                   : Matches closing single or double quote for table name.
-    // * - .*?                     : Lazily matches parameters (e.g., function(Blueprint $table) {...}).
-    // * - \}\);\s*                : Matches closing block syntax "});" with trailing whitespace.
-    // *
-    // * Example Matched Block:
-    // * Schema::create('shops', function (Blueprint $table) {
-    // *     $table->id();
-    // *     $table->string('name');
-    // * });
-    // *
-    // * @param string $filePath Path to the migration file.
-    // * @return array Unique list of column names found inside the target schema block.
-    // */
-    // public static function get_fieldname_from_migration_file(string $filePath): array
-    // {
-    //     $existingColumns = [];
-
-    //     if (!is_file($filePath)) {
-    //         return $existingColumns;
-    //     }
-
-    //     $content = file_get_contents($filePath);
-
-    //     // Regex to find Schema ( Schema::create | Schema::table ) (DEV | PROD)
-    //     $block_pattern = "/Schema::(?:create|table)\s*\(\s*['\"].*?['\"]\s*,\s*function\s*\(\s*Blueprint\s+\\\$table\s*\)\s*\{.*?\}\);/s";
-
-    //     if (preg_match_all($block_pattern, $content, $block_matches)) {
-    //         foreach ($block_matches[0] as $target_schema_block) {
-    //             // get line info of : $table->...
-    //             preg_match_all("/\\\$table->\w+\s*\(\s*['\"]([^'\"]+)['\"]/", $target_schema_block, $matches);
-
-    //             if (!empty($matches[1])) {
-    //                 foreach ($matches[1] as $colName) {
-    //                     $existingColumns[] = $colName;
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     return array_unique($existingColumns);
-    // }
-
 }
