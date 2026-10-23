@@ -22,7 +22,7 @@ class Runner
      */
     public static int $entityCounter = 0;
 
-    public static string $mode;
+    public static string $mode = '';
 
     public static function run(): void
     {
@@ -30,6 +30,10 @@ class Runner
 
         $tm_controller = new TargetManager_Controller();
         self::$mode = $tm_controller->get_mode();
+
+        if (empty(self::$mode)) {
+            Logger::error('Please , select MODE DEV or PROD before running any script !');
+        }
 
         // dynamicly get app/Constant/EntityContant.php
         $entities = (array) self::get_Entities();

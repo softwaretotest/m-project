@@ -26,7 +26,7 @@ class DBOption
      * *    - find_Duplicate_Fieldname_in_dbSchema()
      * * and then :
      * *    - addMissingLines()
-     * * no matter if ($tableName === 'users') or not
+     * * no matter if (Maker::$tableName === 'users') or not
      * * to complete the make Lines Process correctly
      * * without this line :
      * *    $lines = self::find_Duplicate_Fieldname_in_dbSchema();
@@ -50,13 +50,7 @@ class DBOption
          **/
         $schemaLines = [];
         foreach (MakeMigration::$allMigrationFiles as $filePath) {
-            $new_schemaLines = MakeMigration::extract_schema_lines_from_file(
-                $filePath,
-                Maker::$tableName
-            );
-            Logger::warning('filePath = '.$filePath);
-            Logger::warning('new_schemaLines = '.print_r($new_schemaLines, true));
-
+            $new_schemaLines = MakeMigration::extract_schema_lines_from_file($filePath);
             $schemaLines = array_merge($schemaLines, $new_schemaLines);
         }
 
@@ -74,11 +68,9 @@ class DBOption
 
     private static function find_alter_lines(array $schemaLines): void
     {
-        Logger::warning('🩷🩷❌❌😩😩😩✅😊✅ $schemaLines'.print_r($schemaLines, true));
-
         $existing = [];
 
-        // 1. วนลูปดึงชื่อฟิลด์และเก็บ "บรรทัดเต็ม" จากไฟล์เก่าไว้ (ใช้โครงสร้างเช็ค string ปกติ ไม่ใช้ regex)
+        // 1. get schemaLines from existing migration files
         foreach ($schemaLines as $line) {
             $fieldName = null;
             if (str_contains($line, '(') && str_contains($line, "'")) {
@@ -96,32 +88,41 @@ class DBOption
             }
 
             if ($fieldName) {
-                // เก็บทั้งบรรทัดที่คลีนคำว่า ->change() ออกแล้ว เพื่อเอาไว้เทียบความเหมือน
+                /**
+                 * remove ->change() to compare with $new (new file line)
+                 before = $table->boolean('is_active')->default(true)->change()
+                 after  = $table->boolean('is_active')->default(true)
+                 */
                 $cleanLine = trim(str_replace('->change()', '', $line));
                 $existing[$fieldName] = $cleanLine;
             }
         }
 
-        // 3. วนลูปเทียบกับสเปกปัจจุบันใน MakeMigration::$dbSchema
+        /**
+         * Loop MakeMigration::$dbSchema , to compare old with target , e.g.
+         old = $table->boolean('is_active')->default(false)
+         target = $table->boolean('is_active')->default(true)
+         */
         foreach (MakeMigration::$dbSchema as $fieldName => $fieldDefinition) {
-            $target = trim(self::makeLine($fieldName, $fieldDefinition));
+            $new = trim(self::makeLine($fieldName, $fieldDefinition));
 
-            Logger::warning('🩷🩷❌❌😩😩😩✅😊✅ self::normalize_line($target) = '.self::normalize_line($target));
+            // Logger::warning('🩷🩷❌❌😩😩😩✅😊✅ self::normalize_line($new) = '.self::normalize_line($new));
 
-            // ถ้าฟิลด์นี้มีอยู่แล้วในระบบเดิม
+            // compare only if field exist in old migration files
             if (isset($existing[$fieldName])) {
                 $old = $existing[$fieldName];
-                Logger::warning('🩷🩷❌❌😩😩😩✅😊✅ self::normalize_line($old) = '.self::normalize_line($old));
+                // Logger::warning('🩷🩷❌❌😩😩😩✅😊✅ self::normalize_line($old) = '.self::normalize_line($old));
 
-                // เปรียบเทียบ "ทั้งบรรทัด" ของใหม่ ($target) กับของเก่า ($old)
-                // ถ้า normalize แล้วเหมือนกันเป๊ะ แปลว่าเป็นตัวเดิม ไม่มีการเปลี่ยนค่า (Duplicate แบบสมบูรณ์) -> ไม่ต้องทำอะไร ปล่อยผ่านไปเลย!
-                if (self::normalize_line($target) === self::normalize_line($old)) {
+                /**
+                 * normalize before compare, if both equal skip to next line
+                 */
+                if (self::normalize_line($new) === self::normalize_line($old)) {
                     continue;
                 }
 
-                // แต่ถ้าบรรทัดไม่เหมือนกัน (แปลว่ามีการเปลี่ยนแปลงค่า เช่น เปลี่ยน default หรือความยาว) -> เก็บลง alter_fields เพื่อนำไปสร้างไฟล์จัดการต่อ
+                // if old <> new , save the diff. in $alter_fields[]
                 MigrationFile::$alter_fields[$fieldName] = [
-                    'up'   => $target,
+                    'up'   => $new,
                     'down' => $old
                 ];
             }
@@ -145,12 +146,6 @@ class DBOption
 
         return $normalized;
     }
-
-    // private static function normalize_line(string $line): string
-    // {
-    //     $line = preg_replace('/\s+/', '', $line);
-    //     return str_replace(['->change()', ';', '"'], ['', '', "'"], $line);
-    // }
 
     /**
      * * Loop all lines of Migration file --> Loop DbSchema
@@ -333,22 +328,6 @@ class DBOption
         foreach ($dbOptions as $option) {
             $line .= self::format($option);
         }
-
-        /**
-         * check if line exists in old migration file,
-         * if not note the new line in alter_fields
-         * for Alter_Flow ==> will be check again at makeFile()
-         */
-        // Logger::warning('$line = '.$line);
-        // Logger::warning(
-        //     '$all_existing_dbSchema_of_allMigrationFiles = '.
-        //     print_r(MakeMigration::$all_existing_dbSchema_of_allMigrationFiles, true)
-        // );
-        // if (!in_array($line, MakeMigration::$all_existing_dbSchema_of_allMigrationFiles)) {
-        //     Echo_::printBox_Emoji('✅😊✅✅😊✅✅😊✅✅😊✅ adding $allter_field[] = $line = '.$line);
-        //     MigrationFile::$alter_fields[] = $line;
-        // }
-
         return $line;
     }
 

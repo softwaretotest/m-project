@@ -39,8 +39,8 @@ class Maker
             echo "--- Maker: Aborted due to validation errors! ---\n";
         }
 
-        $tableName = self::checkTableName($entity);
-        if (!$tableName) {
+        $entity_TABLE_NAME = self::checkTableName($entity);
+        if (!$entity_TABLE_NAME) {
             return;
         }
 
@@ -48,7 +48,7 @@ class Maker
         // because this is early initialize than in MigrationFile::set_config()
         self::$tableName = $entity::TABLE_NAME;
 
-        Echo_::printBox($tableName);
+        Echo_::printBox(self::$tableName);
 
         foreach ($entity::fields() as $field) {
 
@@ -115,12 +115,12 @@ class Maker
             return null;
         }
 
-        $tableName = $entity::TABLE_NAME;
-        if (empty($tableName)) {
+        $entity_TABLE_NAME = $entity::TABLE_NAME;
+        if (empty($entity_TABLE_NAME)) {
             echo "Error: 'TABLE_NAME' in {$entity} cannot be empty.\n";
             return null;
         }
 
-        return $tableName;
+        return $entity_TABLE_NAME;
     }
 }

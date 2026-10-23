@@ -323,6 +323,7 @@ export default function M_Dashboard({ activeTarget }) {
                     <button
                         className="btn-setting"
                         onClick={() => set_open_Sync_Service(true)}
+                        disabled={mode === false}
                     >
                         SYNC
                     </button>

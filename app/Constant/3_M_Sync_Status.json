@@ -4,14 +4,16 @@
     "selected_scripts": [
         "json_to_php",
         "php_to_json",
-        "migration"
+        "migration",
+        "generators",
+        "copy_js"
     ],
     "script_statuses": {
         "json_to_php": "completed",
         "php_to_json": "completed",
         "migration": "completed",
-        "generators": "skipped",
-        "copy_js": "skipped"
+        "generators": "completed",
+        "copy_js": "completed"
     },
     "message": null
 }

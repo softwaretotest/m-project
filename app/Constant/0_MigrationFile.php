@@ -22,8 +22,6 @@ class MigrationFile
     */
     public static function add_new_Field(): void
     {
-        Echo_::printBox_Emoji(' [ ✅😊😘🩷 ] NO_old_migration_file = FALSE');
-
         $draftFilePath = __DIR__ . '/0_add_new_fields_to_entity_table.php';
         self::set_config_and_makeFile(
             $draftFilePath,
@@ -41,7 +39,6 @@ class MigrationFile
     */
     public static function alter_Field(): void
     {
-        // แสดง Log ตามสไตล์ของคุณ
         Echo_::printBox('---- ALTER FIELDS FLOW TRIGGERED ----');
 
         $draftFullPath = __DIR__ . '/0_alter_fields_to_entity_table.php';
@@ -89,8 +86,6 @@ class MigrationFile
     ): void {
 
         self::$draftFilePath = $draftFilePath;
-
-        self::$alter_fields = []; // clean before process new table
 
         $paddingLength = strlen((string) Runner::MAX_MIGRATIONS);
 
@@ -143,8 +138,6 @@ class MigrationFile
             return;
         }
 
-        Echo_::printBox_Emoji('✅😊😘🩷✅😊---'.self::$filePrefix.'---😘🩷✅😊😘🩷 ');
-
         $pattern = (string) TargetManager::gen_path(
             'migrations/' . self::$filePrefix . '_*.php',
             'database'
@@ -182,13 +175,10 @@ class MigrationFile
         $processedContent = DBOption::makeLines($draftContent);
 
         // 2. Process migration content in-memory (In-Memory Processing First)
-        // เช็คแยกทางระหว่าง Alter กับ Add ทันทีตรงนี้
+        // FLOW alter_fields , if $alter_fields exists
         if (!empty(self::$alter_fields)) {
-            $processedContent = self::processAlterFieldsContent($draftContent);
-            Logger::warning('processedContent = '.$processedContent);
+            $processedContent = self::process_Alter_Fields_Content($draftContent);
         }
-
-        Logger::warning('[ DEBUG 2 ] MigrationFile::$alter_fields'.print_r(self::$alter_fields, true));
 
         // 2.1 GARD : DO NOT make any migration file, if no new line and no alter field to add
         if (empty(DBOption::$allNewLines) && empty(self::$alter_fields)) {
@@ -206,17 +196,16 @@ class MigrationFile
 
             Logger::success("--- Maker: Successfully created new migration: " . self::$fileName . " ---\n\n");
 
-            echo "\n";
-            echo "┌" . str_repeat("=", 48) . "┐\n";
-            echo "|" . str_pad("SUCCESSFUL", 48, " ", STR_PAD_BOTH) . "|\n";
-            echo "└" . str_repeat("=", 48) . "┘\n";
-            echo "\n";
+            Echo_::printBox('                   SUCCESSFUL                  ');
         } else {
             Logger::error("Error! Directory is not writable: " . dirname(self::$destinationPath));
         }
     }
 
-    private static function processAlterFieldsContent(string $draftContent): string
+    /**
+     *
+     */
+    private static function process_Alter_Fields_Content(string $draftContent): string
     {
         $draftContent = str_replace('tablename', Maker::$tableName, $draftContent);
         $lines = explode("\n", $draftContent);
@@ -257,7 +246,7 @@ class MigrationFile
             }
         }
 
-        // Step 1: วนหาคอมเมนต์ '//' ตัวแรก (ในฟังก์ชัน up()) แล้วใช้ array_splice แทนที่
+        // Step 1: 1st find placeholder '//' (in function up()) and replace line
         foreach ($lines as $index => $line) {
             if (strpos($line, '//') !== false) {
                 array_splice($lines, $index, 1, $upLines);
@@ -265,7 +254,7 @@ class MigrationFile
             }
         }
 
-        // Step 2: วนหาคอมเมนต์ '//' ตัวถัดไป (ในฟังก์ชัน down()) แล้วใช้ array_splice แทนที่
+        // Step 2: 1st find placeholder '//' (in function down()) and replace line
         foreach ($lines as $index => $line) {
             if (strpos($line, '//') !== false) {
                 array_splice($lines, $index, 1, $downLines);
@@ -273,7 +262,6 @@ class MigrationFile
             }
         }
 
-        // 4. ประกอบร่างอาเรย์บรรทัดกลับคืนเป็น string
         return implode("\n", $lines);
     }
 }

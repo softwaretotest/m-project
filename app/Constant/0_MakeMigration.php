@@ -64,7 +64,7 @@ class MakeMigration
 
 
     /**
-     * glob (.... "migrations/*_{$tableName}_table.php" ...)
+     * glob (.... "migrations/*_{Maker::$tableName}_table.php" ...)
      * retsult = e.g.
      * ```php
       Array
@@ -86,7 +86,7 @@ class MakeMigration
         $stubPath = __DIR__.'\0_create_users_table.php';
 
         if (Maker::$tableName === 'users' && file_exists($stubPath)) {
-            $schemaLines = self::extract_schema_lines_from_file($stubPath, 'users');
+            $schemaLines = self::extract_schema_lines_from_file($stubPath);
             foreach ($schemaLines as $line) {
                 self::$user_fields_laravel[$line] = true;
             }
@@ -169,30 +169,20 @@ class MakeMigration
 
             $NO_old_migration_file = self::find_Duplicate_Field_allMigrationFiles();
 
-            // Logger::warning("DEBUG CHECK alter_fields = " . print_r(MigrationFile::$alter_fields, true));
-
             if ($NO_old_migration_file  || false === $is_create_table_exist) {
                 MigrationFile::createNew();
             }
 
+            /**
+             * FLOW add_new_fields
+             */
             if (!empty(self::$new_fields)) {
                 MigrationFile::add_new_Field();
-
-                // --- DEBUG: เช็คข้อมูลก่อนกรอง ---
-                Logger::warning("=== [DEBUG BEFORE DIFF] Table: " . Maker::$tableName . " ===");
-                Logger::warning("self::\$new_fields = " . print_r(self::$new_fields, true));
-                Logger::warning("MigrationFile::\$alter_fields (Before) = " . print_r(MigrationFile::$alter_fields, true));
-
-                // logic to extract already added self::$new_fields from MigrationFile::$alter_fields
-                MigrationFile::$alter_fields = array_diff_key(
-                    MigrationFile::$alter_fields,
-                    self::$new_fields
-                );
-
-                // --- DEBUG: เช็คข้อมูลหลังกรอง ---
-                Logger::warning("MigrationFile::\$alter_fields (After) = " . print_r(MigrationFile::$alter_fields, true));
             }
 
+            /**
+             * FLOW alter_Field , if no new Field , but alter_fields[] exist
+             */
             if (
                 false === empty(MigrationFile::$alter_fields)
                 &&
@@ -200,6 +190,20 @@ class MakeMigration
             ) {
                 MigrationFile::alter_Field();
             }
+
+            /**
+             * FLOW alter_Field after add_new_Field() or createNew() DONE
+             */
+            if (
+                empty(MigrationFile::$alter_fields)
+                &&
+                empty(self::$new_fields)
+                &&
+                $is_create_table_exist
+            ) {
+                MigrationFile::alter_Field();
+            }
+
         }
     }
 
@@ -208,10 +212,8 @@ class MakeMigration
  */
     public static function check_is_create_table_exists(): bool
     {
-        $tableName = Maker::$tableName;
-
         foreach (self::$allMigrationFiles as $filePath) {
-            if (str_contains(basename($filePath), "create_{$tableName}_table")) {
+            if (str_contains(basename($filePath), "create_".Maker::$tableName."_table")) {
                 return true;
             }
         }
@@ -227,15 +229,6 @@ class MakeMigration
     */
     public static function find_Duplicate_Field_allMigrationFiles(): bool
     {
-        // --- DEBUG LOGGER SPECIFIC FOR NON-USER TABLES ---
-        if (Maker::$tableName !== 'users') {
-            Logger::warning("🕵️‍♂️ [DEBUG Non-User] Inspecting table: " . Maker::$tableName);
-            Logger::warning("🕵️‍♂️ [DEBUG Non-User] self::\$allMigrationFiles count = " . count(self::$allMigrationFiles));
-            Logger::warning("🕵️‍♂️ [DEBUG Non-User] self::\$allMigrationFiles content = " . print_r(self::$allMigrationFiles, true));
-        }
-
-        Logger::warning('migrationFiles = '.print_r(self::$allMigrationFiles, true));
-
         if (empty(self::$allMigrationFiles)) {
             Echo_::printBox("--- PROD: NO OLD migration files found for [ ".Maker::$tableName." ] ---");
             return true; // NO_old_migration_file
@@ -313,7 +306,7 @@ class MakeMigration
     {
         $existingColumns = [];
 
-        $schemaLines = self::extract_schema_lines_from_file($filePath, Maker::$tableName);
+        $schemaLines = self::extract_schema_lines_from_file($filePath);
 
         foreach ($schemaLines as $line) {
             // filter out Laravel laravel basic fields before add to $all_existing_dbSchema
@@ -359,12 +352,6 @@ class MakeMigration
                     }
                 }
             }
-
-            // Logger::warning(
-            //     '[ DEBUG 1 ] '.
-            //     'self::$all_existing_dbSchema_of_allMigrationFiles = '.
-            //     print_r(self::$all_existing_dbSchema_of_allMigrationFiles, true)
-            // );
         }
 
         return $existingColumns;
@@ -388,7 +375,7 @@ class MakeMigration
         $table->string('image', 255)->default('');
     ]
      */
-    public static function extract_schema_lines_from_file(string $filePath, string $tableName): array
+    public static function extract_schema_lines_from_file(string $filePath): array
     {
         $schemaLines = [];
         if (!is_file($filePath)) {
@@ -419,8 +406,8 @@ class MakeMigration
             }
 
             if (!$inTargetSchemaBlock) {
-                if (strpos($line, "Schema::create('" . $tableName . "'") !== false ||
-                    strpos($line, "Schema::table('" . $tableName . "'") !== false) {
+                if (strpos($line, "Schema::create('" . Maker::$tableName . "'") !== false ||
+                    strpos($line, "Schema::table('" . Maker::$tableName . "'") !== false) {
                     $inTargetSchemaBlock = true;
                     $schemaBraceDepth = substr_count($line, '{') - substr_count($line, '}');
                     continue;

@@ -340,9 +340,9 @@ class TargetManager_Controller extends Controller
     }
 
     /**
-         * * Internal helper to retrieve the current mode of the active target.
-         * * Can be called directly from backend scripts without an HTTP Request.
-         */
+     * * Internal helper to retrieve the current mode of the active target.
+     * * Can be called directly from backend scripts without an HTTP Request.
+     */
     public function get_mode(): string|false
     {
         $configPath = $this->get_Config_Path();

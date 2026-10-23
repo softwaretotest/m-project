@@ -13,23 +13,11 @@ class Echo_
      *╚==========╝
      * ```
      */
-    public static function printBox(string $short_text): string
+    public static function printBox(string $short_text): void
     {
         $line = str_repeat("=", mb_strlen($short_text) + 2);
+        self::write_output($line, $short_text);
 
-        $output = '';
-        $output .= "\n";
-        $output .= "╔{$line}╗\n";
-        $output .= "║ {$short_text} ║\n";
-        $output .= "╚{$line}╝\n";
-        $output .= "\n";
-
-        // ให้ echo เฉพาะตอนที่รันบน CLI เท่านั้น
-        if (php_sapi_name() === 'cli') {
-            echo $output;
-        }
-
-        return $output;
     }
 
     /**
@@ -38,16 +26,20 @@ class Echo_
      * $output .=  e.g.
      * ```text
      * ┌===============================================┐
-     * │  [ ✅😊😘🩷 ] NO_old_migration_file = FALSE │
+     * │  [ ✅😊😘🩷 ] text text text text text text │
      * └===============================================┘
      * ```
      */
-    public static function printBox_Emoji(string $short_text): string
+    public static function printBox_Emoji(string $short_text): void
     {
         //calculate width for Emoji
         $width = mb_strwidth($short_text, 'UTF-8');
         $line = str_repeat("=", $width + 3);
+        self::write_output($line, $short_text);
+    }
 
+    private static function write_output(string $line, string $short_text): string
+    {
         $output = '';
         $output .=  "\n";
         $output .=  "┌{$line}┐\n";
@@ -55,6 +47,7 @@ class Echo_
         $output .=  "└{$line}┘\n";
         $output .=  "\n";
 
+        // echo only if run single script in vscode terminal
         if (php_sapi_name() === 'cli') {
             echo $output;
         }
