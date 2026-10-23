@@ -54,8 +54,6 @@ class DBOption
             $schemaLines = array_merge($schemaLines, $new_schemaLines);
         }
 
-        Logger::warning('schemaLines = '.print_r($schemaLines, true));
-
         self::find_Duplicate_Fieldname_in_dbSchema($schemaLines);
 
         self::find_alter_lines($schemaLines);
