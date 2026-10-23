@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class TargetManager_Controller extends Controller
 {
@@ -381,7 +380,6 @@ class TargetManager_Controller extends Controller
 
     public function save_target_mode(Request $request): JsonResponse
     {
-        Log::info('DEBUG Request Data:', $request->all());
         $newMode = $request->input('mode', 'DEV');
         $configPath = $this->get_Config_Path();
 

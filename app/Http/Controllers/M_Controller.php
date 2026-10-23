@@ -179,8 +179,6 @@ class M_Controller extends Controller
 
         $source_file_path = base_path("app/Constant/M_JSON_Example/{$example_file_name}");
 
-        // Log::info("DEBUG get_Example_JSON -> filename: {$example_file_name}, path: {$source_file_path}");
-
         if (!file_exists($source_file_path)) {
             return response()->json(['error' => 'Example file not found: ' . $source_file_path], 404);
         }
@@ -198,15 +196,10 @@ class M_Controller extends Controller
 
     public function get_json_example_list(Request $request): JsonResponse
     {
-
-        // Log::info('DEBUG Request Data:', $request->all());
-
         $tab = $request->input('tab');
 
         $dir = dirname(__DIR__, 3) . '/app/Constant/M_JSON_Example';
         $results = [];
-
-        // Log::info("CALLED - M_Controller - get_json_example_list DIR : ". $dir);
 
         if (is_dir($dir)) {
             if ($tab === 'app_data') {
@@ -252,7 +245,6 @@ class M_Controller extends Controller
             'data' => $results
         ]);
 
-        // Log::info("CALLED - M_Controller - get_json_example_list - response : ". print_r($results, true));
         return $response;
     }
 
