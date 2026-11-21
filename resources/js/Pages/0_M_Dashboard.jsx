@@ -353,6 +353,18 @@ export default function M_Dashboard({ activeTarget }) {
                 </div>
 
                 <div className="dashboard-main-box">
+                    {activeTab === "m_data" && (
+                        <SubTab data={data.m_data} mode={mode} />
+                    )}
+                    {activeTab === "app_data" && (
+                        <SubTab data={data.app_data} mode={mode} />
+                    )}
+                    {activeTab === "entities" && (
+                        <SubTab data={data.entities} mode={mode} />
+                    )}
+                </div>
+
+                {/* <div className="dashboard-main-box">
                     {activeTab === "m_data" && <SubTab data={data.m_data} />}
                     {activeTab === "app_data" && (
                         <SubTab data={data.app_data} />
@@ -360,7 +372,7 @@ export default function M_Dashboard({ activeTarget }) {
                     {activeTab === "entities" && (
                         <SubTab data={data.entities} />
                     )}
-                </div>
+                </div> */}
             </div>
         </>
     );

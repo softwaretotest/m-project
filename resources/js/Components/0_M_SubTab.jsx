@@ -19,7 +19,7 @@ import JSON_Content from "@/Components/0_M_JSON_Content";
  * if SubTab = ENTITIES , then data = content of 1_Entities.json
  * ,e.g. * t:: = Tablename
  */
-export default function SubTab({ data }) {
+export default function SubTab_old({ data, mode }) {
     /**
      * ONLY 1 state to focus 3 Components with same click
      */
@@ -78,7 +78,12 @@ export default function SubTab({ data }) {
          * * activeTab : app_data
          * * activeSubTab from store: d  (wrong , must be f for app_data)
          */
-        if (activeSubTab && !Object.keys(data).includes(activeSubTab)) {
+        if (
+            activeSubTab &&
+            (!Object.keys(data).includes(activeSubTab) ||
+                // Reset if subtab is 't' outside DEV mode
+                (activeSubTab === "t" && mode !== "DEV"))
+        ) {
             setActiveSubTab(Default_SubTab);
             if (data[Default_SubTab]) {
                 set_M_value(data[Default_SubTab]);
@@ -102,7 +107,9 @@ export default function SubTab({ data }) {
          */
         set_can_render_TabContent(true);
         set_FIELDNAME_to_add("");
-    }, [activeSubTab, data]); // Reason for Dependency : user klicks tab , data changes
+
+        // Re-evaluate subtab 't' when mode changes
+    }, [activeSubTab, data, mode]); // Reason for Dependency : user klicks tab , data changes
 
     /**
      * * call when user klicks change tab , to set default subTab
@@ -133,7 +140,9 @@ export default function SubTab({ data }) {
                     .filter(
                         (subtab) =>
                             typeof data[subtab] === "object" &&
-                            data[subtab] !== null,
+                            data[subtab] !== null &&
+                            // Hide subtab 't' unless mode is "DEV"
+                            (subtab !== "t" || mode === "DEV"),
                         /**
                          * * don't need to show SubTab 't' of app_data
                          * * Because, redandant to SubTab entities

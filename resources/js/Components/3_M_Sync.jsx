@@ -222,72 +222,6 @@ export default function M_Sync({ open_Sync_Service, set_open_Sync_Service }) {
         }
     }, [run_Logs]);
 
-    /**
-     * Start the selected scripts after asking the backend whether this target is available.
-     *
-     * @returns {Promise<void>} Resolves after the start request has been handled.
-     */
-    // const start_Run = async () => {
-    //     set_request_Error("");
-    //     set_is_Submitting(true);
-    //     set_is_Polling(false);
-    //     set_run_Logs("");
-    //     set_script_Statuses({});
-    //     log_Cursor.current = 0;
-
-    //     try {
-    //         log_Cursor.current = 0; // start to read log
-    //         set_run_Logs(""); // clear console
-    //         const response = await fetch(`${sync_Api_Path}/start`, {
-    //             method: "POST",
-    //             headers: {
-    //                 "Content-Type": "application/json",
-    //                 Accept: "application/json",
-    //             },
-    //             body: JSON.stringify({ selected_scripts: selected_Scripts }),
-    //         });
-    //         const response_Data = await response.json();
-
-    //         // catch Error message in UI
-    //         if (!response_Data.success) {
-    //             set_run_Logs(
-    //                 (prev) => prev + "\n[ 🚫 ERROR ] " + response_Data.message,
-    //             );
-    //             set_run_Status("failed");
-    //             return;
-    //         }
-
-    //         if (response_Data.run) {
-    //             set_run_Status(response_Data.run.status);
-    //             set_script_Statuses(response_Data.run.script_statuses || {});
-    //             set_selected_Scripts(
-    //                 response_Data.run.scripts || selected_Scripts,
-    //             );
-    //         }
-
-    //         if (response.status === 409) {
-    //             set_request_Error(
-    //                 response_Data.message ||
-    //                     "An earlier run blocks this target.",
-    //             );
-    //             set_is_Polling(true);
-    //             return;
-    //         }
-
-    //         if (!response.ok) {
-    //             throw new Error(
-    //                 response_Data.message || "Could not start Sync.",
-    //             );
-    //         }
-
-    //         set_is_Polling(true);
-    //     } catch (error) {
-    //         set_run_Status("failed");
-    //         set_request_Error(error.message || "Could not start Sync.");
-    //     } finally {
-    //         set_is_Submitting(false);
-    //     }
-    // };
     async function readJsonResponse(response, tag) {
         const rawText = await response.text();
         try {
@@ -303,6 +237,11 @@ export default function M_Sync({ open_Sync_Service, set_open_Sync_Service }) {
         }
     }
 
+    /**
+     * Start the selected scripts after asking the backend whether this target is available.
+     *
+     * @returns {Promise<void>} Resolves after the start request has been handled.
+     */
     const start_Run = useCallback(async () => {
         set_request_Error("");
         set_is_Submitting(true);

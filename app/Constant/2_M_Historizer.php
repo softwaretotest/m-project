@@ -19,46 +19,6 @@ class M_Historizer
      * 4. move $sourceFile to folder ./history
      * @param $sourceFile = e.g. M-Data.json
      */
-    // public static function move_old_file_to_history(string $sourceFile)
-    // {
-    //     echo "----------------------------------------------------------------------\n";
-    //     echo " ------------ [1] START move_old_file_to_history FOR : " . $sourceFile . " ------------ \n";
-    //     echo "----------------------------------------------------------------------\n";
-
-    //     $target_HISTORY_DIR = self::HISTORY_DIR . '/' . TargetManager::get_activeTarget();
-
-    //     $filePath = $sourceFile; // for EntityGenerator
-
-    //     if (!file_exists($filePath)) {
-    //         $filePath = $target_HISTORY_DIR . '/' . $sourceFile; // for M_Sync , M_Sync_JSON
-    //     }
-
-    //     echo "[2.1] Checking history directory existence: " . self::HISTORY_DIR . "\n";
-    //     if (!file_exists($target_HISTORY_DIR)) {
-    //         mkdir($target_HISTORY_DIR, 0755, true);
-    //         echo "[2.2] Created history directory successfully ✅ at :.\n";
-    //         echo $target_HISTORY_DIR . "\n\n";
-    //     } else {
-    //         echo "[2.2] History directory already exists.\n";
-    //     }
-
-    //     echo "[2.3] Checking if source file exists: {$sourceFile}\n";
-
-    //     if (file_exists($filePath)) {
-    //         $timestamp = (new \DateTime())->format('Ymd_His_v');
-    //         $newFileName = $timestamp . '_' . basename($sourceFile);
-    //         $destinationPath = $target_HISTORY_DIR . '/' . $newFileName;
-
-    //         echo "[2.4] copy & rename file : {$sourceFile} \n to history as : {$destinationPath}\n\n";
-    //         if (copy($filePath, $destinationPath)) {
-    //             Logger::success("File successfully moved to history : $newFileName");
-    //         } else {
-    //             Logger::error("Failed to move file {$sourceFile} to history.");
-    //         }
-    //     } else {
-    //         Logger::warning("Source file {$sourceFile} does not exist, skipping archive.");
-    //     }
-    // }
     public static function move_old_file_to_history(string $sourceFile, bool $silent = false)
     {
         if (!$silent) {

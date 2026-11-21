@@ -367,6 +367,20 @@ async function delete_cascade_fieldname_in_entities(activeField, debug) {
     await M_value_Service.update(new_M_value_Entities, cascade);
 }
 
+async function fetch_Current_Target_Mode() {
+    try {
+        const response = await fetch("/api/target/get-target-mode");
+        if (!response.ok) {
+            return false;
+        }
+        const payload = await response.json();
+        return payload && payload.success ? payload.mode : false;
+    } catch (error) {
+        console.error("Failed to fetch target mode:", error);
+        return false;
+    }
+}
+
 /**
  * * to rename M_value_KEY and fieldname
  * * and keep same sort-order ,
@@ -386,6 +400,13 @@ async function delete_cascade_fieldname_in_entities(activeField, debug) {
  * * " JS still has no better solution to change object key "
  */
 export async function rename_M_value_KEY_and_fieldname(fieldname) {
+    if (is_T_tablename()) {
+        const currentMode = await fetch_Current_Target_Mode();
+        if (currentMode !== "DEV") {
+            return;
+        }
+    }
+
     const debug = false;
 
     const activeTab = use_M_Store.getState().activeTab;
@@ -485,28 +506,6 @@ export async function rename_M_value_KEY_and_fieldname(fieldname) {
  * remove old DTO , Controller , Model and all MigrationsFiles if exist
  * @param {*} OLD_KEY
  */
-// async function remove_old_EntityConstant_php_files(OLD_KEY) {
-//     if (!OLD_KEY) return;
-
-//     const response = await fetch("/api/m-sync/remove-entity", {
-//         method: "POST",
-//         headers: {
-//             "Content-Type": "application/json",
-//             "X-XSRF-TOKEN": getCookie("XSRF-TOKEN"),
-//         },
-//         body: JSON.stringify({
-//             old_key: OLD_KEY,
-//             archive_history: true,
-//             targets: ["constant", "dto", "controller", "model", "migrations"],
-//         }),
-//     });
-
-//     if (!response.ok) {
-//         throw new Error(`Failed to archive and remove files for ${OLD_KEY}`);
-//     }
-
-//     return await response.json();
-// }
 async function remove_old_EntityConstant_php_files(OLD_KEY) {
     if (!OLD_KEY) return;
 
@@ -567,16 +566,6 @@ function run_M_Sync() {
     if (typeof store.set_auto_Start_Sync === "function") {
         store.set_auto_Start_Sync(true);
     }
-
-    // if (typeof store.setAutoStartSync === "function") {
-    //     store.setAutoStartSync(true);
-    // }
-
-    // if (typeof store.setSyncConsoleNotice === "function") {
-    //     store.setSyncConsoleNotice(
-    //         "After sync finishes, run php artisan migrate to apply database changes.",
-    //     );
-    // }
 }
 
 /**
