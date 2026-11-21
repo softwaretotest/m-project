@@ -1,6 +1,7 @@
 <?php
 
 // route/api.php
+use App\Constant\M_Sync_Remover;
 use App\Http\Controllers\M_Controller;
 use App\Http\Controllers\M_Sync_Controller;
 use App\Http\Controllers\TargetManager_Controller;
@@ -47,3 +48,5 @@ Route::prefix('uf-js')->group(function () {
 
 Route::get('/m-get-example-json', [M_Controller::class, 'get_Example_JSON']);
 Route::get('/m-get-examples', [M_Controller::class, 'get_json_example_list']);
+
+Route::post('/m-sync/remove-entity', [M_Sync_Remover::class, 'remove_entity']);

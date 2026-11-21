@@ -476,7 +476,107 @@ export async function rename_M_value_KEY_and_fieldname(fieldname) {
 
     if (is_T_tablename()) {
         await update_cascade_entities_KEY(OLD_KEY, NEW_KEY);
+        await remove_old_EntityConstant_php_files(OLD_KEY);
+        run_M_Sync();
     }
+}
+
+/**
+ * remove old DTO , Controller , Model and all MigrationsFiles if exist
+ * @param {*} OLD_KEY
+ */
+// async function remove_old_EntityConstant_php_files(OLD_KEY) {
+//     if (!OLD_KEY) return;
+
+//     const response = await fetch("/api/m-sync/remove-entity", {
+//         method: "POST",
+//         headers: {
+//             "Content-Type": "application/json",
+//             "X-XSRF-TOKEN": getCookie("XSRF-TOKEN"),
+//         },
+//         body: JSON.stringify({
+//             old_key: OLD_KEY,
+//             archive_history: true,
+//             targets: ["constant", "dto", "controller", "model", "migrations"],
+//         }),
+//     });
+
+//     if (!response.ok) {
+//         throw new Error(`Failed to archive and remove files for ${OLD_KEY}`);
+//     }
+
+//     return await response.json();
+// }
+async function remove_old_EntityConstant_php_files(OLD_KEY) {
+    if (!OLD_KEY) return;
+
+    const response = await fetch("/api/m-sync/remove-entity", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-XSRF-TOKEN": getCookie("XSRF-TOKEN"),
+        },
+        body: JSON.stringify({
+            old_key: OLD_KEY,
+            archive_history: true,
+            targets: ["constant", "dto", "controller", "model", "migrations"],
+        }),
+    });
+
+    const rawText = await response.text();
+    let data = null;
+
+    try {
+        data = JSON.parse(rawText);
+    } catch (err) {
+        console.error("[LOG_JSON_FAIL][remove_old_EntityConstant_php_files]", {
+            status: response.status,
+            ok: response.ok,
+            rawText,
+            error: err.message,
+        });
+        throw new Error(
+            `Invalid JSON from remove-entity: ${rawText.slice(0, 120)}`,
+        );
+    }
+
+    if (!response.ok) {
+        console.error("[LOG_HTTP_FAIL][remove_old_EntityConstant_php_files]", {
+            status: response.status,
+            data,
+        });
+        throw new Error(`Failed to archive and remove files for ${OLD_KEY}`);
+    }
+
+    return data;
+}
+
+/**
+ * ```text
+ * call M_Sync_Manager UI and Start all scripts (default)
+ * this function is called e.g.
+ * after update tablename
+ */
+function run_M_Sync() {
+    const store = use_M_Store.getState();
+
+    if (typeof store.set_open_Sync_Service === "function") {
+        store.set_open_Sync_Service(true);
+    }
+
+    if (typeof store.set_auto_Start_Sync === "function") {
+        store.set_auto_Start_Sync(true);
+    }
+
+    // if (typeof store.setAutoStartSync === "function") {
+    //     store.setAutoStartSync(true);
+    // }
+
+    // if (typeof store.setSyncConsoleNotice === "function") {
+    //     store.setSyncConsoleNotice(
+    //         "After sync finishes, run php artisan migrate to apply database changes.",
+    //     );
+    // }
 }
 
 /**
@@ -505,6 +605,69 @@ async function update_cascade_entities_KEY(OLD_KEY, NEW_KEY) {
 
     await M_value_Service.update(new_entities, cascade);
 }
+// async function update_cascade_entities_KEY(OLD_KEY, NEW_KEY) {
+//     const entities = GLOBAL_METADATA?.entities?.entities;
+
+//     console.log("[CASCADE_ENTITIES][START]", {
+//         OLD_KEY,
+//         NEW_KEY,
+//         hasEntities: Boolean(entities),
+//         currentKeys: entities ? Object.keys(entities) : [],
+//         oldKeyExistsInEntities: entities
+//             ? Object.prototype.hasOwnProperty.call(entities, OLD_KEY)
+//             : false,
+//         newKeyAlreadyExistsInEntities: entities
+//             ? Object.prototype.hasOwnProperty.call(entities, NEW_KEY)
+//             : false,
+//     });
+
+//     if (!entities) {
+//         console.warn(
+//             "[CASCADE_ENTITIES][ABORT] GLOBAL_METADATA.entities.entities is missing",
+//         );
+//         return;
+//     }
+
+//     const new_entities = {};
+//     let matchedOldKey = false;
+
+//     for (const tableKey of Object.keys(entities)) {
+//         const fields = entities[tableKey];
+//         if (tableKey === OLD_KEY) {
+//             matchedOldKey = true;
+//             console.log("[CASCADE_ENTITIES][RENAME]", {
+//                 from: tableKey,
+//                 to: NEW_KEY,
+//                 fieldsCount: Array.isArray(fields) ? fields.length : 0,
+//             });
+//             new_entities[NEW_KEY] = fields;
+//         } else {
+//             new_entities[tableKey] = fields;
+//         }
+//     }
+
+//     console.log("[CASCADE_ENTITIES][RESULT]", {
+//         matchedOldKey,
+//         newKeys: Object.keys(new_entities),
+//         oldKeyStillInNewEntities: Object.prototype.hasOwnProperty.call(
+//             new_entities,
+//             OLD_KEY,
+//         ),
+//         newKeyInNewEntities: Object.prototype.hasOwnProperty.call(
+//             new_entities,
+//             NEW_KEY,
+//         ),
+//         new_entities,
+//     });
+
+//     const cascade = {
+//         activeTab: "entities",
+//         activeSubTab: "entities",
+//     };
+
+//     await M_value_Service.update(new_entities, cascade);
+//     console.log("[CASCADE_ENTITIES][DONE]");
+// }
 
 /**
  * * CALLED after entities TABLENAME changed

@@ -55,7 +55,9 @@ export default function M_Dashboard({ activeTarget }) {
     // ---- all Hooks must be always early return ----
     const [error_Dashboard, set_error_Dashboard] = useState("");
 
-    const [open_Sync_Service, set_open_Sync_Service] = useState(false);
+    // const [open_Sync_Service, set_open_Sync_Service] = useState(false);
+    const open_Sync_Service = use_M_Store((state) => state.open_Sync_Service);
+    const set_open_Sync_Service = use_M_Store.getState().set_open_Sync_Service;
 
     const [open_Example, set_open_Example] = useState(false);
 

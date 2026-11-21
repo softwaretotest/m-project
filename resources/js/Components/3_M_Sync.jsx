@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { use_M_Store } from "@/Stores/0_M_Store";
+
 import "./3_M_Sync.css";
 
 const script_Options = [
@@ -224,7 +227,83 @@ export default function M_Sync({ open_Sync_Service, set_open_Sync_Service }) {
      *
      * @returns {Promise<void>} Resolves after the start request has been handled.
      */
-    const start_Run = async () => {
+    // const start_Run = async () => {
+    //     set_request_Error("");
+    //     set_is_Submitting(true);
+    //     set_is_Polling(false);
+    //     set_run_Logs("");
+    //     set_script_Statuses({});
+    //     log_Cursor.current = 0;
+
+    //     try {
+    //         log_Cursor.current = 0; // start to read log
+    //         set_run_Logs(""); // clear console
+    //         const response = await fetch(`${sync_Api_Path}/start`, {
+    //             method: "POST",
+    //             headers: {
+    //                 "Content-Type": "application/json",
+    //                 Accept: "application/json",
+    //             },
+    //             body: JSON.stringify({ selected_scripts: selected_Scripts }),
+    //         });
+    //         const response_Data = await response.json();
+
+    //         // catch Error message in UI
+    //         if (!response_Data.success) {
+    //             set_run_Logs(
+    //                 (prev) => prev + "\n[ 🚫 ERROR ] " + response_Data.message,
+    //             );
+    //             set_run_Status("failed");
+    //             return;
+    //         }
+
+    //         if (response_Data.run) {
+    //             set_run_Status(response_Data.run.status);
+    //             set_script_Statuses(response_Data.run.script_statuses || {});
+    //             set_selected_Scripts(
+    //                 response_Data.run.scripts || selected_Scripts,
+    //             );
+    //         }
+
+    //         if (response.status === 409) {
+    //             set_request_Error(
+    //                 response_Data.message ||
+    //                     "An earlier run blocks this target.",
+    //             );
+    //             set_is_Polling(true);
+    //             return;
+    //         }
+
+    //         if (!response.ok) {
+    //             throw new Error(
+    //                 response_Data.message || "Could not start Sync.",
+    //             );
+    //         }
+
+    //         set_is_Polling(true);
+    //     } catch (error) {
+    //         set_run_Status("failed");
+    //         set_request_Error(error.message || "Could not start Sync.");
+    //     } finally {
+    //         set_is_Submitting(false);
+    //     }
+    // };
+    async function readJsonResponse(response, tag) {
+        const rawText = await response.text();
+        try {
+            return JSON.parse(rawText);
+        } catch (error) {
+            console.error(`[LOG_JSON_FAIL][${tag}]`, {
+                status: response.status,
+                ok: response.ok,
+                rawText,
+                error: error.message,
+            });
+            throw new Error(`Invalid JSON in ${tag}: ${rawText.slice(0, 120)}`);
+        }
+    }
+
+    const start_Run = useCallback(async () => {
         set_request_Error("");
         set_is_Submitting(true);
         set_is_Polling(false);
@@ -233,8 +312,9 @@ export default function M_Sync({ open_Sync_Service, set_open_Sync_Service }) {
         log_Cursor.current = 0;
 
         try {
-            log_Cursor.current = 0; // เริ่มอ่าน log ใหม่ตั้งแต่ต้นไฟล์
-            set_run_Logs(""); // ล้างคอนโซลบนจอ
+            log_Cursor.current = 0;
+            set_run_Logs("");
+
             const response = await fetch(`${sync_Api_Path}/start`, {
                 method: "POST",
                 headers: {
@@ -243,9 +323,9 @@ export default function M_Sync({ open_Sync_Service, set_open_Sync_Service }) {
                 },
                 body: JSON.stringify({ selected_scripts: selected_Scripts }),
             });
-            const response_Data = await response.json();
 
-            // catch Error message in UI
+            const response_Data = await readJsonResponse(response, "start_Run");
+
             if (!response_Data.success) {
                 set_run_Logs(
                     (prev) => prev + "\n[ 🚫 ERROR ] " + response_Data.message,
@@ -284,7 +364,23 @@ export default function M_Sync({ open_Sync_Service, set_open_Sync_Service }) {
         } finally {
             set_is_Submitting(false);
         }
-    };
+    }, [selected_Scripts]);
+
+    /**
+     * useEffect to auto. start M_Sync
+     * e.g. after changing tablename
+     */
+    const auto_Start_Sync = use_M_Store((state) => state.auto_Start_Sync);
+    const set_auto_Start_Sync = use_M_Store.getState().set_auto_Start_Sync;
+
+    useEffect(() => {
+        if (!open_Sync_Service || !auto_Start_Sync) {
+            return;
+        }
+
+        set_auto_Start_Sync(false);
+        start_Run();
+    }, [open_Sync_Service, auto_Start_Sync, set_auto_Start_Sync, start_Run]);
 
     /**
      * Continue the current run after the user has reviewed the generated Entities.json.

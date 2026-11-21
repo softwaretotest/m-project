@@ -54,6 +54,10 @@ export const use_M_Store = create((set) => ({
 
     debug_is_Editing: false,
 
+    debug_open_Sync_Service: false,
+
+    debug_auto_Start_Sync: true,
+
     debug_FIELDNAME_to_update: false,
 
     debug_FIELDNAME_to_add: false,
@@ -72,6 +76,36 @@ export const use_M_Store = create((set) => ({
                 console.log("------------------------------------");
             }
             return { FIELDNAME_to_add: FIELDNAME_to_add };
+        }),
+
+    auto_Start_Sync: false,
+    set_auto_Start_Sync: (auto_Start_Sync) =>
+        set((state) => {
+            if (state.debug || state.debug_auto_Start_Sync) {
+                console.log(
+                    `[M_STORE_DEBUG] auto_Start_Sync :`,
+                    auto_Start_Sync,
+                );
+                console.log("------------------------------------");
+            }
+            return {
+                auto_Start_Sync: auto_Start_Sync,
+            };
+        }),
+
+    open_Sync_Service: false,
+    set_open_Sync_Service: (open_Sync_Service) =>
+        set((state) => {
+            if (state.debug || state.debug_open_Sync_Service) {
+                console.log(
+                    `[M_STORE_DEBUG] open_Sync_Service :`,
+                    open_Sync_Service,
+                );
+                console.log("------------------------------------");
+            }
+            return {
+                open_Sync_Service: open_Sync_Service,
+            };
         }),
 
     is_Editing: false,
