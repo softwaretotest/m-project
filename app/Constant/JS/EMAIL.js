@@ -1,3 +1,5 @@
+import { L } from "@/i18n";
+
 export function validateEmail(value) {
     if (!value || value.trim() === "") {
         return L.must_insert_data;
